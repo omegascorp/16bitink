@@ -72,6 +72,33 @@
     "recorded": "2026-11-08T10:34:30Z"
   },
   {
+    "line": "blackBanner-won",
+    "title": "The Black Banner falls",
+    "text": "The black banner is down, and Korax opens its gates to the Crown! But in Kassander's tent, Rowan's scouts find letters… sealed with a wolf's head. Kassander served a master. Lykaon, the wolf-king of Arcadia, has woken the old faith of the Titans… and he rides for Mount Othrys!",
+    "script": "[triumphant] The black banner is down, and Korax opens its gates to the Crown! [puzzled] But in Kassander's tent, Rowan's scouts find letters… sealed with a wolf's head. [ominous] Kassander served a master. [grim] Lykaon, the wolf-king of Arcadia, has woken the old faith of the Titans… [urgent] and he rides for Mount Othrys!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "part-othrys",
+    "title": "Othrys",
+    "text": "South of the Border March rises Mount Othrys, where the Titans sat before the gods were born… and on its summit their forge still burns! Lykaon of Lykosoura wants it: whoever holds the forge has the Titans' oath. He is no Kassander. He scouts, he hires more heroes, he waits for his moment… and he builds toward the Titans' own spire. Three roads lead in, by the ford, the coast or the mountain pass: none of them is easy. Take his towns, beat the wolf-king himself… and finish your city before he finishes his!",
+    "script": "[grand, storytelling] South of the Border March rises Mount Othrys, where the Titans sat before the gods were born… [awed] and on its summit their forge still burns! [ominous] Lykaon of Lykosoura wants it: whoever holds the forge has the Titans' oath. [warning] He is no Kassander. He scouts, he hires more heroes, he waits for his moment… and he builds toward the Titans' own spire. [wry] Three roads lead in, by the ford, the coast or the mountain pass: none of them is easy. [resolute] Take his towns, beat the wolf-king himself… and finish your city before he finishes his!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "othrys-won",
+    "title": "The Titans’ oath",
+    "text": "Lykaon falls, and the wolf banners fall from Lykosoura's walls! On Othrys the forge burns on… and the Titans' oath passes to Rowan, the Crown's champion. For the first time in an age, the old giants and the young gods stand on one side.",
+    "script": "[triumphant] Lykaon falls, and the wolf banners fall from Lykosoura's walls! [solemn] On Othrys the forge burns on… [awed] and the Titans' oath passes to Rowan, the Crown's champion. [warm] For the first time in an age, the old giants and the young gods stand on one side.",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
     "line": "chapter-won",
     "title": "The Border March is free",
     "text": "The Border March is free! From Ashford's bridge to the walls of Korax, the Crown's roads are open again… and Rowan's name is known in every town along them.",

@@ -34,7 +34,7 @@ const VIGNETTE_STAND_IN: Readonly<Record<string, { readonly id: string; readonly
 
 export interface ChapterCardSpec {
   readonly parts: readonly CardPart[];
-  /** The chapter's last part, built or not, for "Part 4 of 6" (none: its last built). */
+  /** The chapter's last part, built or not, for "Part 5 of 7" (none: its last built). */
   readonly last?: number;
   readonly records: Readonly<Record<string, MapRecord>>;
   /** The part in play, and how far into it (a game is saved). */

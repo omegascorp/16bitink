@@ -299,10 +299,13 @@ function ride(adv: Adventure, def: MapDef, path: readonly PathStep[], fights: Fi
 function fightOut(adv: Adventure, def: MapDef, id: string, fights: Fight[], then?: string): Adventure {
   const before = armyStrength(adv.hero.army);
   const setup = battleSides(adv, id);
-  const st = autoBattle(setup.attacker, setup.defender, setup.seed, setup.siege);
+  // The bot casts no spells (its tables were measured so); the other side's hero does.
+  const me = setup.siege?.me ?? 0;
+  const st = autoBattle(setup.attacker, setup.defender, setup.seed, setup.siege, me === 0 ? [false, true] : [true, false]);
   const a = answerAll(afterBattle(adv, def, id, st, then));
   fights.push({ id, day: a.day, before, after: a.status === 'lost' ? 0 : armyStrength(a.hero.army), won: a.status !== 'lost' });
-  return a;
+  // A gate fought (either way): the town's walls come next, with what lived.
+  return a.rivalFight && a.status === 'playing' ? fightOut(a, def, a.rivalFight, fights) : a;
 }
 
 /** The night: the day ends, the rival lord rides, and a fight he starts is played out. */

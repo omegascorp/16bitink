@@ -2,7 +2,7 @@ import type { MapDef } from './types';
 import { lockedIn, TWO_LANDS_UNLOCKS } from './unlocks';
 
 /**
- * Chapter 2, part 6: the Red Land (in its own tiles; see twoLands.ts, which
+ * Chapter 2, part 7: the Red Land (in its own tiles; see twoLands.ts, which
  * places it east of Abu, through a pass in the dunes of Abu's east bank).
  * Deshret, Set's desert: Sethi, a lord of our own people who serves Set,
  * holds Nubt, the city of gold, in the far east behind a ridge with two ways
@@ -19,7 +19,7 @@ import { lockedIn, TWO_LANDS_UNLOCKS } from './unlocks';
 export const RED_LAND_LAND: MapDef = {
   id: 'red-land',
   name: 'The Red Land',
-  n: 6,
+  n: 7,
   brief: 'Sethi of Nubt, a lord who serves Set, rides with our own chariots and ramps. Beat him to Gebtu, the caravan town, take Nubt and bring him down. Every fourth day Set\u2019s storm makes sand cost double: keep to the roads.',
   story: 'part-redLand',
   goal: { kind: 'overthrow', target: 'nubt-town', text: 'take Nubt and beat Sethi' },

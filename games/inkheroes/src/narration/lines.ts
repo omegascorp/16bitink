@@ -17,6 +17,9 @@ export type LineId =
   | 'kassander-flees'
   | 'korax-taken'
   | 'kassander-beaten'
+  | 'blackBanner-won'
+  | 'part-othrys'
+  | 'othrys-won'
   | 'chapter-won'
   | 'part-nekhen'
   | 'part-abu'
@@ -52,6 +55,9 @@ export const LINES: Readonly<Record<LineId, NarratedLine>> = {
   'kassander-flees': told('Kassander flees', "[scornful] Kassander turns his horse and runs! [wry] He's left his whole army on the field… [warning] but he'll hire another at home. Take his town, and he'll have nowhere left to run."),
   'korax-taken': told('Korax is yours', '[triumphant] Korax is yours! [eager] Kassander has no town left to run to… and your scouts are on his trail. Hunt him down!'),
   'kassander-beaten': told('Kassander is beaten', "[triumphant] Kassander falls! [solemn] The black banner is down… and it won't rise again."),
+  'blackBanner-won': told('The Black Banner falls', "[triumphant] The black banner is down, and Korax opens its gates to the Crown! [puzzled] But in Kassander's tent, Rowan's scouts find letters… sealed with a wolf's head. [ominous] Kassander served a master. [grim] Lykaon, the wolf-king of Arcadia, has woken the old faith of the Titans… [urgent] and he rides for Mount Othrys!"),
+  'part-othrys': told('Othrys', "[grand, storytelling] South of the Border March rises Mount Othrys, where the Titans sat before the gods were born… [awed] and on its summit their forge still burns! [ominous] Lykaon of Lykosoura wants it: whoever holds the forge has the Titans' oath. [warning] He is no Kassander. He scouts, he hires more heroes, he waits for his moment… and he builds toward the Titans' own spire. [wry] Three roads lead in, by the ford, the coast or the mountain pass: none of them is easy. [resolute] Take his towns, beat the wolf-king himself… and finish your city before he finishes his!"),
+  'othrys-won': told('The Titans’ oath', "[triumphant] Lykaon falls, and the wolf banners fall from Lykosoura's walls! [solemn] On Othrys the forge burns on… [awed] and the Titans' oath passes to Rowan, the Crown's champion. [warm] For the first time in an age, the old giants and the young gods stand on one side."),
   'chapter-won': told('The Border March is free', "[warm, proud] The Border March is free! [storytelling] From Ashford's bridge to the walls of Korax, the Crown's roads are open again… [hopeful] and Rowan's name is known in every town along them."),
   'part-nekhen': told('Nekhen', "[grand, storytelling] Far to the south, where the Nile runs between two deserts, the flood is late this year. [ominous] The great sluice of the canal is shut… and the Petsuchos lies across it, the temple's own crocodile, gone wild, with its brood. [warm] Neferet, priestess of Isis, holds Nekhen on the west bank. Her rites can curse a foe, ward a friend… [hopeful] and, with an Ankh, raise the fallen! [resolute] Cross the river… and take the sluice back."),
   'part-abu': told('Abu', "[triumphant] The sluice is open, and the flood comes at last! [storytelling] Up the river road, at the First Cataract, the Nile breaks white over black granite… [grim] and Sand Raiders hold Abu, the island fort at the kingdom's southern gate. [sly] Its walls are high… but Egypt's builders don't break walls. They raise ramps against them! [resolute] Buy an Earth Ramp at your Workshop, choose your stretch of wall… and march straight up it. [warm] And Paser, a chariot captain, waits at your Tavern."),
@@ -62,11 +68,11 @@ export const LINES: Readonly<Record<LineId, NarratedLine>> = {
 
 /** Chapter 1's places and people the lines name: a line is told only where its words are true. */
 export const CHAPTER1 = { eudora: 'eudora-town', korax: 'korax-town', kassander: 'kassander' } as const;
-/** Chapter 2's rival lord, his city and the town both race for (part 6, the Red Land). */
+/** Chapter 2's rival lord, his city and the town both race for (part 7, the Red Land). */
 export const CHAPTER2 = { redLand: 'red-land', sethi: 'sethi', nubt: 'nubt-town', gebtu: 'gebtu-town' } as const;
 
 /**
- * Set's sandstorms (part 6, `MapDef.stormEvery`): the day card's words the
+ * Set's sandstorms (part 7, `MapDef.stormEvery`): the day card's words the
  * morning before a storm, and on its day. Read, not told: no recording.
  */
 export const STORM_WORDS = {

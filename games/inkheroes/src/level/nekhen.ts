@@ -2,7 +2,7 @@ import type { MapDef } from './types';
 import { lockedIn, TWO_LANDS_UNLOCKS } from './unlocks';
 
 /**
- * Chapter 2, part 4: Nekhen, on the Upper Nile (in its own tiles; see
+ * Chapter 2, part 5: Nekhen, on the Upper Nile (in its own tiles; see
  * twoLands.ts, which places it in the chapter). The flood didn't come:
  * the canal's great sluice is held by the Petsuchos, the temple's giant
  * crocodile gone wild, with its brood. Neferet holds Nekhen on the west
@@ -15,7 +15,7 @@ import { lockedIn, TWO_LANDS_UNLOCKS } from './unlocks';
 export const NEKHEN_LAND: MapDef = {
   id: 'nekhen',
   name: 'Nekhen',
-  n: 4,
+  n: 5,
   brief: 'The Petsuchos holds the great sluice, and the flood is late. Raise an army in Nekhen, cross the Nile and take the sluice back.',
   story: 'part-nekhen',
   goal: { kind: 'defeat', target: 'petsuchos', text: 'take the great sluice back from the Petsuchos' },

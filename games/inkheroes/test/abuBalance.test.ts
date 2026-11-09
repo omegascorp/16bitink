@@ -45,7 +45,8 @@ function siegeCost(adv: Adventure, m: MachineId | null): number {
   const { machine: _worn, ...gear } = adv.hero.gear ?? {};
   const hero = { ...adv.hero, gear: m ? { ...gear, machine: m as ItemId } : gear };
   const setup = battleSides({ ...adv, hero }, ABU.goal.target);
-  const st = autoBattle(setup.attacker, setup.defender, setup.seed, setup.siege);
+  // As the bot plays it: its hero casts no spells (with them the siege costs less: 19% with no machine, Nov 9).
+  const st = autoBattle(setup.attacker, setup.defender, setup.seed, setup.siege, [false, true]);
   const before = armyStrength(adv.hero.army);
   return st.winner === 0 ? share(before, armyStrength(survivors(st, 0, setup.attacker.army))) : 100;
 }

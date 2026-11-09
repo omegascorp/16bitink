@@ -72,17 +72,26 @@ export interface MapDef {
     readonly purse: Amount;
     /** The share of the days before the part that he had at home (src/logic/rival.ts HEAD_START, 0.75, when left out). */
     readonly headStart?: number;
+    /** How he thinks: left out, the one-hero rival of rival.ts (picks the best thing in reach, with a head start); `lord`, a player's mind (src/logic/lord/), with no head start. */
+    readonly mind?: 'lord';
+    /** A lord: the most heroes he rides with, hired at his Taverns (3 when left out, src/logic/lord/turn.ts). */
+    readonly heroes?: number;
   };
   readonly purse: Amount;
   /** What the Crown sends when the chapter rides on into this part (a part played straight on from the one before keeps its purse). */
   readonly grant?: Amount;
   /** The way into this part from the last: the land along it is seen from the start, and the map flies along it once the part's card is read. */
-  readonly opening?: { readonly text: string; readonly way: readonly { readonly x: number; readonly y: number }[] };
+  readonly opening?: {
+    readonly text: string;
+    readonly way: readonly { readonly x: number; readonly y: number }[];
+    /** The way's points are ways in of their own (Othrys's three): the land shows round each, not along the lines between. */
+    readonly apart?: boolean;
+  };
   /** The heroes a Tavern of ours can hire on this map, in order (each one once; x and y are where they stand when hired). */
   readonly recruits?: readonly HeroDef[];
   /** Set's sandstorms: every this many days of the part (its 4th, 8th…), sand costs double to cross for everyone, and the day card warns the morning before. */
   readonly stormEvery?: number;
-  /** What the narrator tells as this part is won and the chapter rides on (a chapter's last part tells the chapter's ending instead). */
+  /** What the narrator tells as this part is won and the chapter rides on (on a chapter's last part, before the chapter's ending). */
   readonly won?: LineId;
   /** Buildings switched off on this map. */
   readonly off: readonly BuildingId[];

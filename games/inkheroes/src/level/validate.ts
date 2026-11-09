@@ -6,7 +6,7 @@ import { isTownFaction } from '../logic/factions';
 import type { HeroClass } from '../logic/hero';
 import { ITEM_IDS, ITEMS, SLOTS, type Gear, type ItemId } from '../logic/items';
 import { TILE_CHARS } from '../logic/map';
-import type { MapObject, ObjectKind, Owner } from '../logic/objects';
+import { DWELLING_LOOKS, type DwellingLook, type MapObject, type ObjectKind, type Owner } from '../logic/objects';
 import { RESOURCES, type Amount, type Resource } from '../logic/resources';
 import { isSkillId, type Rank, type Skills } from '../logic/skills';
 import { isSpellId, type SpellId } from '../logic/spells';
@@ -29,7 +29,7 @@ const MAX_COUNT = 4000;
 const MAX_GOLD = 1e6;
 const ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const HERO_CLASSES: readonly HeroClass[] = ['knight', 'cleric'];
-const KINDS: readonly ObjectKind[] = ['mine', 'pile', 'chest', 'campfire', 'mercCamp', 'watchtower', 'standingStone', 'shrine', 'windmill', 'stables', 'spellbook', 'monster', 'item'];
+const KINDS: readonly ObjectKind[] = ['mine', 'pile', 'chest', 'campfire', 'mercCamp', 'watchtower', 'standingStone', 'shrine', 'windmill', 'stables', 'spellbook', 'monster', 'item', 'learningStone', 'dwelling', 'bank'];
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const int = (v: unknown, lo: number, hi: number): v is number => Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi;
@@ -151,6 +151,17 @@ function object(v: unknown, g: { w: number; h: number }): MapObject {
     if (v.owner !== 'player' && v.owner !== 'neutral' && v.owner !== 'rival') throw new Error('bad owner');
     o.owner = v.owner as Owner;
   }
+  if (kind === 'dwelling') {
+    if (!isCreatureId(v.creature) || !int(v.growth, 1, 99) || !DWELLING_LOOKS.includes(v.look as DwellingLook)) throw new Error('bad dwelling');
+    if (v.stock !== undefined && !int(v.stock, 0, MAX_COUNT)) throw new Error('bad dwelling stock');
+    Object.assign(o, { creature: v.creature, growth: v.growth, look: v.look }, v.stock !== undefined ? { stock: v.stock } : {});
+  }
+  if (kind === 'bank') {
+    if (v.look !== 'keep') throw new Error('bad keep');
+    o.look = 'keep';
+    if (v.prize !== undefined) o.prize = amount(v.prize, 'prize');
+  }
+  if (kind === 'learningStone' && v.visitedBy !== undefined) o.visitedBy = ids<string>(v.visitedBy, 20, 'visited by', (h): h is string => typeof h === 'string' && ID.test(h));
   return o as unknown as MapObject;
 }
 
@@ -178,9 +189,13 @@ function town(v: unknown, g: { w: number; h: number }, other: boolean): MapDef['
 function rival(v: unknown, g: { w: number; h: number }): NonNullable<MapDef['rival']> {
   if (!isObj(v)) throw new Error('bad rival');
   if (v.headStart !== undefined && (typeof v.headStart !== 'number' || !(v.headStart >= 0 && v.headStart <= 1))) throw new Error('bad rival head start');
+  if (v.heroes !== undefined && (!Number.isInteger(v.heroes) || !((v.heroes as number) >= 1 && (v.heroes as number) <= 8))) throw new Error('bad rival hero count');
+  if (v.mind !== undefined && v.mind !== 'lord') throw new Error('bad rival mind');
   return {
     hero: hero(v.hero, g), build: ids<BuildingId>(v.build, 60, 'rival build', isBuildingId), purse: amount(v.purse, 'rival purse'),
     ...(v.headStart !== undefined ? { headStart: v.headStart as number } : {}),
+    ...(v.heroes !== undefined ? { heroes: v.heroes as number } : {}),
+    ...(v.mind !== undefined ? { mind: 'lord' as const } : {}),
   };
 }
 
@@ -202,6 +217,7 @@ function map(v: unknown): MapDef {
     const o = v.opening;
     if (!isObj(o)) throw new Error('bad opening');
     text(o.text, 'opening');
+    if (o.apart !== undefined && o.apart !== true) throw new Error('bad opening');
     list(o.way, 20, 'way', (p) => {
       if (!isObj(p) || !int(p.x, 0, g.w - 1) || !int(p.y, 0, g.h - 1)) throw new Error('bad way');
       return p;

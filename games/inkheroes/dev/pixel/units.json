@@ -1179,6 +1179,28 @@
    ],
    "flies": true,
    "walk": "flying in place loop: big slow wing beats, body bobs up and down a little, legs tucked, ends back at the starting pose"
+  },
+  "gigas": {
+   "name": "Gigas",
+   "src": "pixel/src/gigas.png",
+   "canvas": [
+    160,
+    168
+   ],
+   "foot": 6,
+   "dx": 0,
+   "subject": "a huge bearded giant in a hide kilt holding a boulder in his raised right hand",
+   "walk": "walking in place loop: heavy stomping steps with legs alternating, the boulder held up, shoulders sway, stays in the same spot, ends back at the starting pose",
+   "attack": "throwing attack: the giant leans back, then hurls the boulder forward to the right with his whole arm, the arm follows through, then he returns to the starting pose; feet stay in place",
+   "strike": 2,
+   "face": [
+    58,
+    50
+   ],
+   "shot": [
+    112,
+    38
+   ]
   }
  },
  "heroes": {
@@ -1354,6 +1376,34 @@
    "face": [
     84,
     52
+   ]
+  },
+  "lykaon": {
+   "name": "Lykaon",
+   "src": "pixel/src/hero_lykaon.png",
+   "canvas": [
+    176,
+    172
+   ],
+   "foot": 6,
+   "dx": 0,
+   "subject": "a wolf-king in a grey wolf pelt cloak over bronze armour and a wolf-head bronze helm holding a spear, on a black horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spear thrust: the rider levels the spear and thrusts it forward to the right, then draws it back to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    85,
+    23
+   ],
+   "walkLock": [
+    0,
+    0,
+    2,
+    3,
+    3,
+    -1,
+    -2,
+    0
    ]
   }
  },

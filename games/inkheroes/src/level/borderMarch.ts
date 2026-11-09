@@ -2,6 +2,7 @@ import type { MapObject } from '../logic/objects';
 import { BLACK_BANNER_LAND } from './blackBanner';
 import { ASHFORD_LAND } from './chapter1';
 import { BORDER_RECRUITS } from './recruits';
+import { OTHRYS_LAND } from './othrys';
 import { THORNWOOD_LAND } from './thornwood';
 import type { HeroDef, MapDef } from './types';
 
@@ -21,10 +22,12 @@ interface Place {
 }
 
 /** Where each land lies in the chapter. */
-const AT: Readonly<Record<'ashford' | 'thornwood' | 'blackBanner', Place>> = {
+const AT: Readonly<Record<'ashford' | 'thornwood' | 'blackBanner' | 'othrys', Place>> = {
   ashford: { x: 0, y: 0 },
   thornwood: { x: 32, y: 0 },
   blackBanner: { x: 24, y: 32 },
+  // East of everything won by the Black Banner, the whole height of the land.
+  othrys: { x: 72, y: 0 },
 };
 const WORLD = { w: 72, h: 68 } as const;
 /** Between the lands: open water (it is never walked, and costs nothing to draw). */
@@ -41,9 +44,16 @@ const CARVE: readonly (Place & { readonly ch: string })[] = [
   ...[4, 5, 6].map((x) => ({ x: AT.thornwood.x + x, y: 31, ch: 'g' })),
   ...[12, 13, 14].map((x) => ({ x: AT.blackBanner.x + x, y: AT.blackBanner.y, ch: 'g' })),
   ...TRAIL.map((p) => ({ ...p, ch: '#' })),
+  // Othrys's three ways in (part 4), at the old land's east edge: the coast road on from Thornwood's north-east, the ford east of Korax, the sand of the pass from the Black Banner's south-east corner.
+  { x: 70, y: 7, ch: '=' }, { x: 71, y: 7, ch: '=' },
+  { x: 71, y: 40, ch: '=' }, { x: 71, y: 41, ch: '=' },
+  { x: 70, y: 64, ch: 's' }, { x: 71, y: 64, ch: 's' }, { x: 71, y: 65, ch: 's' },
 ];
 /** One seed for the whole land, so its woods and ground look the same in every part. */
 const SEED = ASHFORD_LAND.seed;
+
+/** The chapter's whole land once Othrys is open: 128 × 68. */
+const OTHRYS_WORLD = { w: AT.othrys.x + OTHRYS_LAND.rows[0]!.length, h: OTHRYS_LAND.rows.length } as const;
 
 const WORLD_ROWS: readonly string[] = (() => {
   const grid = Array.from({ length: WORLD.h }, () => Array.from({ length: WORLD.w }, () => SEA));
@@ -56,6 +66,13 @@ const WORLD_ROWS: readonly string[] = (() => {
 
 /** The land cut to its first `w` columns and `h` rows. */
 const cut = (w: number, h: number): string[] => WORLD_ROWS.slice(0, h).map((r) => r.slice(0, w));
+
+/** The land with Othrys laid east of it. */
+const OTHRYS_ROWS: readonly string[] = (() => {
+  const grid = Array.from({ length: OTHRYS_WORLD.h }, (_, y) => [...(WORLD_ROWS[y] ?? '').padEnd(OTHRYS_WORLD.w, SEA)]);
+  OTHRYS_LAND.rows.forEach((row, y) => [...row].forEach((ch, x) => { grid[AT.othrys.y + y]![AT.othrys.x + x] = ch; }));
+  return grid.map((r) => r.join(''));
+})();
 
 /** A land's objects in the chapter's tiles; an id another land already uses gets the land's name in front. */
 function placed(objects: readonly MapObject[], at: Place, prefix: string, taken: readonly MapObject[]): MapObject[] {
@@ -109,9 +126,52 @@ export const BLACK_BANNER: MapDef = {
   rival: { ...rival, hero: heroAt(rival.hero, AT.blackBanner) },
   grant: { gold: 3000, wood: 5, ore: 5, mercury: 2, sulfur: 2, crystal: 2, gems: 2 },
   recruits: BORDER_RECRUITS,
+  // Won, the chapter rides on east to Othrys: the narrator tells of Kassander's master.
+  won: 'blackBanner-won',
   opening: {
     text: 'The forest trail south, into the lands beyond',
     way: [{ x: TRAIL_X, y: 30 }, { x: TRAIL_X, y: 41 }],
   },
   objects: [...THORNWOOD.objects, ...placed(BLACK_BANNER_LAND.objects, AT.blackBanner, 'banner', THORNWOOD.objects)],
+};
+
+type TownSpec = NonNullable<MapDef['towns']>[number];
+const othrysAt = <T extends Place>(p: T): T => at(p, AT.othrys);
+/** Where each way into Othrys starts: its first tiles past the old land's edge (the coast road, the ford, the pass). */
+const WAYS_IN: readonly Place[] = [{ x: 73, y: 7 }, { x: 73, y: 40 }, { x: 73, y: 64 }];
+
+/**
+ * Part 4, the chapter's last: Othrys, east of the land won so far, where
+ * Lykaon of Lykosoura rides for the Titans' forge. Three ways lead in and
+ * none is forced; the opening shows only where each starts. The towns of
+ * the parts before are ours. Played fresh, Rowan waits east of Korax, by
+ * the ford.
+ */
+export const OTHRYS: MapDef = {
+  ...OTHRYS_LAND,
+  story: 'part-othrys',
+  rows: OTHRYS_ROWS,
+  seed: SEED,
+  town: ASHFORD.town,
+  towns: [
+    // Played fresh, our old towns keep their garrisons on the map, as a player who rode on would leave them (ridden on, a town keeps what it had).
+    ...THORNWOOD.towns!.map((t) => ({ ...t, owner: 'player' as const })),
+    ...BLACK_BANNER.towns!.slice(THORNWOOD.towns!.length).map((t): TownSpec => {
+      const { waits: _waits, ...town } = t;
+      return { ...town, owner: 'player' };
+    }),
+    // Iolkos, the port: both sides race for it from the part's third night.
+    { ...othrysAt(OTHRYS_LAND.town as TownSpec), race: true },
+    ...(OTHRYS_LAND.towns ?? []).map(othrysAt),
+  ],
+  hero: { ...othrysAt(OTHRYS_LAND.hero), x: AT.blackBanner.x + 42, y: AT.blackBanner.y + 9 },
+  rival: { ...OTHRYS_LAND.rival!, hero: othrysAt(OTHRYS_LAND.rival!.hero) },
+  // The Crown's grant, for the chapter's last and biggest part.
+  grant: { gold: 4000, wood: 10, ore: 10, mercury: 3, sulfur: 3, crystal: 3, gems: 3 },
+  recruits: BORDER_RECRUITS,
+  // Won, the narrator tells of the Titans' oath, then the chapter's ending.
+  won: 'othrys-won',
+  opening: { text: 'Three ways into Othrys: the coast road, the ford, the mountain pass', way: WAYS_IN, apart: true },
+  // Played fresh, Kassander's old mines by Korax fly the rival's banner, Lykaon's now, a ride from Rowan (ridden on into, the land keeps what was won).
+  objects: [...BLACK_BANNER.objects, ...placed(OTHRYS_LAND.objects, AT.othrys, 'othrys', BLACK_BANNER.objects)],
 };

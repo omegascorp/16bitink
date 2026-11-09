@@ -13,6 +13,10 @@ import { openCard, type CardSpec } from './CardScene';
 import { narrator } from './NarratorScene';
 import { Session } from './session';
 import { isLineId, lineText } from '../narration/lines';
+import { addTroops } from '../logic/army';
+import { creature } from '../logic/creatures';
+import { dwellingHireable, dwellingName, dwellingStock } from '../logic/dwellings';
+import { RESOURCES } from '../logic/resources';
 
 /**
  * The cards the map shows from the adventure's state: its waiting prompts
@@ -46,6 +50,10 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
     });
     return;
   }
+  if (first?.kind === 'dwelling') {
+    openCard(scene, dwellingCard(adv, first, next));
+    return;
+  }
   if (first?.kind === 'levelUp') {
     const o = first.offer;
     const hero = adv.hero;
@@ -66,8 +74,8 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
     const days = partDays(adv);
     // Otherwise the land opens further and the hero rides on; after the last part built, the chapter's own card.
     const end = next ? `\nThe road goes on: ${next.name} lies ahead.` : '';
-    // A part's own ending, told as the chapter rides on (read here when it isn't heard).
-    const won = next && session.def.won ? (narrator(scene)?.say(session.def.won) ? '' : `\n\n${lineText(session.def.won)}`) : '';
+    // A part's own ending, told as the chapter rides on, or (the chapter's last part) before its ending (read here when it isn't heard).
+    const won = session.def.won ? (narrator(scene)?.say(session.def.won) ? '' : `\n\n${lineText(session.def.won)}`) : '';
     openCard(scene, {
       title: 'Victory!',
       body: `${session.def.goal.text[0]!.toUpperCase()}${session.def.goal.text.slice(1)}: done in ${days} ${days === 1 ? 'day' : 'days'}${adv.lostStacks === 0 ? ', and not one company lost' : ''}.${end}${won}`,
@@ -93,8 +101,26 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
   }
 }
 
+/** An outer dwelling of ours with creatures waiting: how many, their price, and Hire (all the purse and the army allow) or Leave. */
+function dwellingCard(adv: Adventure, p: Extract<Adventure['prompts'][number], { kind: 'dwelling' }>, next: (choice?: 'hire') => void): CardSpec {
+  const o = adv.objects.find((x) => x.id === p.id)!;
+  const c = creature(o.creature!);
+  const waiting = dwellingStock(o);
+  const can = dwellingHireable(o, adv.purse, adv.hero.army);
+  const price = RESOURCES.filter((r) => (c.cost[r] ?? 0) > 0).map((r) => `${c.cost[r]} ${r}`).join(', ');
+  const why = can ? '' : addTroops(adv.hero.army, c.id, 1) ? '\nThe purse can’t pay for one.' : `\n${adv.hero.name}'s army has no room for them.`;
+  return {
+    title: dwellingName(o),
+    body: `${p.text ? `${p.text}\n` : ''}${waiting} ${waiting === 1 ? c.name : c.plural} wait here, ${price} each.${why}`,
+    buttons: [
+      ...(can ? [{ label: `Hire ${can}`, kind: 'crown' as const, onClick: () => next('hire') }] : []),
+      { label: 'Leave', kind: can ? 'plain' as const : 'crown' as const, onClick: () => next() },
+    ],
+  };
+}
+
 /** The hero is about to storm walls with no war machine: what it's for, where to get one, and what going without costs. */
-export function wallsCard(town: Town, adv: Adventure, storm: () => void): CardSpec {
+export function wallsCard(town: Town, adv: Adventure, storm: () => void, later: () => void = () => undefined): CardSpec {
   // In the hero's people's words: the Greeks' Catapult from a Blacksmith, Egypt's siege ramp from a Workshop.
   const people = factionOf(adv.hero);
   const words = FACTIONS[people].siege;
@@ -106,7 +132,7 @@ export function wallsCard(town: Town, adv: Adventure, storm: () => void): CardSp
     body: `${words.card} ${buy}\nWithout one, your troops must hack through the gate by hand, under fire.`,
     picture: UI_TEX.item(words.item),
     buttons: [
-      { label: 'Not yet', kind: 'crown', onClick: () => undefined },
+      { label: 'Not yet', kind: 'crown', onClick: later },
       { label: 'Storm it now', kind: 'plain', onClick: storm },
     ],
   };

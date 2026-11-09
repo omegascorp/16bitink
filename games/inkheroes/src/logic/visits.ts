@@ -2,8 +2,10 @@ import { STABLES_MP, tilesOf } from './map';
 import { itemLine, type Adventure } from './adventure';
 import { gainedXp, maxMana } from './hero';
 import { gainItem, hasSpellbook, itemSays, ITEMS, QUALITY_NAMES } from './items';
-import { CHEST_XP, MINE_NAMES, MINE_OUTPUT, ONCE_PER_HERO, type MapObject } from './objects';
-import { addTo } from './resources';
+import { CHEST_XP, LEARNING_XP, MINE_NAMES, MINE_OUTPUT, ONCE_PER_HERO, type MapObject } from './objects';
+import { creature } from './creatures';
+import { dwellingName, dwellingStock } from './dwellings';
+import { addTo, RESOURCES } from './resources';
 import { SPELLS } from './spells';
 
 export interface VisitResult {
@@ -88,10 +90,44 @@ export function visitSite(adv: Adventure, o: MapObject): VisitResult {
       if (o.week === week) return { adv: message(adv, 'Stables', 'The horses are resting. Come back next week.'), notes: [] };
       return { adv: setObj({ ...adv, hero: { ...hero, mp: hero.mp + STABLES_MP } }, o.id, { week }), notes: [`+${tilesOf(STABLES_MP)} tiles`] };
     }
+    case 'learningStone': {
+      if (o.visitedBy?.includes(hero.id)) return { adv: message(adv, 'Learning Stone', `${hero.name} has read these carvings already.`), notes: [] };
+      const xp = gainedXp(hero, LEARNING_XP);
+      const read = setObj({ ...adv, hero: { ...hero, xp: hero.xp + xp } }, o.id, { visitedBy: [...(o.visitedBy ?? []), hero.id] });
+      return { adv: message(read, 'Learning Stone', `The old masters' lessons are cut deep in the stone.\n+${xp} experience`), notes: [`+${xp} XP`] };
+    }
+    case 'dwelling':
+      return visitDwelling(adv, o);
+    case 'bank':
+      return lootKeep(adv, o);
     case 'town':
     case 'monster':
       return { adv, notes: [] };
   }
+}
+
+/** A dwelling visited (its guard beaten): it flies our flag, and whatever waits there may be hired. */
+function visitDwelling(adv: Adventure, o: MapObject): VisitResult {
+  const name = dwellingName(o);
+  const c = creature(o.creature!);
+  const taken = o.owner !== 'player';
+  const ours = taken ? setObj(adv, o.id, { owner: 'player' }) : adv;
+  const flag = taken ? `${name} flies your banner now: ${o.growth} ${o.growth === 1 ? c.name : c.plural} a week.` : '';
+  if (dwellingStock(o) > 0) return { adv: { ...ours, prompts: [...ours.prompts, { kind: 'dwelling', id: o.id, ...(flag ? { text: flag } : {}) }] }, notes: [] };
+  return { adv: message(ours, name, [flag, `No ${c.plural} wait here now. More come on Monday.`].filter(Boolean).join('\n')), notes: [] };
+}
+
+/** A treasure keep, its guard beaten: its prize, once (a piece the bag has no room for waits inside for the hero to come back). */
+function lootKeep(adv: Adventure, o: MapObject): VisitResult {
+  if (o.looted) return { adv: message(adv, 'Treasure Keep', 'The keep stands empty: its treasure is gone.'), notes: [] };
+  const prize = o.prize ?? {};
+  const got = RESOURCES.filter((r) => (prize[r] ?? 0) > 0).map((r) => `+${prize[r]} ${r}`);
+  const piece = o.item ? gainItem(adv.hero, o.item) : null;
+  const lines = [got.length ? 'Behind the broken doors lies what its guards kept.' : 'The keep is bare but for one thing.', ...got];
+  if (o.item && piece) lines.push(`${ITEMS[o.item].name}: ${itemLine(o.item)}`, piece.worn ? `${adv.hero.name} puts it on.` : piece.kept ? 'It goes in the bag.' : 'The bag is full, so it stays in the keep: make room and come back for it.');
+  const keeps = !!piece && !piece.kept;
+  const next = setObj({ ...adv, purse: addTo(adv.purse, prize), hero: piece?.kept ? piece.hero : adv.hero }, o.id, keeps ? { prize: {} } : { prize: {}, looted: true });
+  return { adv: { ...next, prompts: [...next.prompts, { kind: 'message', title: 'Treasure Keep', text: lines.join('\n'), ...(o.item ? { item: o.item } : {}) }] }, notes: got };
 }
 
 function siteTitle(o: MapObject): string {

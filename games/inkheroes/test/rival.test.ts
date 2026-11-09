@@ -132,12 +132,12 @@ describe('the rival lord', () => {
     expect(won.prompts.some((p) => p.kind === 'message' && /Kassander/.test(p.title))).toBe(true);
   });
 
-  it('our hero stepping onto him starts the fight; at his town gate it is the town and him together', () => {
+  it('our hero stepping onto him starts the fight; his walls stormed straight (an old save) hold him with the garrison', () => {
     const start = startAdventure(def);
     const r = start.rival!.hero!;
     const field = { ...start, rival: { ...start.rival!, hero: { ...r, x: start.hero.x + 1, y: start.hero.y } } };
     expect(stepHero(field, def, { x: r.x === 0 ? 0 : start.hero.x + 1, y: start.hero.y, cost: 100, day: 0 } as never).battle).toBe(RIVAL);
-    // At his gate: the town's garrison joins him.
+    // His walls fought with him still at the gate (the gate fight comes first now: test/townAssault.test.ts): the garrison joins him.
     const sides = battleSides(start, korax);
     expect(sides.defender.hero?.name).toBe('Kassander');
     expect(armyStrength(sides.defender.army)).toBeGreaterThan(armyStrength(r.army));
@@ -270,10 +270,13 @@ describe('a siege on the map', () => {
     const town = townById(start, eudora)!;
     const towers = armyOf([{ creature: 'bowman', count: 9 }]);
     const foe = { ...start.rival!.hero!, x: town.x, y: town.y + 1 };
-    const adv = withTown({ ...start, hero: { ...start.hero, x: town.x, y: town.y, gear: { ...start.hero.gear, machine: 'catapult' as const } }, rival: { ...start.rival!, hero: foe } }, { ...town, towers });
+    // Our hero holds the walls from the garrison (one at the gate is fought first, in the open: test/townAssault.test.ts).
+    const hero = { ...start.hero, x: town.x, y: town.y, army: armyOf([]), gear: { ...start.hero.gear, machine: 'catapult' as const } };
+    const adv = withTown({ ...start, hero, rival: { ...start.rival!, hero: foe } }, { ...town, garrison: start.hero.army, towers });
     const s = battleSides(adv, RIVAL);
     expect(s.siege?.me).toBe(1);
     expect(s.attacker.hero?.name).toBe('Kassander');
+    expect(s.defender.hero?.name).toBe(start.hero.name);
     const st = createBattle(s.attacker, s.defender, s.seed, s.siege).state;
     // Our Catapult has nothing to do from inside; his comes.
     expect(st.stacks.some((x) => x.side === 1 && x.creature === 'catapult')).toBe(false);

@@ -39,19 +39,28 @@ export function townTexOf(def: MapDef, t: Town): string {
   return MAP_TEX.town(`${def.id}-${t.id}`);
 }
 
-/** The art a map object is drawn with (monsters, towns and gear on the ground are drawn apart). */
-export function siteArtOf(o: MapObject): SiteArt | null {
-  if (o.kind === 'mine' || o.kind === 'pile') return `${o.kind}-${o.resource!}` as SiteArt;
+/** The new sites' sprite keys (Othrys's), and what each borrows while its own isn't drawn. */
+const NEW_SITES: Readonly<Record<string, SiteArt>> = {
+  learningStone: 'standingStone', cyclopsCave: 'mine-ore', griffinCliff: 'watchtower', titanForge: 'shrine', keep: 'mercCamp',
+};
+
+/** The art a map object is drawn with (monsters, towns and gear on the ground are drawn apart): a SiteArt, or a new site's key. */
+export function siteArtOf(o: MapObject): string | null {
+  if (o.kind === 'mine' || o.kind === 'pile') return `${o.kind}-${o.resource!}`;
   if (o.kind === 'monster' || o.kind === 'town' || o.kind === 'item') return null;
+  if (o.kind === 'dwelling') return o.look ?? 'cyclopsCave';
+  if (o.kind === 'bank') return 'keep';
   return o.kind;
 }
 
-/** A site's sprite: its own, or (a mine drawn later) the gold mine's. */
-export function siteSprite(art: SiteArt): { key: string; sprite: MapSprite } | null {
-  const own = MAP_SITES[art];
-  if (own) return { key: MAP_TEX.site(art), sprite: own };
+/** A site's sprite: its own, or (a mine drawn later) the gold mine's, or (a new site drawn later) the one it borrows. */
+export function siteSprite(art: string): { key: string; sprite: MapSprite } | null {
+  const sites = MAP_SITES as Readonly<Partial<Record<string, MapSprite>>>;
+  const own = sites[art];
+  if (own) return { key: MAP_TEX.site(art as SiteArt), sprite: own };
   if (art.startsWith('mine-') && MAP_SITES['mine-gold']) return { key: MAP_TEX.site('mine-gold'), sprite: MAP_SITES['mine-gold'] };
-  return null;
+  const borrow = NEW_SITES[art];
+  return borrow ? siteSprite(borrow) : null;
 }
 
 /** Loads the campaign menu's map pictures, every creature's idle strip and the hero's (for the muster), and the UI's art and font. */

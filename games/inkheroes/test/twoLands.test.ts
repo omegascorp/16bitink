@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { afterEach, describe, expect, it } from 'vitest';
 import { INKHEROES_PAID_MAPS } from '../content/paid';
-import { BLACK_BANNER, ASHFORD } from '../src/level/borderMarch';
+import { BLACK_BANNER, ASHFORD, OTHRYS } from '../src/level/borderMarch';
 import { chapterById, chapterOf, CHAPTERS, installPaidMaps, isLoaded, loadedMaps, mapById, MAPS, nextMap, partsOf } from '../src/level/maps';
 import { ABU, NEKHEN, RED_LAND } from '../src/level/twoLands';
 import { TWO_LANDS_UNLOCKS, openIn } from '../src/level/unlocks';
@@ -52,8 +52,10 @@ describe('chapter 2 stays out of the free game', () => {
     expect(() => parseMaps(bad({ id: 'ashford' }))).toThrow();
     expect(() => parseMaps(bad({ id: '__proto__' }))).toThrow();
     expect(() => parseMaps(bad({ n: 2 }))).toThrow();
+    // Part 4 is Othrys, chapter 1's last (free): never a paid map's number.
+    expect(() => parseMaps(bad({ n: 4 }))).toThrow();
     // Not in any paid chapter's range: it would be saved in chapter 1's slot.
-    expect(() => parseMaps(bad({ n: 7 }))).toThrow();
+    expect(() => parseMaps(bad({ n: 8 }))).toThrow();
     expect(() => parseMaps(bad({ n: 99 }))).toThrow();
     // A win is recorded only for a lowercase id (src/logic/save.ts).
     expect(() => parseMaps(bad({ id: 'Nekhen2' }))).toThrow();
@@ -72,7 +74,7 @@ describe('chapter 2 stays out of the free game', () => {
     expect(partsOf(twoLands)).toEqual([]);
     expect(mapById('nekhen')).toBeUndefined();
     expect(loadedMaps()).toEqual(MAPS);
-    expect(nextMap(BLACK_BANNER)).toBeUndefined();
+    expect(nextMap(OTHRYS)).toBeUndefined();
     // The menu still names the locked chapter's parts without its maps.
     expect(twoLands.parts).toEqual([NEKHEN, ABU, RED_LAND].map((m) => ({ id: m.id, n: m.n, name: m.name })));
     expect(twoLands.paid).toBe(true);
@@ -85,15 +87,15 @@ describe('chapter 2 stays out of the free game', () => {
     expect(mapById('nekhen')?.name).toBe('Nekhen');
     expect(chapterOf(NEKHEN)?.id).toBe('twoLands');
     expect(chapterOf(ASHFORD)?.id).toBe('borderMarch');
-    expect(chapterOf({ n: 7 })).toBeUndefined();
-    expect(nextMap({ ...NEKHEN, n: 7 })).toBeUndefined();
+    expect(chapterOf({ n: 8 })).toBeUndefined();
+    expect(nextMap({ ...NEKHEN, n: 8 })).toBeUndefined();
     expect(partsOf(chapterById('borderMarch'))).toEqual(MAPS);
-    expect(nextMap(BLACK_BANNER)).toBeUndefined();
+    expect(nextMap(OTHRYS)).toBeUndefined();
     expect(nextMap(NEKHEN)?.id).toBe('abu');
     expect(nextMap(ABU)?.id).toBe('red-land');
     expect(nextMap(RED_LAND)).toBeUndefined();
     // Part numbers run on through the campaign.
-    expect(CHAPTERS.map((c) => [c.first, c.last])).toEqual([[1, 3], [4, 6]]);
+    expect(CHAPTERS.map((c) => [c.first, c.last])).toEqual([[1, 4], [5, 7]]);
   });
 });
 
@@ -198,12 +200,12 @@ describe('Abu', () => {
     expect(ABU.rows.slice(abu.y + 2, abu.y + 6).some((r) => /~s{4,}g/.test(r))).toBe(true);
   });
 
-  it('opens what the design opens on part 5, Egypt’s Workshop with the Earth Ramp among it', () => {
+  it('opens what the design opens on part 6, Egypt’s Workshop with the Earth Ramp among it', () => {
     const open = new Set(BUILDING_IDS.filter((b) => !ABU.off.includes(b)));
     expect(open).toEqual(openIn(TWO_LANDS_UNLOCKS, 2));
     for (const b of ['cityHall', 'marketplace', 'mageGuild2', 'blacksmith', 'storehouse', 'stables', 'monastery', 'guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2'] as const) expect(open.has(b), b).toBe(true);
     expect(open.has('castle')).toBe(false);
-    expect(ABU).toMatchObject({ n: 5, parDays: 28, story: 'part-abu', goal: { kind: 'capture', target: 'abu-town' }, grant: { gold: 2500, wood: 5, ore: 5 } });
+    expect(ABU).toMatchObject({ n: 6, parDays: 28, story: 'part-abu', goal: { kind: 'capture', target: 'abu-town' }, grant: { gold: 2500, wood: 5, ore: 5 } });
   });
 
   it('holds Abu with raiders on its tower, hyenas, cobras and lions behind a Fort’s walls', () => {

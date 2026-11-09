@@ -22,6 +22,11 @@ import siteStables from './map/site-stables.png?url';
 import siteStandingStone from './map/site-standingStone.png?url';
 import siteShrine from './map/site-shrine.png?url';
 import siteSpellbook from './map/site-spellbook.png?url';
+import siteLearningStone from './map/site-learningStone.png?url';
+import siteCyclopsCave from './map/site-cyclopsCave.png?url';
+import siteGriffinCliff from './map/site-griffinCliff.png?url';
+import siteTitanForge from './map/site-titanForge.png?url';
+import siteKeep from './map/site-keep.png?url';
 import siteChest from './map/site-chest.png?url';
 import siteCampfire from './map/site-campfire.png?url';
 import sitePileGold from './map/site-pile-gold.png?url';
@@ -33,12 +38,14 @@ import sitePileCrystal from './map/site-pile-crystal.png?url';
 import sitePileGems from './map/site-pile-gems.png?url';
 import siteTownKemet from './map/site-town-kemet.png?url';
 import siteTownKemetRed from './map/site-town-kemet-red.png?url';
+import siteTownLykosoura from './map/site-town-lykosoura.png?url';
 import vignetteAshford from './map/vignette-ashford.png?url';
 import vignetteThornwood from './map/vignette-thornwood.png?url';
 import vignetteBlackBanner from './map/vignette-blackBanner.png?url';
 import vignetteNekhen from './map/vignette-nekhen.png?url';
 import vignetteAbu from './map/vignette-abu.png?url';
 import vignetteRedLand from './map/vignette-redLand.png?url';
+import vignetteOthrys from './map/vignette-othrys.png?url';
 import tree0 from './map/tree-0.png?url';
 import tree1 from './map/tree-1.png?url';
 import tree2 from './map/tree-2.png?url';
@@ -97,6 +104,11 @@ export const MAP_SITES: Readonly<Partial<Record<SiteArt, MapSprite>>> = {
   'standingStone': { url: siteStandingStone, w: 70, h: 83, footX: 35, footY: 82 },
   'shrine': { url: siteShrine, w: 82, h: 78, footX: 41, footY: 77 },
   'spellbook': { url: siteSpellbook, w: 76, h: 73, footX: 38, footY: 72 },
+  'learningStone': { url: siteLearningStone, w: 70, h: 80, footX: 35, footY: 79 },
+  'cyclopsCave': { url: siteCyclopsCave, w: 96, h: 67, footX: 48, footY: 66 },
+  'griffinCliff': { url: siteGriffinCliff, w: 70, h: 120, footX: 35, footY: 119 },
+  'titanForge': { url: siteTitanForge, w: 81, h: 70, footX: 40, footY: 69 },
+  'keep': { url: siteKeep, w: 80, h: 77, footX: 40, footY: 76 },
   'chest': { url: siteChest, w: 42, h: 45, footX: 21, footY: 44 },
   'campfire': { url: siteCampfire, w: 54, h: 43, footX: 27, footY: 42 },
   'pile-gold': { url: sitePileGold, w: 48, h: 30, footX: 24, footY: 29 },
@@ -114,17 +126,21 @@ export const KEMET_TOWN: MapSprite = { url: siteTownKemet, w: 188, h: 116, footX
 /** Nubt's look: the same town in darker red sandstone with red Set banners (same footprint, anchor and size as KEMET_TOWN). */
 export const KEMET_TOWN_RED: MapSprite = { url: siteTownKemetRed, w: 188, h: 116, footX: 94, footY: 115 };
 
+/** Lykosoura: the Greek town under dark banners and a wolf standard (Lykaon's towns). */
+export const LYKOSOURA_TOWN: MapSprite = { url: siteTownLykosoura, w: 221, h: 156, footX: 110, footY: 155 };
+
 /** Towns with a picture of their own, by `look` (a town's `look` in a MapDef). */
-export const TOWN_LOOKS: Readonly<Record<string, MapSprite>> = { nubt: KEMET_TOWN_RED, kemetRed: KEMET_TOWN_RED };
+export const TOWN_LOOKS: Readonly<Record<string, MapSprite>> = { nubt: KEMET_TOWN_RED, kemetRed: KEMET_TOWN_RED, lykosoura: LYKOSOURA_TOWN };
 
 /** The campaign menu's picture of each map (192 x 96), by map or planned-map id. */
 export const MAP_VIGNETTES: Readonly<Record<string, string>> = {
-  ashford: vignetteAshford,
-  thornwood: vignetteThornwood,
-  blackBanner: vignetteBlackBanner,
-  nekhen: vignetteNekhen,
-  abu: vignetteAbu,
+  'ashford': vignetteAshford,
+  'thornwood': vignetteThornwood,
+  'blackBanner': vignetteBlackBanner,
+  'nekhen': vignetteNekhen,
+  'abu': vignetteAbu,
   'red-land': vignetteRedLand,
+  'othrys': vignetteOthrys,
 };
 
 /** Trees, mountains, boulders and the bridge, a few of each to vary. */

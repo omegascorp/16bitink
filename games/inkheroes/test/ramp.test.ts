@@ -40,13 +40,13 @@ function untilRound(st: BattleState, n: number): BattleState {
 const done = (s: BattleState, i = 0): boolean => rampDone(s.siege!.ramps![i]!);
 
 describe('the siege ramp', () => {
-  it('is three grades of war machine, sold by Egypt’s Workshop from part 5 (Earth) and part 6 (Brick)', () => {
+  it('is three grades of war machine, sold by Egypt’s Workshop from part 6 (Earth) and part 7 (Brick)', () => {
     expect(creature('ramp').machine).toBe('ramp');
     expect(creature('ramp').cost.gold).toBe(1500);
     expect(creature('ramp2').cost.gold).toBe(3000);
-    expect(soldOn(4)).toEqual([]);
-    expect(soldOn(5)).toEqual(['ramp']);
-    expect(soldOn(6)).toEqual(['ramp', 'ramp2']);
+    expect(soldOn(5)).toEqual([]);
+    expect(soldOn(6)).toEqual(['ramp']);
+    expect(soldOn(7)).toEqual(['ramp', 'ramp2']);
     // Chapter 1 sells the Greeks' catapults, unchanged.
     expect(soldOn(2)).toEqual(['catapult']);
     expect(itemSays('ramp')).toMatch(/round 3/);

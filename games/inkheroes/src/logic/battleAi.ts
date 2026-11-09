@@ -1,5 +1,6 @@
 import { activeStack, alive, answers, canShoot, handOptions, isStone, moves, rampsToPlace, strikeFrom, struckBy, targetable } from './battle';
 import type { Action, BattleState, Side, Stack } from './battleTypes';
+import { bestCast, lastToAct } from './battleCasts';
 import { creature, strengthOf } from './creatures';
 import { damageRange, killsBy } from './damage';
 import { distance, HEX_COUNT, neighbours, type Hex } from './hex';
@@ -53,17 +54,30 @@ const hasEffect = (s: Stack, kind: string): boolean => s.effects.some((x) => x.k
  * The neutral AI, after VCMI's StupidAI: a shooter shoots the target it hurts
  * most; otherwise hit the reachable enemy that gives the best trade (damage
  * dealt minus damage taken back, over every stack a cleaver would hit from
- * that hex); otherwise walk towards the nearest enemy.
+ * that hex); otherwise walk towards the nearest enemy. A side with a hero
+ * casts first when a spell is worth it (battleCasts.ts), unless `casts` is off.
  */
-export function chooseAction(state: BattleState): Action {
+export function chooseAction(state: BattleState, casts = true): Action {
   const me = activeStack(state);
   if (!me) throw new Error('no active stack');
   if (creature(me.creature).machine) return machineAction(state, me);
   if (losing(state, me.side)) return { type: 'flee' };
+  const move = stackAction(state, me);
+  // The hero's spell, once a round, when it beats the stack's own move (or this is the round's last chance to cast it).
+  const cast = casts ? bestCast(state, me.side) : null;
+  if (cast && (cast.value > move.score * CAST_OVER || lastToAct(state, me))) return cast.action;
+  return move.action;
+}
+
+/** A spell is cast in place of waiting for a later stack when it is worth this share of the active stack's best move (casting costs the stack nothing). */
+const CAST_OVER = 0.5;
+
+/** The active stack's own move, and what it is worth (in the health its blow takes off). */
+function stackAction(state: BattleState, me: Stack): { action: Action; score: number } {
   const enemies = foesOf(state, me);
   if (canShoot(state, me)) {
     const best = maxBy(enemies, (e) => worth(e, average(damageRange(state, me, e, { ranged: true, distance: shotDistance(me, e), moved: 0 }))));
-    if (best) return { type: 'shoot', target: best.id };
+    if (best) return { action: { type: 'shoot', target: best.id }, score: worth(best, average(damageRange(state, me, best, { ranged: true, distance: shotDistance(me, best), moved: 0 }))) };
   }
   let bestStrike: { action: Action; score: number } | null = null;
   for (const e of enemies) {
@@ -73,17 +87,17 @@ export function chooseAction(state: BattleState): Action {
       if (!bestStrike || score > bestStrike.score) bestStrike = { action: { type: 'attack', target: e.id, from }, score };
     }
   }
-  if (bestStrike) return bestStrike.action;
+  if (bestStrike) return bestStrike;
   // A garrison on foot holds its walls and lets the enemy come.
-  if (state.siege && me.side === 1 && !creature(me.creature).flies) return { type: 'defend' };
+  if (state.siege && me.side === 1 && !creature(me.creature).flies) return { action: { type: 'defend' }, score: 0 };
   const stone = atTheStone(state, me);
-  if (stone) return stone;
+  if (stone) return { action: stone, score: 0 };
   // Shooters with no shots left, or nothing in reach: close in.
   const reach = [...moves(state).keys()].filter((h) => h !== me.hex);
   const nearest = stepsToFoe(state, me, enemies);
   const go = minBy(reach, nearest);
-  if (go !== null && nearest(go) < nearest(me.hex)) return { type: 'move', to: go };
-  return { type: 'defend' };
+  if (go !== null && nearest(go) < nearest(me.hex)) return { action: { type: 'move', to: go }, score: 0 };
+  return { action: { type: 'defend' }, score: 0 };
 }
 
 /** A garrison on foot fights from behind its walls: it doesn't open its gate to march out at a foe still outside them. */

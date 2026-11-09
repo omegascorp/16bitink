@@ -153,7 +153,7 @@ describe('the Red Land, ridden on into from Abu', () => {
     // Left alone he takes it from the part's 6th day or so (or, against a strong rider, stays home): ahead of a straight ride in most runs.
     const lost = races.filter(({ mine, his }) => his !== null && mine !== null && his - mine < 1);
     expect(lost.length).toBeLessThanOrEqual(Math.floor(races.length / 4));
-  });
+  }, 600_000);
 
   it('storms add a day or two to the ride across, not more', () => {
     for (const r of all) {

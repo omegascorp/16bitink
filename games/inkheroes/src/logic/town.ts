@@ -258,6 +258,8 @@ const CORE_PLAN: readonly BuildingId[] = [
   'townHall', 'barracks', 'archeryRange', 'citadel', 'griffinTower', 'mageGuild1', 'blacksmith',
   'guardhouse2', 'archeryRange2', 'barracks2', 'griffinTower2', 'cityHall', 'stables', 'monastery',
   'castle', 'guardhouse3', 'archeryRange3', 'barracks3', 'griffinTower3', 'tiltyard',
+  // The top of the tree (Othrys opens it): the Capitol's income first, then the Titans, the last upgrades, the Titans' own.
+  'capitol', 'mageGuild2', 'monastery2', 'tiltyard2', 'seraphSpire', 'monastery3', 'tiltyard3', 'seraphSpire2', 'seraphSpire3',
 ];
 /** Each people's plan, in the order its dwellings stand: Egypt's jackals before its chariots, and its Temple of Osiris once the House of Life is up. */
 export const BUILD_PLANS: Readonly<Record<TownFaction, readonly BuildingId[]>> = {

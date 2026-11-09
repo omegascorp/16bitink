@@ -1,9 +1,9 @@
-import { ASHFORD, BLACK_BANNER, THORNWOOD } from './borderMarch';
+import { ASHFORD, BLACK_BANNER, OTHRYS, THORNWOOD } from './borderMarch';
 import type { LineId } from '../narration/lines';
 import type { MapDef } from './types';
 
 /** Chapter 1's parts, in order: one land played straight through (chapter 1 is free and ships with the game). */
-export const MAPS: readonly MapDef[] = [ASHFORD, THORNWOOD, BLACK_BANNER];
+export const MAPS: readonly MapDef[] = [ASHFORD, THORNWOOD, BLACK_BANNER, OTHRYS];
 
 export type ChapterId = 'borderMarch' | 'twoLands';
 
@@ -16,7 +16,7 @@ export interface PartName {
 
 /**
  * A chapter of the campaign: one land that grows over its parts (numbered
- * on through the campaign: chapter 2 begins at part 4), with its own saved
+ * on through the campaign: chapter 2 begins at part 5), with its own saved
  * game. A paid chapter's maps are fetched for owners only (src/scenes/BootScene.ts).
  */
 export interface ChapterDef {
@@ -44,10 +44,10 @@ export interface ChapterDef {
 const named = (m: MapDef): PartName => ({ id: m.id, n: m.n, name: m.name });
 
 export const CHAPTERS: readonly ChapterDef[] = [
-  { id: 'borderMarch', n: 1, name: 'The Border March', first: 1, last: 3, paid: false, parts: MAPS.map(named), ending: 'chapter-won', pitch: 'The Crown’s northern border, in three parts.' },
+  { id: 'borderMarch', n: 1, name: 'The Border March', first: 1, last: 4, paid: false, parts: MAPS.map(named), ending: 'chapter-won', pitch: 'The Crown’s northern border, in four parts.' },
   {
-    id: 'twoLands', n: 2, name: 'The Two Lands', first: 4, last: 6, paid: true, slot: 'twoLands',
-    parts: [{ id: 'nekhen', n: 4, name: 'Nekhen' }, { id: 'abu', n: 5, name: 'Abu' }, { id: 'red-land', n: 6, name: 'The Red Land' }],
+    id: 'twoLands', n: 2, name: 'The Two Lands', first: 5, last: 7, paid: true, slot: 'twoLands',
+    parts: [{ id: 'nekhen', n: 5, name: 'Nekhen' }, { id: 'abu', n: 6, name: 'Abu' }, { id: 'red-land', n: 7, name: 'The Red Land' }],
     // The Red Land's win ends the chapter: the Two Lands are one.
     ending: 'twoLands-won',
     teaser: 'crosses to Egypt: a new people, Neferet the priestess of Isis, and Sacred Rites that curse, ward and raise the fallen.',

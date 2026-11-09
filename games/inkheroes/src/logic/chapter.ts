@@ -1,5 +1,5 @@
 import type { MapDef } from '../level/types';
-import { gridOf, heroFromDef, openingPrompt, revealAround, type Adventure } from './adventure';
+import { gridOf, heroFromDef, oldLordGone, openingPrompt, revealAround, type Adventure } from './adventure';
 import { armyOf } from './army';
 import { sightOf } from './hero';
 import { addTo, purse } from './resources';
@@ -16,7 +16,11 @@ const WAY_SIGHT = 4;
  * the land already seen). The next part adds its own towns, sights and
  * monsters, its rival, and what the Crown sends to help.
  */
-export function rideOn(adv: Adventure, from: MapDef, next: MapDef): Adventure {
+export function rideOn(won: Adventure, from: MapDef, next: MapDef): Adventure {
+  // A part with a lord of its own (Othrys's Lykaon after Kassander) brings him in; one with the same lord, or none, keeps the last's.
+  const newLord = !!next.rival && (!won.rival || (won.rival.hero?.id ?? null) !== next.rival.hero.id);
+  // And the old lord's mines, dwellings and towns still flying his banner turn neutral.
+  const adv = newLord && won.rival ? oldLordGone(won, new Set([...won.objects.map((o) => o.id), ...won.towns.map((t) => t.id)])) : won;
   const have = new Set(adv.objects.map((o) => o.id));
   const objects = [...adv.objects, ...next.objects.filter((o) => !have.has(o.id))];
   // The towns in the part's order (a save reads them in that order): those held already as they are, the new ones as the part sets them.
@@ -31,7 +35,7 @@ export function rideOn(adv: Adventure, from: MapDef, next: MapDef): Adventure {
       ...(spec.faction ? { faction: spec.faction } : {}),
     });
   });
-  const rival = adv.rival ?? (next.rival ? { hero: heroFromDef(next.rival.hero), purse: purse(next.rival.purse) } : undefined);
+  const rival = newLord ? { hero: heroFromDef(next.rival!.hero), purse: purse(next.rival!.purse) } : adv.rival;
   // Nothing the last part left waiting is fought in the next.
   const { rivalFight: _fight, ...rest } = adv;
   const opened: Adventure = {
@@ -50,12 +54,14 @@ export function rideOn(adv: Adventure, from: MapDef, next: MapDef): Adventure {
   // The hero looks about the newly opened land, and so does each new town of ours (a town waiting for us has to be found).
   const fresh = towns.filter((t) => t.owner === 'player' && !adv.towns.some((o) => o.id === t.id));
   const seen = openLand(fresh.reduce((a, t) => revealAround(a, next, t.x, t.y, 5), revealAround(opened, next, adv.hero.x, adv.hero.y, sightOf(adv.hero))), next);
-  return adv.rival === undefined && seen.rival ? headStart(seen, next) : seen;
+  // A rival who appears with the part has been at work at home too; a lord (`mind: 'lord'`) starts fair, with no head start.
+  return newLord && next.rival!.mind !== 'lord' ? headStart(seen, next) : seen;
 }
 
 /** The land along the way the part opened, seen (seeing it again changes nothing). */
 export function openLand(adv: Adventure, def: MapDef): Adventure {
   const way = def.opening?.way ?? [];
+  if (def.opening?.apart) return way.reduce((seen, p) => revealAround(seen, def, p.x, p.y, WAY_SIGHT), adv);
   return way.slice(1).reduce((seen, to, i) => {
     const from = way[i]!;
     const steps = Math.max(Math.abs(to.x - from.x), Math.abs(to.y - from.y));

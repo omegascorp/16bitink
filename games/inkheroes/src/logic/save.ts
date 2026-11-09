@@ -1,7 +1,7 @@
 import { BAGS, ITEM_IDS, MAX_BAG, ITEMS, SLOTS, type Gear, type ItemId } from './items';
 import type { KeyValueStore } from '@16bitink/game-sdk';
 import type { HeroDef, MapDef } from '../level/types';
-import { DEFEND, gridOf, lyingItem, MAX_MONSTER, queueLevelUps, RIVAL, type Adventure, type Prompt, type RivalState } from './adventure';
+import { DEFEND, GATE, gridOf, lyingItem, MAX_MONSTER, pickHero, queueLevelUps, RIVAL, townAt, townById, townGuards, type Adventure, type Prompt, type RivalState } from './adventure';
 import { ARMY_SLOTS, type Army, type ArmySlot } from './army';
 import { BUILDINGS, isBuildingId, type BuildingId } from './buildings';
 import { buildingOf, buildsAt } from './factions';
@@ -16,6 +16,8 @@ import { isSkillId, MAX_SKILLS, SKILL_IDS, type Rank } from './skills';
 import { isSpellId, type SpellId } from './spells';
 import { dwellings, SPELLBOOK_SOLD, type Town } from './town';
 import { isLineId } from '../narration/lines';
+import type { LordMemory } from './lord/knowledge';
+import { lordRules } from './lord/turn';
 
 /** What the war machines since cut from the game cost, gold. */
 const OLD_MACHINES: Readonly<Record<string, number>> = { ballista: 1500, tent: 750 };
@@ -149,14 +151,29 @@ export function parseAdventure(raw: unknown, def: MapDef): Adventure | null {
   const kept = prompts.map((x) => parsePrompt(x, objs)).filter((x): x is Prompt => !!x).slice(0, MAX_PROMPTS);
   const rival = parseRival(raw.rival, def);
   if (def.rival && rival === undefined) return null;
-  // A fight the rival started waits only while he rides, against our hero or a town of ours.
-  const fight = typeof raw.rivalFight === 'string' && rival?.hero && (raw.rivalFight === RIVAL || ts.some((t) => DEFEND + t!.id === raw.rivalFight && t!.owner === 'player')) ? raw.rivalFight : undefined;
+  // A fight waits only while he rides: one he started against our hero or a town of ours, or the walls of his town after we won its gate.
+  const waits = (f: string): boolean => f === RIVAL || ts.some((t) => (DEFEND + t!.id === f && t!.owner === 'player') || GATE + t!.id === f || (t!.id === f && t!.owner === 'rival'));
+  const fight = typeof raw.rivalFight === 'string' && rival?.hero && waits(raw.rivalFight) ? raw.rivalFight : undefined;
   // Level-ups are never read from a save: they're dealt again from the hero's experience.
-  return queueLevelUps({
+  return upgradeFight(queueLevelUps({
     mapId: def.id, day, seed, purse: refundMachines(hero, p), hero: h, ...(others.length ? { others } : {}), towns: ts as Town[], objects: objs, explored, status, prompts: kept, lostStacks,
     ...(isInt(raw.begun, 2, day) ? { begun: raw.begun } : {}),
     ...(rival ? { rival } : {}), ...(fight ? { rivalFight: fight } : {}),
-  });
+  }));
+}
+
+/**
+ * A night fight saved before a town's gate was fought first: the rival
+ * storming a town of ours with a hero of ours at its gate (saved as the
+ * walls, or as that hero met "in the field") is that gate fight now.
+ */
+function upgradeFight(adv: Adventure): Adventure {
+  const f = adv.rivalFight;
+  if (!f || f.startsWith(GATE)) return adv;
+  const town = f.startsWith(DEFEND) ? townById(adv, f.slice(DEFEND.length)) : f === RIVAL ? townAt(adv, adv.hero.x, adv.hero.y) : undefined;
+  if (!town || town.owner !== 'player') return adv;
+  const { gate } = townGuards(adv, town);
+  return gate ? { ...pickHero(adv, gate.id), rivalFight: GATE + town.id } : adv;
 }
 
 /** Which of the map's heroes a saved hero of ours is (the map's own hero for a save from before there were several). */
@@ -193,9 +210,49 @@ function parseRival(raw: unknown, def: MapDef): RivalState | null | undefined {
   if (!isObj(raw)) return undefined;
   const p = parsePurse(raw.purse);
   if (!p) return undefined;
-  if (raw.hero === null) return { hero: null, purse: p };
-  const hero = isObj(raw.hero) ? parseHero(raw.hero, def, def.rival.hero) : null;
-  return hero ? { hero, purse: p } : undefined;
+  // A lord's (src/logic/lord): his other heroes, his fog and his memory; a save from before them has none.
+  const lord = parseLord(raw, def);
+  if (!lord) return undefined;
+  if (raw.hero === null) return { hero: null, purse: p, ...lord };
+  const hero = isObj(raw.hero) ? parseHero(raw.hero, def, lordHeroDef(raw.hero, def)) : null;
+  return hero ? { hero, purse: p, ...lord } : undefined;
+}
+
+/** Which of the lord's heroes a saved one is: the map's rival, or one his Taverns hired. */
+const lordHeroDef = (raw: Record<string, unknown>, def: MapDef): HeroDef => lordRules(def).recruits.find((r) => r.id === raw.id) ?? def.rival!.hero;
+
+/** A lord's other heroes, fog and memory in a save (null: unreadable). */
+function parseLord(raw: Record<string, unknown>, def: MapDef): Pick<RivalState, 'others' | 'explored' | 'memory' | 'fallen' | 'homeless'> | null {
+  const g = gridOf(def);
+  const out: { others?: Adventure['hero'][]; explored?: string; memory?: LordMemory; fallen?: { hero: Adventure['hero']; day: number }[]; homeless?: number } = {};
+  if (raw.others !== undefined) {
+    if (!Array.isArray(raw.others) || !raw.others.every(isObj)) return null;
+    const others = raw.others.map((h) => parseHero(h as Record<string, unknown>, def, lordHeroDef(h as Record<string, unknown>, def)));
+    if (!others.every((h) => !!h) || others.length > 10) return null;
+    out.others = others as Adventure['hero'][];
+  }
+  if (raw.explored !== undefined) {
+    if (typeof raw.explored !== 'string' || raw.explored.length !== g.w * g.h || !/^[01]*$/.test(raw.explored)) return null;
+    out.explored = raw.explored;
+  }
+  if (isObj(raw.memory)) out.memory = parseMemory(raw.memory);
+  if (isInt(raw.homeless, 1)) out.homeless = raw.homeless;
+  if (raw.fallen !== undefined) {
+    if (!Array.isArray(raw.fallen) || raw.fallen.length > 10) return null;
+    const fallen = raw.fallen.map((f) => (isObj(f) && isObj(f.hero) && isInt(f.day, 1) ? { hero: parseHero(f.hero, def, lordHeroDef(f.hero, def)), day: f.day as number } : null));
+    if (!fallen.every((f) => f?.hero)) return null;
+    out.fallen = fallen as { hero: Adventure['hero']; day: number }[];
+  }
+  return out;
+}
+
+/** A lord's memory: what can't be read is forgotten, never fatal. */
+function parseMemory(raw: Record<string, unknown>): LordMemory {
+  const foes = isObj(raw.foes)
+    ? Object.fromEntries(Object.entries(raw.foes).filter(([, v]) => isObj(v) && ['x', 'y', 'day'].every((k) => isInt((v as Record<string, unknown>)[k], 0)) && typeof v.strength === 'number' && v.strength >= 0))
+    : {};
+  const goals = isObj(raw.goals) ? Object.fromEntries(Object.entries(raw.goals).filter(([, v]) => isObj(v) && isInt(v.x, 0) && isInt(v.y, 0))) : undefined;
+  return { foes: foes as LordMemory['foes'], savings: isInt(raw.savings, 0) ? raw.savings : 0, ...(typeof raw.main === 'string' ? { main: raw.main } : {}), ...(goals ? { goals: goals as LordMemory['goals'] } : {}) };
 }
 
 function parsePurse(raw: unknown): Purse | null {
@@ -327,13 +384,24 @@ function parseObjects(raw: readonly unknown[], def: MapDef): MapObject[] | null 
       out.push(lyingItem(base, s.item));
       continue;
     }
-    const ownable = base.kind === 'mine' || base.kind === 'town';
+    const ownable = base.kind === 'mine' || base.kind === 'town' || base.kind === 'dwelling';
     const owner = ownable && (s.owner === 'player' || s.owner === 'neutral' || s.owner === 'rival') ? s.owner : base.owner;
     const count = base.kind === 'monster' && isInt(s.count, 1, MAX_MONSTER) ? s.count : base.count;
     const week = (base.kind === 'windmill' || base.kind === 'stables') && isInt(s.week, 1) ? s.week : undefined;
-    out.push({ ...base, ...(owner ? { owner } : {}), ...(count !== undefined ? { count } : {}), ...(week !== undefined ? { week } : {}), ...(s.gone === true ? { gone: true } : {}) });
+    out.push({ ...base, ...(owner ? { owner } : {}), ...(count !== undefined ? { count } : {}), ...(week !== undefined ? { week } : {}), ...siteState(base, s), ...(s.gone === true ? { gone: true } : {}) });
   }
   return out;
+}
+
+/** What play changed at Othrys's new sites: a dwelling's stock, who read a learning stone, a keep emptied. */
+function siteState(base: MapObject, s: Record<string, unknown>): Partial<MapObject> {
+  if (base.kind === 'dwelling') return isInt(s.stock, 0, MAX_MONSTER) ? { stock: s.stock } : {};
+  if (base.kind === 'learningStone') {
+    const by = Array.isArray(s.visitedBy) ? s.visitedBy.filter((h): h is string => typeof h === 'string').slice(0, 20) : [];
+    return by.length ? { visitedBy: [...new Set(by)] } : {};
+  }
+  if (base.kind === 'bank') return { ...(s.looted === true ? { looted: true } : {}), ...(isObj(s.prize) && Object.keys(s.prize).length === 0 ? { prize: {} } : {}) };
+  return {};
 }
 
 /** A saved card: messages as text; a chest only for a real, unopened chest, with what that chest holds. */
@@ -350,6 +418,11 @@ function parsePrompt(raw: unknown, objects: readonly MapObject[]): Prompt | null
     if (!chest) return null;
     const gold = chest.gold ?? 1000;
     return { kind: 'chest', id: chest.id, gold, xp: CHEST_XP[gold] ?? Math.floor(gold / 2) };
+  }
+  if (raw.kind === 'dwelling' && typeof raw.id === 'string') {
+    const home = objects.find((o) => o.id === raw.id && o.kind === 'dwelling' && !o.gone);
+    if (!home) return null;
+    return { kind: 'dwelling', id: home.id, ...(typeof raw.text === 'string' ? { text: raw.text.slice(0, 500) } : {}) };
   }
   return null;
 }

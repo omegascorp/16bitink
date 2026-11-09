@@ -45,7 +45,7 @@ export const BUILDINGS: Readonly<Record<BuildingId, BuildingDef>> = {
   blacksmith: { name: 'Blacksmith', cost: { gold: 1000, wood: 5 }, needs: [], says: 'Sells war machines, which break town walls' },
   storehouse: { name: 'Storehouse', cost: { gold: 1000, wood: 5 }, needs: [], says: 'Keeps 8 pieces of gear for your heroes; sells Saddlebags', store: 8 },
   treasury: { name: 'Treasury', cost: { gold: 2500, wood: 5, ore: 5 }, needs: ['storehouse'], says: 'Keeps 20 pieces of gear; sells a Pack Mule', store: 20 },
-  marketplace: { name: 'Marketplace', cost: { gold: 500, wood: 5 }, needs: [], says: 'Trade resources' },
+  marketplace: { name: 'Marketplace', cost: { gold: 500, wood: 5 }, needs: [], says: 'Trades any resource for any other, at better rates for each Marketplace you hold' },
   mageGuild1: { name: 'Mage Guild', cost: { gold: 2000, wood: 5, ore: 5 }, needs: [], says: 'Teaches 3 level-1 spells; sells a spellbook' },
   mageGuild2: { name: 'Mage Guild, 2nd floor', cost: { gold: 1000, wood: 5, ore: 5, mercury: 4, sulfur: 4, crystal: 4, gems: 4 }, needs: ['mageGuild1'], says: 'Teaches 2 level-2 spells' },
   guardhouse: { name: 'Guardhouse', cost: { gold: 1000, ore: 5 }, needs: [], says: 'Hires Hoplites', dwelling: 'spearman' },

@@ -9,7 +9,7 @@ import type { HeroDef, MapDef } from './types';
  * Chapter 2, the Two Lands, as one land that grows as it is played (as the
  * Border March in borderMarch.ts): Nekhen on the Upper Nile first, then Abu
  * at the cataract south of it, the Nile running on from one into the other;
- * then the Red Land east of Abu (part 6), each cut from the
+ * then the Red Land east of Abu (part 7), each cut from the
  * top-left corner so a tile keeps its place from part to part, and
  * src/logic/chapter.ts rides the hero on into them. Part of the full game:
  * never imported by the game's client code (content/paid.ts serves it).
@@ -43,12 +43,12 @@ function stitch(lands: readonly (readonly [MapDef, Place])[], w: number, h: numb
   return grid.map((r) => r.join(''));
 }
 
-/** Parts 4 and 5: the Nile's land, 40 × 56. */
+/** Parts 5 and 6: the Nile's land, 40 × 56. */
 const NILE_ROWS = stitch([[NEKHEN_LAND, AT.nekhen], [ABU_LAND, AT.abu]], 40, 56);
 
-/** Where the way east through Abu's dunes opens on part 6 (its rows match the Red Land's own gap in its west edge). */
+/** Where the way east through Abu's dunes opens on part 7 (its rows match the Red Land's own gap in its west edge). */
 const PASS_ROWS = [16, 17, 18] as const;
-/** Part 6: the Red Land laid east of Abu, the dunes between opened at the pass, 80 × 56. */
+/** Part 7: the Red Land laid east of Abu, the dunes between opened at the pass, 80 × 56. */
 const RED_ROWS = stitch([[NEKHEN_LAND, AT.nekhen], [ABU_LAND, AT.abu], [RED_LAND_LAND, AT.redLand]], 80, 56,
   PASS_ROWS.map((y) => ({ x: AT.redLand.x - 1, y: AT.redLand.y + y, ch: 's' })));
 
@@ -59,14 +59,14 @@ const cut = (rows: readonly string[], w: number, h: number): string[] => rows.sl
 const placed = (objects: readonly MapObject[], at: Place): MapObject[] => objects.map((o) => ({ ...o, x: o.x + at.x, y: o.y + at.y }));
 const at = <T extends Place>(p: T, a: Place): T => ({ ...p, x: p.x + a.x, y: p.y + a.y });
 
-/** Part 4: Neferet holds Nekhen, on the west bank. */
+/** Part 5: Neferet holds Nekhen, on the west bank. */
 export const NEKHEN: MapDef = { ...NEKHEN_LAND, rows: cut(NILE_ROWS, 32, 24), seed: SEED };
 
 /** Where the way south begins: Nekhen's west bank running on into the river road. */
 const WAY_SOUTH: readonly Place[] = [{ x: 14, y: 21 }, { x: 13, y: AT.abu.y + 1 }, { x: 12, y: AT.abu.y + 6 }];
 
 /**
- * Part 5: up the river road to the cataract, where Abu stands on its island.
+ * Part 6: up the river road to the cataract, where Abu stands on its island.
  * Played fresh, Neferet waits at the head of the road. The opening shows
  * where the road south begins, not Abu: the fort has to be found.
  */
@@ -92,7 +92,7 @@ type TownSpec = NonNullable<MapDef['towns']>[number];
 const WAY_EAST: readonly Place[] = [{ x: 30, y: AT.redLand.y + 17 }, { x: AT.redLand.x, y: AT.redLand.y + 17 }, { x: AT.redLand.x + 4, y: AT.redLand.y + 17 }];
 
 /**
- * Part 6: across Abu's east bank and through the dunes into the Red Land,
+ * Part 7: across Abu's east bank and through the dunes into the Red Land,
  * where Sethi holds Nubt and both race for Gebtu. Played fresh, Neferet
  * comes through the pass and Abu is already ours. The chapter's last part.
  */

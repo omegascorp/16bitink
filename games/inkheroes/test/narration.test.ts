@@ -142,7 +142,7 @@ describe('narrated cards', () => {
       // Short: the card is read in a glance while the voice tells the rest.
       expect(def.brief.length, def.id).toBeLessThan(160);
     }
-    expect(MAPS.map((m) => m.story)).toEqual(['part-ashford', 'part-thornwood', 'part-blackBanner']);
+    expect(MAPS.map((m) => m.story)).toEqual(['part-ashford', 'part-thornwood', 'part-blackBanner', 'part-othrys']);
   });
 
   it('keep their line and brief through a save, and drop a line the game no longer has', () => {
@@ -186,7 +186,7 @@ describe('the lines to come', () => {
     expect(upcoming(held, 2)).toEqual(['kassander-flees', 'korax-taken']);
     const korax = townById(held, CHAPTER1.korax)!;
     const hunted = withTown(held, { ...korax, owner: 'player' });
-    expect(upcoming(hunted, 2)).toEqual(['kassander-beaten', 'chapter-won']);
+    expect(upcoming(hunted, 2)).toEqual(['kassander-beaten', 'blackBanner-won']);
   });
 });
 

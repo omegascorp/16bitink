@@ -1,6 +1,6 @@
 import type { ItemId } from './items';
 import type { CreatureId } from './creatures';
-import type { Resource } from './resources';
+import type { Amount, Resource } from './resources';
 import type { SpellId } from './spells';
 
 export type Owner = 'player' | 'neutral' | 'rival';
@@ -10,7 +10,17 @@ export type ObjectKind =
   | 'mercCamp' | 'watchtower' | 'standingStone' | 'shrine' | 'windmill' | 'stables' | 'spellbook'
   | 'monster'
   /** A piece of gear on the ground: a beaten monster's, left there while the hero's bag was full. */
-  | 'item';
+  | 'item'
+  /** Old carvings: +1000 experience, once for each hero (H3's Learning Stone). */
+  | 'learningStone'
+  /** A creature's home on the map: beaten guard, then it flies a flag and fills every week, to hire there (H3's outer dwelling). */
+  | 'dwelling'
+  /** A treasure keep: a ruin with a strong guard (a monster beside it) and a big prize inside (H3's creature bank). */
+  | 'bank';
+
+/** How an outer dwelling is drawn (a map sprite key of the same name; src/scenes/map/pixelMapArt.ts falls back while one isn't drawn). */
+export type DwellingLook = 'cyclopsCave' | 'griffinCliff' | 'titanForge';
+export const DWELLING_LOOKS: readonly DwellingLook[] = ['cyclopsCave', 'griffinCliff', 'titanForge'];
 
 /** A thing on the map. Fields beyond kind/x/y depend on the kind. */
 export interface MapObject {
@@ -23,19 +33,31 @@ export interface MapObject {
   readonly amount?: number;
   /** Chest: gold on offer (the XP choice is gold / 2 − 0, see CHEST). */
   readonly gold?: number;
-  /** Monster: who and how many. */
+  /** Monster: who and how many; dwelling: who it hires. */
   readonly creature?: CreatureId;
   readonly count?: number;
   /** Monster: others fighting beside it, as they stand (a boss's brood: they never grow). */
   readonly brood?: { readonly creature: CreatureId; readonly count: number };
   /** Monster: the piece it leaves when beaten. */
   readonly drop?: ItemId;
-  /** Spellbook: the book itself; item: the piece lying there. */
+  /** Spellbook: the book itself; item: the piece lying there; bank: the piece in its prize. */
   readonly item?: ItemId;
   /** Shrine or spellbook: the spell it teaches. */
   readonly spell?: SpellId;
-  /** Mines and towns: who flies the flag. */
+  /** Mines, dwellings and towns: who flies the flag. */
   readonly owner?: Owner;
+  /** Dwelling: creatures that join its stock each week (the first visit finds a week's). */
+  readonly growth?: number;
+  /** Dwelling: creatures waiting to be hired. */
+  readonly stock?: number;
+  /** Dwelling: its picture; bank: 'keep'. */
+  readonly look?: DwellingLook | 'keep';
+  /** Learning stone: the heroes who have read it (each may once). */
+  readonly visitedBy?: readonly string[];
+  /** Bank: its prize, taken once its guard is beaten: gold and goods (and `item`, a piece of gear). */
+  readonly prize?: Amount;
+  /** Bank: emptied, it stands as a ruin. */
+  readonly looted?: boolean;
   /** Weekly sites: the week last emptied. */
   readonly week?: number;
   /** Picked up or beaten: gone from the map. */
@@ -45,7 +67,7 @@ export interface MapObject {
 /** Things that vanish once visited. */
 export const PICKUPS: readonly ObjectKind[] = ['pile', 'chest', 'campfire', 'spellbook', 'item'];
 /** Sites drawn a building tall: they also block the tile behind their own. */
-const TALL: readonly ObjectKind[] = ['mine', 'mercCamp', 'watchtower', 'windmill', 'stables'];
+const TALL: readonly ObjectKind[] = ['mine', 'mercCamp', 'watchtower', 'windmill', 'stables', 'dwelling', 'bank'];
 
 /**
  * Tiles an object blocks besides its own (x, y). As in H3 a hero never
@@ -71,7 +93,14 @@ export const SITE_NAMES: Readonly<Record<ObjectKind, string>> = {
   town: 'Town', mine: 'Mine', pile: 'Pile', chest: 'Treasure Chest', campfire: 'Campfire',
   mercCamp: 'Mercenary Camp', watchtower: 'Old Watchtower', standingStone: 'Standing Stone', shrine: 'Wayside Shrine',
   windmill: 'Windmill', stables: 'Stables', spellbook: 'Spellbook Altar', monster: 'Monster', item: 'Gear on the ground',
+  learningStone: 'Learning Stone', dwelling: 'Dwelling', bank: 'Treasure Keep',
 };
+
+/** Each outer dwelling's name on the map. */
+export const DWELLING_NAMES: Readonly<Record<DwellingLook, string>> = { cyclopsCave: 'Cyclops Cave', griffinCliff: 'Griffin Cliff', titanForge: 'The Titans’ Forge' };
+
+/** Experience a learning stone gives (before Learning). */
+export const LEARNING_XP = 1000;
 
 /** The tiles right round a town's gate (x, y), which no hero has ever been able to stand on. */
 const TOWN_CORE: readonly (readonly [number, number])[] = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0]];

@@ -85,6 +85,8 @@ export const ITEMS = {
   novicePapyrus: { name: 'Novice’s Papyrus', slot: 'book', quality: 'gray', gives: { knowledge: 1 } },
   oracleSpellbook: { name: 'Oracle’s Spellbook', slot: 'book', quality: 'green', gives: { knowledge: 1, power: 1 } },
   alexandrianCodex: { name: 'Alexandrian Codex', slot: 'book', quality: 'blue', gives: { knowledge: 2, power: 1 } },
+  // Othrys's prize (part 4): forged by the Titans, kept by the Gigantes on the summit. The chapter's first Legendary piece.
+  kronosHelm: { name: 'Helm of Kronos', slot: 'helm', quality: 'gold', gives: { attack: 2, defense: 3, morale: 1 } },
   catapult: { name: 'Catapult', slot: 'machine', quality: 'gray', gives: {}, machine: 'catapult' },
   catapult2: { name: 'Bronze Catapult', slot: 'machine', quality: 'green', gives: {}, machine: 'catapult2' },
   catapult3: { name: 'Syracusan Catapult', slot: 'machine', quality: 'blue', gives: {}, machine: 'catapult3' },

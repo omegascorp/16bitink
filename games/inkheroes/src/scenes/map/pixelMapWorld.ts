@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import { KEMET_TOWN, MAP_COVER, TOWN_LOOKS } from '../../art/pixel/map';
 import { BACKDROP } from '../../art/palette';
 import type { MapDef } from '../../level/types';
-import { gridOf, isSeen, liveObjects, ourHeroes, type Adventure } from '../../logic/adventure';
+import { gridOf, isSeen, liveObjects, ourHeroes, rivalHeroes, type Adventure } from '../../logic/adventure';
+import type { RivalRide } from './rivalRides';
 import { isEmptyArmy } from '../../logic/army';
 import type { Hero } from '../../logic/hero';
 import type { Town } from '../../logic/town';
@@ -118,8 +119,10 @@ export class PixelMapWorld {
   private readonly ours = new Map<string, PixelFigure>();
   /** The picked hero's id: the figure the ride moves (it only changes between rides). */
   private picked: string;
-  /** The rival lord's figure, on a map that has one; shown only on tiles the player has seen. */
-  private readonly rival: PixelFigure | null;
+  /** The rival's heroes' figures, by hero id (a lord rides with several); shown only on tiles the player has seen. */
+  private readonly rivals = new Map<string, PixelFigure>();
+  /** The rival figure riding tonight's path, one at a time. */
+  private riding: PixelFigure | null = null;
   private readonly heroRide: Ride;
   private readonly rivalRide: Ride;
   private readonly pathMarks: Phaser.GameObjects.Image[] = [];
@@ -153,12 +156,9 @@ export class PixelMapWorld {
     for (const o of def.objects) this.addObject(o);
     this.picked = adv.hero.id;
     for (const h of ourHeroes(adv)) this.addHero(h);
-    const r = adv.rival?.hero;
-    const ra = heroArt('rival', r?.id);
-    this.rival = r ? new PixelFigure(scene, this.layer, ra.art, (pose) => PX_TEX.hero(ra.id, pose), tileFeet(r.x, r.y), true) : null;
-    if (this.rival) this.figures.push(this.rival);
+    for (const r of rivalHeroes(adv)) this.addRival(r);
     this.heroRide = new Ride((x, y) => this.hero.setFeet(x, y));
-    this.rivalRide = new Ride((x, y) => this.rival?.setFeet(x, y));
+    this.rivalRide = new Ride((x, y) => this.riding?.setFeet(x, y));
     this.markKeys = {
       dot: putBuffer(scene, drawMark('dot', PATH_TODAY)), ring: putBuffer(scene, drawMark('ring', PATH_LATER)),
       crossToday: putBuffer(scene, drawMark('cross', PATH_TODAY)), crossLater: putBuffer(scene, drawMark('cross', PATH_LATER)),
@@ -272,7 +272,8 @@ export class PixelMapWorld {
     if (!s) return;
     const img = this.place(s.key, s.sprite, feet.x, feet.y + 2, FIGURE_DEPTH + feet.y - 1);
     this.sprites.set(o.id, img);
-    if (o.kind === 'mine') this.addFlag(o.id, 'neutral', feet.x + Math.floor(s.sprite.w * 0.25), feet.y - s.sprite.h + 12, FIGURE_DEPTH + feet.y);
+    // Mines and outer dwellings fly their holder's flag.
+    if (o.kind === 'mine' || o.kind === 'dwelling') this.addFlag(o.id, 'neutral', feet.x + Math.floor(s.sprite.w * 0.25), feet.y - s.sprite.h + 12, FIGURE_DEPTH + feet.y);
   }
 
   /** A piece of gear on the ground, in its own icon at half size, where the monster that left it stood. */
@@ -354,18 +355,53 @@ export class PixelMapWorld {
     this.drawFog(adv);
   }
 
-  /** The rival lord where `adv` has him: shown if he rides and the player has seen his tile. */
-  placeRival(adv: Adventure): void {
-    const r = adv.rival?.hero;
-    if (!this.rival) return;
-    if (r) this.rival.setFeet(tileFeet(r.x, r.y).x, tileFeet(r.x, r.y).y);
-    this.rival.sprite.setVisible(!!r && isSeen(adv, this.def, r.x, r.y));
+  /** A figure for the rival's hero `h`, in his own art when drawn (else the rival's), hidden until placed. */
+  private addRival(h: Hero): PixelFigure {
+    const art = heroArt('rival', h.id);
+    const fig = new PixelFigure(this.scene, this.layer, art.art, (pose) => PX_TEX.hero(art.id, pose), tileFeet(h.x, h.y), true);
+    fig.sprite.setVisible(false);
+    this.figures.push(fig);
+    this.rivals.set(h.id, fig);
+    return fig;
   }
 
-  /** Rides the rival lord along `tiles`: seen, he gallops; unseen, he slips through the fog. Resolves at the end. */
-  rideRival(tiles: readonly { x: number; y: number }[], seen: (x: number, y: number) => boolean): Promise<void> {
-    const fig = this.rival;
-    if (!fig) return Promise.resolve();
+  /**
+   * The rival's heroes where `adv` has them: a figure for each (a new hire
+   * gets one, a beaten hero's goes), shown on tiles the player has seen.
+   * A hero in his own town's garrison is inside its walls, out of sight.
+   */
+  placeRival(adv: Adventure, heroes: readonly Hero[] = rivalHeroes(adv)): void {
+    const ids = new Set(heroes.map((h) => h.id));
+    for (const [id, fig] of this.rivals) {
+      if (ids.has(id)) continue;
+      fig.destroy();
+      this.rivals.delete(id);
+      this.figures.splice(this.figures.indexOf(fig), 1);
+    }
+    for (const h of heroes) {
+      const fig = this.rivals.get(h.id) ?? this.addRival(h);
+      const f = tileFeet(h.x, h.y);
+      fig.setFeet(f.x, f.y);
+      const inside = isEmptyArmy(h.army) && adv.towns.some((t) => t.x === h.x && t.y === h.y);
+      fig.sprite.setVisible(!inside && isSeen(adv, this.def, h.x, h.y));
+    }
+  }
+
+  /**
+   * Rides the rival's heroes along tonight's `rides`, one after another,
+   * each on his own figure: seen, he gallops; unseen, he slips through the
+   * fog. Resolves at the end of the last.
+   */
+  async rideRivals(rides: readonly RivalRide[], seen: (x: number, y: number) => boolean): Promise<void> {
+    for (const r of rides) {
+      const fig = this.rivals.get(r.id);
+      if (fig) await this.rideOne(fig, r.tiles, seen);
+    }
+    this.riding = null;
+  }
+
+  private rideOne(fig: PixelFigure, tiles: readonly { x: number; y: number }[], seen: (x: number, y: number) => boolean): Promise<void> {
+    this.riding = fig;
     fig.walk(RIDE_FPS);
     return new Promise((resolve) => {
       const next = (i: number): void => {

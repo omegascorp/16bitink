@@ -57,7 +57,7 @@ export function damageFactor(state: BattleState, a: Stack, d: Stack, ctx: Strike
   if (ctx.ranged && ctx.distance > RANGE_PENALTY_DISTANCE && !creature(a.creature).noRangePenalty) lower *= 0.5;
   if (ctx.ranged && creature(d.creature).shieldWall) lower *= 0.5;
   if (ctx.ranged && inCover(state, a, d)) lower *= 0.5;
-  if (!ctx.ranged && creature(a.creature).shots) lower *= 0.5;
+  if (!ctx.ranged && creature(a.creature).shots && !creature(a.creature).noMeleePenalty) lower *= 0.5;
   return raise * lower;
 }
 

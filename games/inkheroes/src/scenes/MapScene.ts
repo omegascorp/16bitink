@@ -2,12 +2,15 @@ import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
 import { getSound } from '../host';
 import type { MapDef } from '../level/types';
-import { gridOf, guardAt, heroInGarrison, heroTown, isSeen, objectCovering, otherHeroAt, planPath, rivalHero, stepHero, wallsToStorm, type Adventure } from '../logic/adventure';
+import { gridOf, guardAt, heroInGarrison, holdOff, heroTown, isSeen, objectCovering, otherHeroAt, planPath, rivalHeroes, stepHero, wallsToStorm, type Adventure } from '../logic/adventure';
+import { splitRides } from './map/rivalRides';
+import { rivalHeroAt } from '../logic/mapIntent';
 import { besideEachOther, selectHero } from '../logic/heroes';
 import type { Army } from '../logic/army';
 import { creature, sizeWord, type CreatureId } from '../logic/creatures';
 import { intentAt, type MapIntent } from '../logic/mapIntent';
-import { MINE_NAMES, MINE_OUTPUT, SITE_NAMES } from '../logic/objects';
+import { LEARNING_XP, MINE_NAMES, MINE_OUTPUT, SITE_NAMES } from '../logic/objects';
+import { dwellingName } from '../logic/dwellings';
 import type { PathStep } from '../logic/path';
 import type { RivalReport } from '../logic/rival';
 import { SPELLS } from '../logic/spells';
@@ -249,8 +252,8 @@ export class MapScene extends Phaser.Scene {
     const { adv, def } = this.session;
     const g = gridOf(def);
     if (x < 0 || y < 0 || x >= g.w || y >= g.h || !isSeen(adv, def, x, y)) return '';
-    const foe = rivalHero(adv);
-    if (foe && foe.x === x && foe.y === y && !adv.towns.some((t) => t.x === x && t.y === y)) return `${foe.name} of the Black Banner, leading ${armyWords(foe.army)}`;
+    const met = rivalHeroAt(adv, x, y);
+    if (met && !adv.towns.some((t) => t.x === x && t.y === y)) return `${met.name}, the rival's hero, leading ${armyWords(met.army)}`;
     const friend = otherHeroAt(adv, x, y);
     if (friend) return `${friend.name}, leading ${armyWords(friend.army)}: ${besideEachOther(adv.hero, friend) ? 'tap to meet and trade companies' : 'tap to pick'}`;
     const town = adv.towns.find((t) => Math.abs(x - t.x) <= 1 && (y === t.y || y === t.y - 1));
@@ -258,7 +261,9 @@ export class MapScene extends Phaser.Scene {
       if (town.owner === 'player') return `${town.name}: your town`;
       if (town.ally) return `${town.name}: its gates will open to you`;
       // A town not ours: who holds it, the way a monster is named.
-      const lord = town.owner === 'rival' ? ` (${foe ? `${foe.name}'s` : 'the Black Banner\'s'} town${foe && foe.x === town.x && foe.y === town.y ? `, and ${foe.name} is in it` : ''})` : '';
+      const foe = rivalHeroes(adv)[0];
+      const inside = rivalHeroAt(adv, town.x, town.y);
+      const lord = town.owner === 'rival' ? ` (${foe ? `${foe.name}'s` : 'the rival\'s'} town${inside ? `, and ${inside.name} is in it` : ''})` : '';
       return `${town.name}${lord}: held by ${armyWords(town.garrison)}${town.id === def.goal.target ? ' (your goal)' : ''}`;
     }
     const o = objectCovering(adv, x, y);
@@ -271,13 +276,20 @@ export class MapScene extends Phaser.Scene {
     if (o.kind === 'mine') return `${MINE_NAMES[o.resource!]}: +${MINE_OUTPUT[o.resource!]} ${o.resource} a day${o.owner === 'player' ? ' (yours)' : ''}`;
     if (o.kind === 'pile') return `A pile of ${o.resource}`;
     if (o.kind === 'shrine') return `Wayside Shrine: ${SPELLS[o.spell!].name}`;
+    if (o.kind === 'dwelling') {
+      const c = creature(o.creature!);
+      const holder = o.owner === 'player' ? ' (yours)' : o.owner === 'rival' ? ' (the rival’s)' : '';
+      return `${dwellingName(o)}: ${o.growth} ${o.growth === 1 ? c.name : c.plural} a week${holder}`;
+    }
+    if (o.kind === 'learningStone') return `Learning Stone: +${LEARNING_XP} experience${o.visitedBy?.includes(adv.hero.id) ? ' (read)' : ''}`;
+    if (o.kind === 'bank') return o.looted ? 'Treasure Keep (empty)' : 'Treasure Keep';
     return SITE_NAMES[o.kind];
   }
 
   private tap(x: number, y: number): void {
     // Tapping the rival lord heads for him (the walk ends in the fight).
-    const foe = rivalHero(this.session.adv);
-    if (foe && foe.x === x && foe.y === y && isSeen(this.session.adv, this.session.def, x, y) && !heroInGarrison(this.session.adv)) {
+    const foe = rivalHeroAt(this.session.adv, x, y);
+    if (foe && isSeen(this.session.adv, this.session.def, x, y) && !heroInGarrison(this.session.adv)) {
       const end = this.path?.[this.path.length - 1];
       if (end && end.x === x && end.y === y) this.walk(this.path!);
       else this.setPath(planPath(this.session.adv, this.session.def, x, y));
@@ -481,7 +493,14 @@ export class MapScene extends Phaser.Scene {
   showPrompts(): void {
     const adv = this.session.adv;
     if (!adv.prompts.length && adv.status === 'playing' && adv.rivalFight) {
-      this.startBattle(adv.rivalFight);
+      // The walls after his gate was won, stormed with no war machine: warned first, as any siege ("Not yet" leaves them for later).
+      const fight = adv.rivalFight;
+      const walls = wallsToStorm(adv, fight);
+      if (walls) {
+        openCard(this, wallsCard(walls, adv, () => this.startBattle(fight, undefined, true), () => this.session.set(holdOff(this.session.adv))));
+        return;
+      }
+      this.startBattle(fight, undefined, true);
       return;
     }
     const opening = !adv.prompts.length && adv.status === 'playing' ? this.session.takeOpening() : undefined;
@@ -535,8 +554,14 @@ export class MapScene extends Phaser.Scene {
     }
     const { def } = this.session;
     this.walking = true;
-    this.world.placeRival(before);
-    await this.world.rideRival(report.path, (x, y) => isSeen(before, def, x, y));
+    // Each hero of his on his own figure, in the order they rode (a lord rides with several).
+    const after = this.session.adv;
+    const rides = splitRides(report.path, rivalHeroes(before), rivalHeroes(after));
+    // Every hero of his where he stood at dusk: one hired tonight where his ride begins (unseen in the fog).
+    const hired = rivalHeroes(after).filter((h) => !rivalHeroes(before).some((b) => b.id === h.id));
+    const dusk = [...rivalHeroes(before), ...hired.map((h) => ({ ...h, ...(rides.find((r) => r.id === h.id)?.tiles[0] ?? {}) }))];
+    this.world.placeRival(before, dusk);
+    await this.world.rideRivals(rides, (x, y) => isSeen(before, def, x, y));
     this.walking = false;
     this.world.sync(this.session.adv);
   }

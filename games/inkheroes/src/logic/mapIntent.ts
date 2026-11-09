@@ -1,5 +1,6 @@
 import type { MapDef } from '../level/types';
-import { gridOf, guardAt, heroInGarrison, heroTown, isSeen, objectCovering, otherHeroAt, planPath, rivalAt, townAt, type Adventure } from './adventure';
+import { gridOf, guardAt, heroInGarrison, heroTown, isSeen, objectCovering, otherHeroAt, planPath, rivalAt, rivalHeroes, townAt, type Adventure } from './adventure';
+import type { Hero } from './hero';
 import { inGrid } from './map';
 import { undefended } from './town';
 
@@ -24,3 +25,6 @@ export function intentAt(adv: Adventure, def: MapDef, x: number, y: number): Map
   if (gate) return gate.owner !== 'player' && !gate.ally && !undefended(gate) ? 'attack' : 'visit';
   return guardAt(adv, x, y) ? 'attack' : 'move';
 }
+
+/** The rival's hero standing at (x, y), if any (a lord rides with several): the one a tap there would fight. */
+export const rivalHeroAt = (adv: Adventure, x: number, y: number): Hero | undefined => rivalHeroes(adv).find((h) => h.x === x && h.y === y);

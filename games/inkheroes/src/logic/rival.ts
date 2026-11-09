@@ -2,12 +2,11 @@ import { gainItem, hasAsGood, machineOf } from './items';
 import { soldOn } from '../level/unlocks';
 import type { MapDef } from '../level/types';
 import {
-  calendar, checkGoal, dayOfWeek, DEFEND, fledHome, guardAt, lordSide, heroInGarrison, incomeOf, liveObjects, ourHeroes, playerArmy, RIVAL, rivalHero, revealAround, terrainView, toldPrompt, townAt, withTown, type Adventure, type Prompt,
+  calendar, checkGoal, dayOfWeek, DEFEND, fledHome, GATE, stormOf, townGuards, guardAt, lordSide, heroInGarrison, incomeOf, liveObjects, ourHeroes, playerArmy, RIVAL, rivalHero, revealAround, terrainView, toldPrompt, townAt, withTown, type Adventure, type Prompt,
 } from './adventure';
 import { CHAPTER1 } from '../narration/lines';
 import { armyMorale, armyOf, isEmptyArmy, splitMonster, type Army } from './army';
-import { act, createBattle, survivors, type BattleSide, type SiegeSetup } from './battle';
-import { chooseAction } from './battleAi';
+import { survivors, type BattleSide, type SiegeSetup } from './battle';
 import type { BattleState } from './battleTypes';
 import { creature, strengthOf } from './creatures';
 import { dailyMp, toBattleHero, type Hero } from './hero';
@@ -16,7 +15,10 @@ import { canStep, findPath, type PathStep } from './path';
 import { selectHero } from './heroes';
 import { addTo, canAfford, pay } from './resources';
 import { fortification } from './siege';
-import { bestUnit, build, cantBuild, dwellings, has, hireable, hireAll, manTowers, towersOf, undefended, weekly, type Town } from './town';
+import { armyStrength } from './strength';
+import { autoBattle } from './autoBattle';
+import { isLord, playLord } from './lord/turn';
+import { bestUnit, build, cantBuild, dwellings, has, hireable, hireAll, manTowers, towersOf, weekly, type Town } from './town';
 
 /**
  * The rival lord's turn, played after the night: his towns build and hire,
@@ -33,7 +35,7 @@ export interface RivalReport {
   readonly path: readonly { x: number; y: number }[];
   /** News for the day's card. */
   readonly notes: readonly string[];
-  /** A fight with us he started: RIVAL (our hero) or DEFEND + town id (a garrison alone). */
+  /** A fight with us he started: RIVAL (our hero in the field), GATE + town id (the hero at its gate) or DEFEND + town id (its walls). */
   readonly fight?: string;
 }
 
@@ -61,17 +63,11 @@ const SIGHTED = 3;
 /** The share of the days before a part opens that the rival has had at home. */
 const HEAD_START = 0.75;
 
-/** A rough fighting strength of an army. */
-export const armyStrength = (army: Army): number => army.reduce((n, s) => n + (s ? strengthOf(s.creature, s.count) : 0), 0);
+export { armyStrength };
 
 const hashId = (s: string): number => [...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0, 2166136261);
 
-/** A fight the AI plays out on both sides at once; a battle that drags on is held by the defender. */
-export function autoBattle(attacker: BattleSide, defender: BattleSide, seed: number, siege?: SiegeSetup): BattleState {
-  let st = createBattle(attacker, defender, seed, siege).state;
-  for (let i = 0; i < 600 && st.winner === null; i++) st = act(st, chooseAction(st)).state;
-  return st.winner === null ? { ...st, winner: 1 } : st;
-}
+export { autoBattle };
 
 
 /** `adv` with the rival's hero replaced (null: beaten). */
@@ -79,6 +75,7 @@ const withRival = (adv: Adventure, hero: Hero | null): Adventure => ({ ...adv, r
 
 export function rivalTurn(adv: Adventure, def: MapDef): { adv: Adventure; report: RivalReport } {
   if (!adv.rival || adv.status !== 'playing') return { adv, report: { path: [], notes: [] } };
+  if (isLord(def)) return lordTurn(adv, def);
   let next = rivalTowns(adv, def);
   const path: { x: number; y: number }[] = [];
   const notes: string[] = [];
@@ -98,6 +95,14 @@ export function rivalTurn(adv: Adventure, def: MapDef): { adv: Adventure; report
   const after = sighted(checkGoal(next, def), def);
   const told = [...notes, ...after.notes];
   return { adv: withNews(after.adv, def, told), report: { path, notes: told } };
+}
+
+/** A lord's night (src/logic/lord): his whole side played as a player plays, a fight with us left for the player. */
+function lordTurn(adv: Adventure, def: MapDef): { adv: Adventure; report: RivalReport } {
+  const r = playLord(adv, def, 'stop');
+  const after = r.fight ? { adv: r.adv, notes: [] } : sighted(r.adv, def);
+  const notes = [...r.notes, ...after.notes];
+  return { adv: withNews(after.adv, def, notes, r.fight), report: { path: r.path, notes, ...(r.fight ? { fight: r.fight } : {}) } };
 }
 
 /** With no town left he has nowhere to hide: each night the scouts find him, on the map and on the day's card. */
@@ -123,6 +128,8 @@ function compass(dx: number, dy: number): string {
  * set out), so he keeps close behind whenever the player gets there.
  */
 export function headStart(adv: Adventure, def: MapDef): Adventure {
+  // A lord has a fair start: none played in secret.
+  if (isLord(def)) return adv;
   let next = adv;
   for (let day = 2; day <= Math.round(adv.day * (def.rival?.headStart ?? HEAD_START)); day++) {
     const rival = next.rival!;
@@ -156,8 +163,12 @@ function withNews(adv: Adventure, def: MapDef, notes: readonly string[], fight?:
       : [...prompts, { kind: 'message', title: def.name, text: notes.join('\n') }];
   }
   if (!fight || !foe) return { ...adv, prompts };
-  const at = fight === RIVAL ? adv.hero.name : (adv.towns.find((t) => DEFEND + t.id === fight)?.name ?? 'your town');
-  const text = fight === RIVAL ? `${foe.name} rides against ${at}! Stand and fight.` : `${foe.name} storms ${at}! Its garrison must hold the walls alone.`;
+  const town = adv.towns.find((t) => DEFEND + t.id === fight || GATE + t.id === fight);
+  const at = town?.name ?? 'your town';
+  const lead = town ? townGuards(adv, town).garrison : undefined;
+  const text = fight === RIVAL ? `${foe.name} rides against ${adv.hero.name}! Stand and fight.`
+    : fight.startsWith(GATE) ? `${foe.name} storms ${at}! ${adv.hero.name} meets him at the gate, in the open; if the gate falls, the walls are next.`
+      : lead ? `${foe.name} storms ${at}! ${lead.name} holds the walls with its garrison.` : `${foe.name} storms ${at}! Its garrison must hold the walls alone.`;
   return { ...adv, prompts: [...prompts, { kind: 'message', title: `${foe.name} attacks`, text }], rivalFight: fight };
 }
 
@@ -255,7 +266,9 @@ function targets(adv: Adventure, def: MapDef, hero: Hero, mine: number): { x: nu
     if (value && !guarded(o)) out.push({ x: o.x, y: o.y, value });
   }
   const ours = armyStrength(playerArmy(adv));
-  if (!heroInGarrison(adv) && ours < mine * SAFE.hero) out.push({ x: adv.hero.x, y: adv.hero.y, value: VALUE.ourHero });
+  // A hero of ours in a town of ours is no lone hero: storming it is both its battles (the town's target below).
+  const inTown = (h: Hero): boolean => adv.towns.some((t) => t.owner === 'player' && t.x === h.x && t.y === h.y);
+  if (!heroInGarrison(adv) && !inTown(adv.hero) && ours < mine * SAFE.hero) out.push({ x: adv.hero.x, y: adv.hero.y, value: VALUE.ourHero });
   // Our other heroes, out in the field.
   for (const h of adv.others ?? []) {
     const theirs = armyStrength(h.army);
@@ -264,7 +277,7 @@ function targets(adv: Adventure, def: MapDef, hero: Hero, mine: number): { x: nu
   const within = (p: { x: number; y: number }, t: { x: number; y: number }): boolean => Math.max(Math.abs(p.x - t.x), Math.abs(p.y - t.y)) <= THREAT.tiles;
   const strengthOfHero = (h: Hero): number => (h.id === adv.hero.id ? ours : armyStrength(h.army));
   for (const t of adv.towns.filter((x) => x.owner === 'player')) {
-    // Our heroes near the town would ride back to it: they count as its defence.
+    // Our heroes near the town would ride back to it, and one at its gate is fought first: all count as its defence (both battles).
     const heroNear = ourHeroes(adv).filter((h) => within(h, t)).reduce((n, h) => n + strengthOfHero(h), 0);
     const held = armyStrength(t.garrison) + armyStrength(towersOf(t)) + heroNear;
     if (held < mine * SAFE.town) out.push({ x: t.x, y: t.y, value: VALUE.ourTown });
@@ -305,19 +318,21 @@ function ride(adv: Adventure, def: MapDef, route: Route): Ride {
     const hero = rivalHero(next)!;
     if (step.day > 0 || !canStep(step, hero.mp)) break;
     const spent = { ...hero, mp: Math.max(0, hero.mp - step.cost) };
-    // A hero of ours: he attacks, and the player plays the fight (with that hero picked).
-    const here = ourHeroes(next).filter((h) => h.x === step.x && h.y === step.y);
-    // At a town the hero in the gate meets him first.
-    const met = here.find((h) => !isEmptyArmy(h.army)) ?? here[0];
-    if (met) return { adv: selectHero(next, met.id), walked, notes, stopped: true, fight: RIVAL };
     const gate = townAt(next, step.x, step.y);
     if (gate?.owner === 'player') {
-      if (!undefended(gate)) return { adv: next, walked, notes, stopped: true, fight: DEFEND + gate.id };
+      // A town of ours: the hero at its gate meets him first, in the open; then its walls, commanded by the hero in its garrison (picked, for the player to play).
+      const storm = stormOf(next, gate);
+      const { gate: atGate, garrison: inside } = townGuards(next, gate);
+      const met = atGate ?? inside;
+      if (storm) return { adv: met ? selectHero(next, met.id) : next, walked, notes, stopped: true, fight: storm };
       next = checkGoal(withTown(withRival(next, { ...spent, x: step.x, y: step.y }), { ...gate, owner: 'rival', garrison: armyOf([]) }), def);
       walked.push(step);
       notes.push(`${hero.name} rode into ${gate.name}, and it flies his banner now.`);
       return { adv: next, walked, notes, stopped: false };
     }
+    // A hero of ours in the field: he attacks, and the player plays the fight (with that hero picked).
+    const met = ourHeroes(next).find((h) => h.x === step.x && h.y === step.y);
+    if (met) return { adv: selectHero(next, met.id), walked, notes, stopped: true, fight: RIVAL };
     if (gate) {
       if (gate.owner === 'neutral' && !isEmptyArmy(gate.garrison)) {
         const won = fight(next, hero, gate.garrison, gate.id, gate);

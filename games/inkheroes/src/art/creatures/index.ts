@@ -15,7 +15,7 @@ import type { CreatureDrawer } from './types';
 
 /** War machines, the pixel-only neutrals and Egypt (pixel art only, still to come) have no painted drawing. */
 type BaseId = Exclude<CreatureId, `${string}2` | `${string}3` | 'catapult' | 'boar' | 'stymphalian' | 'hydra' | 'basilisk'
-  | 'levy' | 'nubian' | 'jackal' | 'chariot' | 'mummy' | 'sphinx' | 'bennu' | 'hyena' | 'raider' | 'scorpion' | 'crocodile' | 'petsuchos' | 'cobra' | 'lion' | 'apep' | 'ramp'>;
+  | 'levy' | 'nubian' | 'jackal' | 'chariot' | 'mummy' | 'sphinx' | 'bennu' | 'hyena' | 'raider' | 'scorpion' | 'crocodile' | 'petsuchos' | 'cobra' | 'lion' | 'apep' | 'gigas' | 'ramp'>;
 
 /** Every base creature's drawing (see types.ts for the contract); an upgrade is drawn as its line's base. */
 export const CREATURE_ART: Readonly<Record<BaseId, CreatureDrawer>> = {

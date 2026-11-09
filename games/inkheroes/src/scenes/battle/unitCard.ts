@@ -52,6 +52,7 @@ function traitsOf(id: CreatureId): string[] {
   if (c.guardian) out.push('Answers every strike');
   if (c.shieldWall) out.push('Shield wall: shots against it do half');
   if (c.noRangePenalty) out.push('Shoots as hard at any range');
+  if (c.noMeleePenalty) out.push('Strikes as hard hand to hand');
   if (c.rebirth) out.push(c.rebirth === 'all' ? 'Rises again once a battle, all of it' : 'Rises again once a battle, half of it');
   return out;
 }

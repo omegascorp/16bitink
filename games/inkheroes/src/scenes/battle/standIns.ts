@@ -12,7 +12,10 @@ const STAND_IN_TINT = { kemet: 0xffd49a, neutral: 0xd8c4a4 } as const;
  * the same make each stands in as, level for level, tinted: so content can
  * be built and played before the art lands. The one place this is decided.
  */
-const STAND_INS: Readonly<Partial<Record<CreatureId, CreatureId>>> = {};
+const STAND_INS: Readonly<Partial<Record<CreatureId, CreatureId>>> = {
+  // Othrys's Gigantes, until their own art lands: the Cyclops, the nearest giant.
+  gigas: 'ogre',
+};
 
 /** The drawn creature `id` borrows its art from (its line's stand-in at the same level), if it has none of its own. */
 export function standInFor(id: CreatureId): CreatureId | null {

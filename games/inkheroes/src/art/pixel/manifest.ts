@@ -190,6 +190,9 @@ import bennu2Attack from './units/bennu2-attack.png?url';
 import bennu3Idle from './units/bennu3-idle.png?url';
 import bennu3Walk from './units/bennu3-walk.png?url';
 import bennu3Attack from './units/bennu3-attack.png?url';
+import gigasIdle from './units/gigas-idle.png?url';
+import gigasWalk from './units/gigas-walk.png?url';
+import gigasAttack from './units/gigas-attack.png?url';
 import hero_playerIdle from './units/hero_player-idle.png?url';
 import hero_playerWalk from './units/hero_player-walk.png?url';
 import hero_playerAttack from './units/hero_player-attack.png?url';
@@ -208,6 +211,9 @@ import hero_paserAttack from './units/hero_paser-attack.png?url';
 import hero_sethiIdle from './units/hero_sethi-idle.png?url';
 import hero_sethiWalk from './units/hero_sethi-walk.png?url';
 import hero_sethiAttack from './units/hero_sethi-attack.png?url';
+import hero_lykaonIdle from './units/hero_lykaon-idle.png?url';
+import hero_lykaonWalk from './units/hero_lykaon-walk.png?url';
+import hero_lykaonAttack from './units/hero_lykaon-attack.png?url';
 import bgGrass from './battle/bg-grass.png?url';
 import bgDirt from './battle/bg-dirt.png?url';
 import bgRough from './battle/bg-rough.png?url';
@@ -639,6 +645,13 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     face: { x: 88, y: 51 },
     url: { idle: bennu3Idle, walk: bennu3Walk, attack: bennu3Attack },
   },
+  gigas: {
+    name: "Gigas", w: 160, h: 168, footX: 66, footY: 162,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 2,
+    shotFrom: { x: 112, y: 38 },
+    face: { x: 58, y: 50 },
+    url: { idle: gigasIdle, walk: gigasWalk, attack: gigasAttack },
+  },
 };
 
 /** The hero standing beside the field. Keyed by the ids in units.json `heroes`. */
@@ -681,6 +694,12 @@ export const HERO_ART: Readonly<Record<string, UnitArt>> = {
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 2,
     face: { x: 84, y: 52 },
     url: { idle: hero_sethiIdle, walk: hero_sethiWalk, attack: hero_sethiAttack },
+  },
+  lykaon: {
+    name: "Lykaon", w: 176, h: 172, footX: 83, footY: 166,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 85, y: 23 },
+    url: { idle: hero_lykaonIdle, walk: hero_lykaonWalk, attack: hero_lykaonAttack },
   },
 };
 

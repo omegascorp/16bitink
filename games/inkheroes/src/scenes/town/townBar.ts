@@ -14,7 +14,7 @@ import { armyRowW, armyRowOf } from '../hud/armySlots';
 import { PurseRow, PURSE_BAR_H, PURSE_ROW_W } from '../hud/purseRow';
 import { armiesW, armyH, BTN, buttonGrid, buttonsGridW, cellsW, GAP, HEAD_GAP, LINE, NARROW_ROUND, narrowButtonW, PAD, ROW_GAP, stripLayout, townButtons, type TownButton } from './stripLayout';
 
-export type TownScreen = 'hall' | 'fort' | 'guild' | 'smith' | 'tavern' | 'store';
+export type TownScreen = 'hall' | 'fort' | 'guild' | 'smith' | 'tavern' | 'store' | 'market';
 /** A slot of a row; `i` HEAD is the row's head (the crest or the hero's face): picking the hero there moves them with every company. */
 export type SlotRef = { readonly army: 'hero' | 'garrison' | 'tower'; readonly i: number };
 export const HEAD = -1;

@@ -200,7 +200,7 @@ A map monster splits into about √count stacks in battle, at most 4 (4 goblins 
 | Blacksmith | 1000, 5 wood | | Sells war machines (from map 2; nothing needs it) |
 | Storehouse | 1000, 5 wood | | Keeps 8 pieces of gear for any hero of ours; sells Saddlebags (from map 2) |
 | Treasury | 2500, 5 wood, 5 ore | Storehouse | Keeps 20 pieces; sells a Pack Mule (from map 3) |
-| Marketplace | 500, 5 wood | | Trade resources |
+| Marketplace | 500, 5 wood | | Trade resources (see The Marketplace) |
 | Mage Guild 1 | 2000, 5 wood, 5 ore | | 3 level-1 spells, a spellbook for 500 |
 | Mage Guild 2 | 1000, 5 wood, 5 ore, 4 each rare | Mage Guild 1 | 2 level-2 spells |
 | Guardhouse (Hoplites) | 1000, 5 ore | Fort | |
@@ -221,7 +221,7 @@ A map monster splits into about √count stacks in battle, at most 4 (4 goblins 
 | 1 Ashford | Village Hall, Town Hall, Fort, Citadel, Tavern, the Guardhouse, Archery Range, Griffin Tower and Barracks |
 | 2 Thornwood | City Hall, Marketplace, both floors of the Mage Guild, Blacksmith (war machines), Storehouse, Stables, Monastery, the first upgrades of lines 1–4 |
 | 3 The Black Banner | Castle, Treasury, Tiltyard, Centaur Grove, the second upgrades of lines 1–4 |
-| Later | Capitol, Seraph Spire, the rest of the upgrades of lines 5–7 |
+| 4 Othrys | Capitol, Royal Tiltyard, Cataphract Lists, Chiron's Cave, Seraph Spire, Elder Spire, Olympus Gate: the rest of the tree |
 
 **The upgrade tree.** Each dwelling upgrades twice. The first upgrade needs the dwelling (and any support named); the second needs the first and the Citadel (lines 1–4) or the Castle (lines 5–7).
 
@@ -236,6 +236,10 @@ A map monster splits into about √count stacks in battle, at most 4 (4 goblins 
 | 7 Titans | Seraph Spire | Elder Spire: 15000, 5 each rare (Mage Guild 2nd floor) | Olympus Gate: 25000, 10 each rare (Castle) |
 
 In the townscape an upgraded dwelling stands in its own place in the city, replacing the one before it.
+
+### The Marketplace (Nov 9)
+
+H3's resource market, by VCMI's numbers (`lib/mapObjects/IMarket.cpp`, `config/resources.json`). Each resource has a price (gold 1, wood and ore 250, the four rare 500). A side with `n` Marketplaces trades at (n + 1) / 20 of the worth, at most a half, so the rates get better up to nine: common for common 10, 7, 5, 4, 3, 3, 3, 2, 2 to one; one market sells a wood for 25 gold and a gem for 50, and buys a wood for 2500 gold. `src/logic/market.ts` is pure and the same for either side (`marketOffer`, `maxLots`, `trade`, `marketsOf`), so the lord's planner can call it. In town the Marketplace is a room (tap it in the townscape, or its card in the hall): the seven goods to give in a row, the seven to get under it, each showing its rate, the rate and the number of Marketplaces between, steps of 1 and 10 and Max for the lots, and Trade with what it gives and gets. It fits a 320 px phone (16 px icons) and doubles its icons where there is room.
 
 ## Chapter 1: The Border March (free)
 
@@ -304,6 +308,117 @@ A person, who casts spells, should lose less.
 
 **Several towns.** A map can have more towns than the player's first. Each one is neutral until a hero beats its garrison at the gate (an empty one is just walked into); then it is the player's, with its own buildings, stock and garrison. It pays its income and fills its dwellings every week. The town screen shows the town the hero stands in, else the player's first.
 
+**Storming a town: the gate, then the walls (user, Nov 9).** A town has two places for heroes, its gate (a hero leading their own army) and its garrison (a hero whose companies stand in the garrison row; `townHeroes`, `townGuards`). Anyone storming a town, either side, the player or the rival (Kassander's rules, the lord mind, the AI's auto battles), first fights the hero at the gate, **in the open**: a field battle with no walls, towers, tower units or moat (battle id `gate:<town>`). Losing or fleeing there, the attacker leaves the town as it was. Winning (or with nobody at the gate), he then fights **the garrison behind the walls** as a siege (walls, towers and their units, his war machine), with only what lived through the first battle; the hero in the garrison, if any, commands it (stats, spells, skills; their experience after, and they fall with the town). The town falls only when that second battle is won, or at once if the garrison and towers are empty and no hero stands in it. A beaten gate hero is beaten as anywhere else (the rival's may retreat as before). A night storm with a hero of ours at the gate is two fights the player plays one after the other, with a card between ("Kassander broke through at the gate: now the walls"); the waiting second fight is `rivalFight` (`defend:<town>` for ours, the town's id for his), saved, and an old save's pending `defend:` or `rival` fight with a hero of ours at that gate loads as the gate fight. Both AIs value a town by both battles together (its garrison, towers and the heroes at or near it), and Kassander no longer rides at a hero of ours standing in a town as a lone hero (`test/townAssault.test.ts`).
+
+### Part 4: Othrys, the Titans' mountain (designed Nov 9; user: "let player explore and play more freely in map 4, a real enemy with smarter behavior, finish the first city")
+
+**Why a fourth part.** After the Black Banner the Greek town still had 7 of its 36 buildings closed (Capitol, Royal Tiltyard, Cataphract Lists, Chiron's Cave, Seraph Spire, Elder Spire, Olympus Gate) and 6 of its 21 units out of reach (Royal Companion, Cataphract, Centaur Sage, and the whole Titan line), while the hall promised them "on a later map". No later chapter plays the Greeks, so chapter 1 finishes the city itself. **Rule from now on: a chapter's last part opens the rest of its people's tree**, so every chapter ends with its whole city built (Egypt's Benben Stone and the rest of its lines 5–7 then need a part 7 of their own: noted, not built now).
+
+**Part numbers run on:** chapter 1 is parts 1–4 (free), chapter 2 parts 5–7 (Nekhen, Abu, the Red Land; "Part 5 of 7: Nekhen"). Saves and recorded wins are keyed by map ids, never by numbers, so they keep working; anything that counts from `TWO_LANDS_FIRST` moves to 5. The Black Banner stops being the chapter's end: its win tells a part's end (`blackBanner-won`, new line) and rides on; the chapter's ending and "Chapter 1 complete" move to Othrys's win.
+
+**Story.** Kassander served a master. **Lykaon**, the wolf-king of Arcadia, who in the old tales served a feast to Zeus to test him and was cursed for it, has woken the old faith of the Titans. From **Lykosoura**, the oldest city of Arcadia, he rides for **Mount Othrys**, the Titans' seat in the war before the gods, where the Titans' forge still burns. Whoever holds the forge has the Titans' oath. The League sends Rowan south.
+
+**Win:** `overthrow`, every town of Lykaon's taken (Lykosoura and Tegea, and any he took) **and** Lykaon himself beaten (coordinator, Nov 9). His hired captains then leave the field, with a card. Beaten while he still holds a town, Lykaon is back there the next week, hiring again (H3's way), so taking his towns matters. Losing is as before: the last town of ours falls, or every hero of ours is beaten with no town to hire another.
+
+**Opens** (`UNLOCKS[3]`): the whole rest of the tree: Capitol, Royal Tiltyard, Cataphract Lists, Chiron's Cave, Seraph Spire, Elder Spire, Olympus Gate. After this part nothing in the Greek hall says "Later map". The Blacksmith adds nothing new (the Syracusan Catapult stays a prize). The Seraph Spire is the part's clock: Lykaon builds toward it too.
+
+**Finishing the line-3 units.** Every level-3 unit gets one trait of its own, so the third level is a new thing, not only bigger numbers:
+- **Cretan Archer:** no distance penalty (full damage at any range; walls still halve).
+- **Cataphract:** armoured, shots deal it half damage (on top of the line's charge).
+- **Titan Lord:** strikes every enemy beside it (a sweep, as the Hydra's), still flies, still +1 morale.
+- (Spartan, Golden Griffin, Minotaur Lord and Centaur Sage keep theirs.) Each trait shows on the unit card like the others.
+
+### The land: free to explore (user: "play more freely")
+
+The biggest part so far, about **56 × 68** joined to the **east** of the chapter's land (the world grows from 72 × 68 to about 128 × 68), so tiles of parts 1–3 keep their places. It is not a corridor: there is **no single way in** and no forced order.
+- **Three ways in**, all shown by the `opening` only at their first tiles: east from Korax over a ford, east from Thornwood along a coast road, and a mountain pass from the Black Banner's south-east. Each is guarded differently (a fight, a longer road, a pass with a strong guard), so the player chooses.
+- **Regions**, each reachable from at least two sides: the **Thessalian plain** (open grass, farms, mines, the neutral town **Pherai**), the **coast** with the neutral port town **Iolkos** (Jason's harbour), the **Arcadian highlands** (Lykaon's land: Lykosoura and his mines, forests of wolves), and **Mount Othrys** in the middle, high rough ground ringed by mountains with two ways up.
+- **Two neutral towns** (Pherai, Iolkos), taken in any order or not at all; Lykaon races for them too (`race`, from the part's 3rd night, but he chooses which, see his mind). Each comes with a Fort, a hall and two dwellings so taking it matters.
+- **Things worth a detour** (H3's), new kinds of site:
+  - **Learning stone** (`learningStone`): +1000 experience, once per hero.
+  - **Outer dwelling** (`dwelling`): a cave or eyrie on the map. Beat its guard once, then it flies your flag and fills every week with its creature (e.g. a Cyclops cave, 3 a week; a griffin cliff, 6 a week) to hire there for their price; the rival flags and hires them too. Lykaon takes them back like mines.
+  - **Treasure keep** (`bank`): a ruin with a strong guard and a big prize (gold, rares, a piece of gear): a monster group plus a chest behind it, made from existing pieces if the engine allows.
+- **The forge on Othrys's summit**, guarded by **Gigantes** (new neutral **Gigas**, level 7, two hexes, Att 19, Def 16, 30–40 damage, 220 HP, speed 6, throws boulders: a shooter with 4 shots, no melee penalty; growth 1, cost 3500): whoever beats them first holds the forge (an outer dwelling of **Titans**, 1 a week, hired for the Titans' price, so its owner gets Titans before the Seraph Spire), and its gold-quality piece of gear (the chapter's first gold legendary: a fixed prize, no puzzle). Lykaon goes for it once he thinks he can win it; taking it from him is a reason to ride up.
+- Neutrals across the land at the Black Banner's top end and above, heaviest round Othrys and Lykosoura; new on this map with the Gigas: none else needed (wolves, cyclopes, hydras, basilisks, stymphalian birds come back). Mines of every kind, piles, chests, campfires, a watchtower, a mercenary camp, stables, a shrine of Thunderbolt of Zeus, standing stones, two learning stones.
+- **Par about 45 days** (hidden, as all laurels).
+
+### Lykaon: a real enemy (user: "real enemy with smarter behavior")
+
+Kassander and Sethi are one hero who picks the best thing within reach by value over days, with a head start played at home. Lykaon is a **lord**: he plays the part as a player would, under the same rules and with the same knowledge limits, and the code that drives him can drive either side, so a whole part can be played AI against AI. It's switched on per map (`rival.mind: 'lord'`), so the Black Banner and the Red Land keep their tuned rules until the lord is tried there.
+
+**Fair start:** no head start played in secret. When the part opens he already holds **Lykosoura** (Village and Town Hall, Fort, Citadel, Tavern, Marketplace, Mage Guild 1, Blacksmith, dwellings of lines 1–5 and the first upgrades of 1–4) and **Tegea** (a smaller second town: Village Hall, Fort, Guardhouse, Archery Range), a hero with an army about the size of what a rider brings, and a purse. All numbers come from the balance runs below, never guesses.
+
+**What makes him smarter, each a rule the code checks:**
+1. **He knows only what he has seen.** His own fog: his heroes' and towns' sight, and watchtowers he visits. Unseen land is worth exploring, and early days go to scouting toward the neutral towns, mines and Othrys. He remembers what he saw (the last strength he saw of a hero of ours, and where).
+2. **Several heroes with jobs.** He hires a second hero at his Tavern by about day 3 and a third once his income allows (the same price and the same pool rules as ours, Greek classes). The **main** hero carries the army; a **runner** flags mines and outer dwellings, gathers piles and carries new recruits from his towns to the main (heroes meet and hand over troops, as ours do). A runner flees from anything stronger.
+3. **He builds to a plan, not a list.** Income first (the next hall when it pays back in under ~10 days), growth (Citadel, Castle), the next dwelling up, then upgrades, and he **saves** for a big goal (the Seraph Spire, the Capitol) instead of spending every coin on small things. Same `BUILD_PLAN` logic as the player's suggested build where it fits, so the sides stay symmetric.
+4. **He upgrades and hires like a player:** hires the best level built, upgrades stacks in his towns for the difference, buys the best war machine the Blacksmith sells and a spellbook, learns his guild's spells.
+5. **He fights with magic.** In any battle where an AI side has a hero with a spellbook and mana, it casts once a round when a spell beats its best other move: Thunderbolt on the stack worth most to kill, Slow on the fastest enemy, Bless, Shield or Haste on his strongest stack, Cure when his stacks are hurt. The same AI plays the player's Auto button. This is in `battleAi`, for every AI side.
+6. **He picks his moment.** He attacks where we are weak, not just what is nearest: a town of ours with a thin garrison while our main hero is far (judged by what he has seen and how long ago), a lone second hero, our mines and outer dwellings. He leaves our main hero alone unless he is clearly stronger (as now, about 1.3 times), and **keeps out of its reach** when it is stronger (never ends a day within its day's ride; falls back on a town and gathers).
+7. **He defends.** When a hero of ours stronger than a town's garrison comes within two days of it, he brings his main hero home or hires into the garrison; he never leaves Lykosoura empty while we are near.
+8. **He retreats from a lost battle** (Kassander's rule) and comes back stronger; with no town left, scouts find him each night (as now).
+9. **He races for the neutral towns and Othrys** when he thinks he can win the fight, choosing the one worth most for its distance, not a fixed one.
+10. **He tells.** The night's card says what we saw: "Lykaon's riders took the ore pit at Pherai", "A second banner rides out of Tegea", "Lykaon raises the Seraph Spire". Only what our sight saw, plus news of buildings (scouts' word).
+
+### Balance (on the real rules, never guessed numbers)
+
+The lord AI plays the **player's** side too (from what the bot earns riding on through parts 1–3, and from a fresh start), so balance is AI against AI on the real map, many seeds:
+- The player's side (lord AI) wins **about 60–80%** of runs within 70 days; a person who casts better and plans should win more.
+- Lykaon, left alone, raises the Seraph Spire around **part day 18–25** and the Olympus Gate later: the clock that makes waiting costly.
+- He first attacks something of ours (a mine, a dwelling, a town, a hero) by **part day 6–10**.
+- Neither neutral town is free: the race is close (within 1–2 days) on a straight ride.
+- Othrys's Gigantes cost a strong army 25–40% of its strength.
+- Chapter 1's earlier balance tests and chapter 2's stay as they are (the lord is opt-in).
+
+### Lykaon's mind as built (Nov 9)
+
+- **The lord mind** (`src/logic/lord/`, switched on by `rival.mind: 'lord'`): `lordDay` plays one side's whole day, all its heroes and towns, from what that side knows. The rival's side is played on the **mirrored** adventure (`mirror.ts`: his heroes, purse, fog and flags as "ours"), so both sides use the player's own rules (moves, visits, fights, Tavern hires). Kassander and Sethi keep `rival.ts` as it was; their head start is skipped only for a lord.
+- **Rules built:** his own fog and memory (`rival.explored`, `rival.memory`: last strength and place of each hero of ours; with no town left, scouts find ours each night); up to 3 heroes (Nyktimos, Mainalos from `lord/recruits.ts`, our price), the second from part day 2, a third at 3000 gold a day; a main hero (the strongest) and runners who flag, scout and carry recruits to him (hand-over keeps the runner's weakest company); a build planner (a hall that pays back within 10 days, then `BUILD_PLANS`, saving 35% of each day's gold for the Seraph Spire, then the Capitol and the Titans' upgrades, never spending the goal's rare goods); hiring the best level, upgrading stacks, the best machine, a spellbook, the guild's spells, a town giving its garrison to a hero when no foe is near, idle gold hired into garrisons; targets by worth over days (weak towns of ours while our heroes can't be back by tomorrow, lone heroes, our mines and dwellings, neutral towns and the forge, unseen towns worth a look); never a day's end in reach of a hero 1.3 times stronger; defend a town a stronger foe draws near; retreat from a lost fight; the night's news (`lord/news.ts`): buildings and towns always, flags only where our sight is.
+- **Several rival heroes:** `rival.others` (old saves load: the fields are optional); the one met becomes `rival.hero` (`frontRival`), and a beaten one hands the lead to the next.
+- **Spells for every AI side** (`battleCasts.ts`): once a round, when the spell is worth half the active stack's move or it is the round's last chance; none in a fight already won (4 to 1). The balance bot (`test/partBot.ts`) still casts none, so its tables stand; with spells Abu's siege replay costs 19% with no machine (36% without).
+- **Old tables, re-run (4 seeds):** the Black Banner and the Red Land rows are as before (Kassander ×0.76 to 2.26 at ride-on, no bot win; Gebtu: rider part day 4 to 5, Sethi 6); Abu's siege 36% / 25% (none / Earth Ramp). The Red Land's race test times out at 5 s with BALANCE_SEEDS (not new).
+
+**Round 2 (Nov 9):** `rival.heroes` on the map (validated, 3 when left out). The win rule above (`checkGoal`, `lordOverthrown`; `rival.fallen` remembers his beaten heroes, `comesBack` in `lord/turn.ts`; saved). The lord rides for a raced town only after the part's third night, as Kassander and Sethi. Both sides now ride *through* a guard they would fight when that is the shorter way (it was a bug that no guarded monster was ever a target: the reach search never stepped from a guard zone onto the monster, which also shut Ashford's heroes in). Idle gold builds a lord's garrison only to 1.5 times the map's (as Kassander's). A weak hero of ours beside his town no longer keeps him off it. Our side's mind in the balance runs plays as a person (`test/lordBot.ts`): fights at 1.5 to 1, a hero riding out takes the garrison along. Map: the ford's guard 24 → 18 Cyclopes; new guards on his roads to the raced towns (100 wolves on the highland road at (10, 47), 70 Stymphalian birds on the coast road at (35, 10)); Pherai's and Iolkos's garrisons cut by a fifth (1200 each); Lykaon starts with 40 Phalangites, 24 Peltasts, 14 War Griffins, 7 Minotaur Guards, 3 Centaurs and 9 of each rare good. The pass's 22 Hydras stay the costly short cut to Lykosoura.
+
+**Round 3 (Nov 9):** H3's elimination on lord maps: a lord with no town has 7 days to take one back; our day card counts it down ("Lykaon has no town: 7 days to take one back or his banner falls"), and on the 7th night he and his captains are gone, which counts as Lykaon beaten (`townless` in `lord/turn.ts`, `rival.homeless`, saved). For our side the loss stays as the doc's rule says: the last town of ours lost is the part lost at once (`checkGoal`), so the count is the lord's only. Lykaon buys the Spire's missing rare goods at his Marketplaces (`src/logic/market.ts`) once the gold for the Spire is in the purse. Our side's mind (`test/lordBot.ts`) commits: once its main hero is stronger than a town of his by the siege margin it rides at it (2.5 times the worth), hires nothing on the way home, stops at a Blacksmith of ours for a better machine; every hero keeps yesterday's target unless something 1.6 times better turns up (both sides: it ended the turning back and forth). Played fresh, our old towns keep their garrisons on the map (ridden on, a town keeps what it had).
+
+**Balance (Nov 9, round 3), AI against AI** (`test/othrysBalance.test.ts`, BALANCE_SEEDS=8, 70 days; ridden on: the bot plays Ashford and Thornwood, the lord mind the Black Banner against Kassander's rules; 7 of 8 won it, rider 469 to 3474 at ride-on):
+
+| Start | Won / lost / stalled | Won on part day | Seraph Spire, in the game (part day) | First strike (part day) | Pherai ours/his (day) | Iolkos ours/his (day) |
+|---|---|---|---|---|---|---|
+| Fresh | 7 / 0 / 1 | 38 to 68 | 38 to 41 | 10 | 0/8 (10) | 8/0 (13) |
+| Ridden on | 4 / 1 / 2 | 47 to 58 | 18 to 40 | 4 to 22 | 2/5 (3 to 9) | 2/5 (5 to 11) |
+
+- **Our side wins 11 of 15 (73%)**: 88% fresh, 57% ridden on. On target on the whole.
+- **The race, a straight ride against Lykaon alone** (our heroes back at Ashford): Pherai ours on part day 2 to 5, his on day 6; Iolkos ours on day 3 to 5, his on day 7 or 8. A person wins each by 1 to 5 days.
+- **The Gigantes** (our strongest hero, spells on): 19 to 28% of 3200 to 3500 at part day 20 (fresh), 14 to 46% of 2300 to 3900 ridden on; a bigger army loses less (1 to 14% at 4400 or more).
+- **First strike:** part day 10 fresh; 4 to 22 ridden on.
+- **The Spire, Lykaon left alone:** part day 31 to 33 fresh, 19 to 35 ridden on (or not within 40 days). Late: gold is what holds it back (he saves 35% of each day's gold, `SAVE_SHARE`). Tried: 10 of three rare goods (one bought at the market): no sooner (29 to 31), and our side won less (8 of 15), so it is back to 9 of each.
+
+**Left for the playtest:** the Spire's day (a mind number, `SAVE_SHARE`, not a map one), the ridden-on start being harder than the fresh one, and the race lead (1 to 5 days, a little wider than 1 to 2). The AI numbers say the part is winnable and that Lykaon fights back; a person's playtest decides the rest.
+
+### Art and words (new)
+- **Lykaon** hero art (a wolf-king: grey wolf pelt over bronze, a wolf-head helm, riding a black horse), `HERO_ART.lykaon`; his towns' map look `lykosoura` (dark banners, wolf standard) via `TOWN_LOOKS`.
+- **Gigas** unit (huge, bearded, rock in hand, two hexes), idle/walk/attack as the others.
+- Map sprites: learning stone, cyclops cave, griffin cliff, the Titans' forge on the summit, treasure keep (ruined shrine).
+- The part's menu vignette (Othrys over the Thessalian plain).
+
+**Art as built (Nov 9, 22 PixelLab generations).** Gigas (`gigas`, 160x168 canvas, a thrower: strike frame 2, shot from the raised hand) and Lykaon (`HERO_ART.lykaon`, wolf-head helm, black horse, spear thrust; the gallop's surge is only half locked, the spear tip leaves no room) have idle, walk and attack. Map sprites `learningStone`, `cyclopsCave`, `griffinCliff`, `titanForge`, `keep` and the `lykosoura` town look (the Greek town with black banners; the wolf standard is small) are in `map.ts` via `build_map.py`, with ink stand-ins kept in `src/art/sites/index.ts`. The `othrys` vignette is a mountain with a forge glow over olive groves. The griffin cliff is the game's own griffin pasted onto the nest (a model merge turned it into an eagle); Lykosoura has one big black banner with a pale wolf head on its tallest tower.
+- Narration (written, not recorded until the user reads them): `part-othrys` (the opening), `blackBanner-won` (the Black Banner's end, riding on), and the chapter's ending moves to Othrys's win with a new last line about the Titans' oath.
+
+### Part 4 as built: the city, the sites and the land (Nov 9)
+
+- **Numbering.** Chapter 1 is parts 1–4, chapter 2 parts 5–7 (`TWO_LANDS_FIRST` 5, `soldOn`, the unlock comments, the cards). Saves and wins are keyed by map id: a save left on the Black Banner's victory card rides on into Othrys, and a recorded Black Banner win opens it (tested). The Black Banner's win now tells `blackBanner-won` and rides on.
+- **Narration, written only:** `blackBanner-won`, `part-othrys`, and `othrys-won` (the Titans' oath). `chapter-won` is recorded, so its words stay; `othrys-won` is told on Othrys's victory card just before it (a part's `won` line is now told on a chapter's last part too). To fold the oath into `chapter-won` instead, it must be recorded again.
+- **The city.** `UNLOCKS[3]` opens the seven buildings; on part 4 nothing Greek is off and nothing says "Later map". `BUILD_PLAN` runs on to the Capitol, the Titans and the last upgrades. Checked in the browser: the hall offers them, the fully built town draws each, the fort hires Cataphracts, Centaur Sages and Titan Lords.
+- **Level-3 traits** are the existing ones: Cretan Archer `noRangePenalty`, Cataphract `shieldWall`, Titan Lord `cleave` (seen hitting two stacks at once in dev/battle.html). New trait `noMeleePenalty` for the Gigas (stats as above, 4 shots, two hexes; stands in as the Cyclops until its art).
+- **Sites** (`src/logic/objects.ts`, `visits.ts`, `dwellings.ts`): `learningStone` (+1000 XP, `visitedBy`), `dwelling` (`creature`, `growth`, `stock`, `owner`, `look`; flagged on a visit, a hire card with Hire N / Leave, grows each Monday only while flagged, taken back like a mine), `bank` (`look: 'keep'`, `prize`, `item`; a piece the bag can't take waits inside). Guards are monsters beside them, as for mines. Saved and loaded; the map hover names them. Sprites fall back to borrowed ones while missing.
+- **The land** (`src/level/othrys.ts`, 56 × 68, east of the 72 × 68 land: 128 × 68). Coast with Iolkos, the plain with Pherai, Mount Othrys (a ring of mountains, a north and a west way up, the forge on the snowy summit with 8 Gigantes beside it holding the Helm of Kronos, the first Legendary: +2 Attack, +3 Defense, +1 morale), the Arcadian highlands with Lykosoura and Tegea. Ways in: the coast road (light guard, 70 Brigands), the ford east of Korax (24 Cyclopes), the pass (22 Hydras); each alone reaches every region (tested). The opening shows only where each starts (`opening.apart`). 64 objects: 24 monster groups, 10 mines (every kind; 2 Lykaon's), 3 dwellings, 2 learning stones, 1 keep, 4 chests, 12 piles, 3 campfires, a watchtower, a camp, stables, a standing stone and the Thunderbolt shrine. Neutrals 480–930 in strength (the pass's Hydras 1140), the Gigantes about 1590. Par 45.
+- **Lykaon** is `rival` with `mind: 'lord'`; riding on brings him in fresh with no head start. His army, purse, his towns' garrisons and the Gigantes' count are placeholders marked for the lord's balance runs. Played fresh, Rowan waits east of Korax with about what a rider brings.
+- **Several rival heroes on the map (Nov 9):** every hero of the rival's is drawn, in his own art (else the rival's), on tiles we have seen; the night's one path is split hero by hero where it jumps (`src/scenes/map/rivalRides.ts`) and each rides on his own figure in turn; hover and tap name and fight the hero on that tile (`rivalHeroAt`).
+- **A lord gone for good:** when a part brings a new lord, whatever the old one still held (mines, dwellings, towns with their garrisons) turns neutral, ridden on or played fresh (`oldLordGone`, in state; the maps are unchanged).
+- **Left:** the lord's balance (LORD); the Gigantes' cost; the oath line recorded.
+
 ### The end of the early access (user, Nov 8)
 
 Winning the last part built shows its Victory card, then **Chapter 1 complete** (`chapterDoneCard` in `src/scenes/cards.ts`): the narrator tells the chapter's ending (its words read on the card with narration off), the march in numbers (days, towns held, heroes riding), then chapter 2 (since Nov 8, when part 4 was built): The Two Lands crosses to Egypt, with a new people, Neferet and the Sacred Rites. An owner gets **On to chapter 2** (its saved game, or its start); anyone else reads that it is part of the full game and gets **Full game · <price>** (the host's checkout, counted as the `free_end` offer). Back to the campaign, or More games (the host's exit, to the catalog). Finishing no longer drops the player straight on the chapter card. A later chapter's last part built ends on the same card, titled "Chapter 2: The Two Lands, so far", saying its next parts are being made.
@@ -314,7 +429,7 @@ Winning the last part built shows its Victory card, then **Chapter 1 complete** 
 
 ### The chapter card
 
-**Two chapters (Nov 8).** The menu has a card per chapter, each under its own heading ("Chapter II · The Two Lands"), side by side where both fit; on a screen too small for both, one shows (the last with a game in play) with arrows by its heading to the other. Part numbers run on through the campaign, so chapter 2's card says "Part 4 of 6: Nekhen". Chapter 2 is the full game's: to a player who doesn't own it, its card shows its parts dim, a short pitch in place of the goal and **Unlock · <price>** (the host's checkout, counted as the `locked` offer); to an owner whose maps failed to load, the error and Try again. Each chapter keeps its own game: Continue and Start the chapter over act on that chapter only.
+**Two chapters (Nov 8).** The menu has a card per chapter, each under its own heading ("Chapter II · The Two Lands"), side by side where both fit; on a screen too small for both, one shows (the last with a game in play) with arrows by its heading to the other. Part numbers run on through the campaign, so chapter 2's card says "Part 5 of 7: Nekhen" (since Othrys became part 4, Nov 9). Chapter 2 is the full game's: to a player who doesn't own it, its card shows its parts dim, a short pitch in place of the goal and **Unlock · <price>** (the host's checkout, counted as the `locked` offer); to an owner whose maps failed to load, the error and Try again. Each chapter keeps its own game: Continue and Start the chapter over act on that chapter only.
 
 The menu shows **this game**: each part before the one in play says Won, the one in play says In play, the rest wait dim. What earlier games won doesn't count: after Start over the chapter reads from part 1 again. With no game in play it shows Won throughout only if the whole chapter was won. Continue is the one main button, Start the chapter over a plain one under it.
 
@@ -714,4 +829,4 @@ A set has one fixed colour, all six pieces share it: two sets a colour, Greek th
 
 ## Not yet
 
-The marketplace's trade, tactics, random maps.
+Tactics, random maps.

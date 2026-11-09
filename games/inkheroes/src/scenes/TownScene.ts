@@ -39,6 +39,8 @@ import { fortScreen, hallScreen, platePicture, upgradableArmies, type ScreenActi
 import { STAGE } from './town/townStage';
 import { GuildRoom } from './town/guildRoom';
 import { SmithRoom } from './town/smithRoom';
+import { firstPick, MarketRoom, type MarketPick } from './town/marketRoom';
+import { marketTrade } from '../logic/market';
 import { TavernRoom } from './town/tavernRoom';
 import { StoreRoom } from './town/storeRoom';
 import { storeTap, type StoreRef } from './town/storeData';
@@ -67,7 +69,7 @@ const OPENS: Partial<Record<BuildingId, TownScreen>> = {
   guardhouse: 'fort', archeryRange: 'fort', griffinTower: 'fort', barracks: 'fort', monastery: 'fort', tiltyard: 'fort', seraphSpire: 'fort',
   guardhouse2: 'fort', archeryRange2: 'fort', griffinTower2: 'fort', barracks2: 'fort', monastery2: 'fort', tiltyard2: 'fort', seraphSpire2: 'fort',
   guardhouse3: 'fort', archeryRange3: 'fort', griffinTower3: 'fort', barracks3: 'fort', monastery3: 'fort', tiltyard3: 'fort', seraphSpire3: 'fort',
-  mageGuild1: 'guild', mageGuild2: 'guild', blacksmith: 'smith', tavern: 'tavern', storehouse: 'store', treasury: 'store',
+  mageGuild1: 'guild', mageGuild2: 'guild', blacksmith: 'smith', tavern: 'tavern', storehouse: 'store', treasury: 'store', marketplace: 'market',
 };
 
 /** What a building does, in words (a dwelling names the creature it hires, the town's people's own). */
@@ -90,7 +92,9 @@ export class TownScene extends Phaser.Scene {
   private size = { w: 0, h: 0, k: 1 };
   private view: PixelTownView | null = null;
   private bar: TownBar | null = null;
-  private window: TownWindow | GuildRoom | SmithRoom | TavernRoom | StoreRoom | null = null;
+  private window: TownWindow | GuildRoom | SmithRoom | TavernRoom | StoreRoom | MarketRoom | null = null;
+  /** What the Marketplace has picked to trade (none: its first pick). */
+  private marketPick: MarketPick | null = null;
   /** The spell being read in the guild. */
   private guildPick: SpellId | null = null;
   /** The machine being looked at in the Blacksmith. */
@@ -354,6 +358,11 @@ export class TownScene extends Phaser.Scene {
       this.window = new StoreRoom(this, adv, this.townId, this.storePick.ref, this.storePick.note, room, { close: () => this.openScreen(null), tap: (r) => this.tapStore(r), buyBag: (id) => this.buyBag(id) }, depth);
       return;
     }
+    if (this.screen === 'market') {
+      const pick = this.marketPick ?? firstPick(adv);
+      this.window = new MarketRoom(this, adv, this.town(), pick, room, { close: () => this.openScreen(null), pick: (p) => this.pickTrade(p), trade: (p) => this.makeTrade(p) }, depth);
+      return;
+    }
     if (this.screen === 'smith') {
       this.window = new SmithRoom(this, adv, this.town(), this.smithPick, soldOn(this.session.def.n), room, { close: () => this.openScreen(null), buy: (m) => this.buyMachine(m), pick: (m) => this.pickWare(m) }, depth);
       return;
@@ -388,6 +397,22 @@ export class TownScene extends Phaser.Scene {
     getSound(this)?.play(sound);
     if (toast) this.toast(toast);
     this.refresh();
+  }
+
+  private pickTrade(p: MarketPick): void {
+    this.marketPick = p;
+    this.drawWindow();
+  }
+
+  /** A trade at the Marketplace: the purse changes, the pick stays for another. */
+  private makeTrade(p: MarketPick): void {
+    const next = marketTrade(this.session.adv, p.give, p.get, p.lots);
+    if (!next) {
+      this.toast('That trade can’t be made');
+      return;
+    }
+    this.marketPick = { ...p, lots: 1 };
+    this.changed(next, 'card', `+${next.purse[p.get] - this.session.adv.purse[p.get]} ${p.get}`);
   }
 
   private pickWare(m: SoldMachine): void {
@@ -464,6 +489,10 @@ export class TownScene extends Phaser.Scene {
     const why = cantBuild(this.town(), id, adv.purse, this.session.def.off);
     if (id === 'blacksmith' && why === 'Built') {
       this.openScreen('smith');
+      return;
+    }
+    if (id === 'marketplace' && why === 'Built') {
+      this.openScreen('market');
       return;
     }
     const cost = Object.keys(def.cost).length ? `Costs ${describeAmount(def.cost)}.` : 'Costs nothing.';
