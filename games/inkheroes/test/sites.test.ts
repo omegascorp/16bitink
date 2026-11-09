@@ -161,7 +161,7 @@ function field(left: readonly (readonly [CreatureId, number, Hex])[], right: rea
 const stack = (s: BattleState, id: number): Stack => stackById(s, id);
 
 describe('the third level’s own traits (Othrys)', () => {
-  it('Cretan Archers shoot as hard at any range; Peltasts lose half far off', () => {
+  it('Rhodian Slingers shoot as hard at any range; Achaean Slingers lose half far off', () => {
     const s = field([['bowman3', 10, hexAt(0, 5)], ['bowman2', 10, hexAt(0, 7)]], [['spearman', 50, hexAt(14, 5)]]);
     const far = { ranged: true, distance: 14, moved: 0 };
     const near = { ...far, distance: 3 };

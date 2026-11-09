@@ -1,0 +1,46 @@
+---
+/**
+ * A changelog as a column of dated notes: the day, a short title and what
+ * changed. On the all-games page each note also names its game.
+ */
+import type { Update } from '../data/changelog';
+import { formatDay } from '../lib/gameFacts';
+
+interface Props {
+  updates: readonly Update[];
+  /** Name each entry's game (the all-games page). */
+  showGame?: boolean;
+}
+const { updates, showGame = false } = Astro.props;
+const now = new Date();
+---
+<ol class="log">
+  {updates.map(({ game, entry }) => (
+    <li class="note">
+      <p class="when">
+        <time datetime={entry.date}>{formatDay(entry.date, now)}</time>
+        {showGame && (game ? <a class="which" href={`/games/${game.slug}/changelog`}>{game.title}</a> : <span class="which site">16bit.ink</span>)}
+      </p>
+      <h2>{entry.title}</h2>
+      <ul>{entry.changes.map((c) => <li>{c}</li>)}</ul>
+    </li>
+  ))}
+</ol>
+
+<style>
+  .log { list-style: none; padding: 0; margin: 28px 0 0; max-width: 760px; }
+  .note { position: relative; padding: 0 0 26px 26px; border-left: 2px dashed var(--ink-faint); }
+  .note:last-child { padding-bottom: 0; }
+  /* An ink dot on the line for each day. */
+  .note::before {
+    content: ''; position: absolute; left: -8px; top: 6px; width: 14px; height: 14px; box-sizing: border-box;
+    border-radius: 50% 45% 55% 48%; background: var(--blue-ink); border: 2px solid var(--ink);
+  }
+  .when { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0; font-size: 0.9rem; color: var(--ink-soft); }
+  .which { font-weight: 600; }
+  .site { color: var(--ink-soft); }
+  h2 { margin: 2px 0 6px; font-family: var(--font-hand); font-size: 1.8rem; line-height: 1.1; color: var(--blue-ink); }
+  ul { padding-left: 1.1em; margin: 0; }
+  ul li { margin-bottom: 4px; }
+  ul li::marker { content: '✎ '; color: var(--ink-faint); }
+</style>

@@ -59,8 +59,8 @@ export const BUILDINGS: Readonly<Record<BuildingId, BuildingDef>> = {
   // The upgrade tree: a first upgrade needs its dwelling (and a support), a second the first and the Citadel (lines 1-4) or the Castle (5-7).
   guardhouse2: { name: 'Phalanx Yard', cost: { gold: 1000, ore: 5 }, needs: ['guardhouse'], says: 'Hires Phalangites', dwelling: 'spearman2' },
   guardhouse3: { name: 'Agoge', cost: { gold: 2000, ore: 5 }, needs: ['guardhouse2', 'citadel'], says: 'Hires Spartans', dwelling: 'spearman3' },
-  archeryRange2: { name: 'Peltast Camp', cost: { gold: 1000, wood: 5 }, needs: ['archeryRange'], says: 'Hires Peltasts', dwelling: 'bowman2' },
-  archeryRange3: { name: 'Cretan Range', cost: { gold: 2000, wood: 5, ore: 5 }, needs: ['archeryRange2', 'citadel'], says: 'Hires Cretan Archers', dwelling: 'bowman3' },
+  archeryRange2: { name: 'Achaean Camp', cost: { gold: 1000, wood: 5 }, needs: ['archeryRange'], says: 'Hires Achaean Slingers', dwelling: 'bowman2' },
+  archeryRange3: { name: 'Rhodian Range', cost: { gold: 2000, wood: 5, ore: 5 }, needs: ['archeryRange2', 'citadel'], says: 'Hires Rhodian Slingers', dwelling: 'bowman3' },
   griffinTower2: { name: 'Griffin Aerie', cost: { gold: 1000, ore: 5 }, needs: ['griffinTower'], says: 'Hires War Griffins', dwelling: 'griffin2' },
   griffinTower3: { name: 'Golden Aerie', cost: { gold: 3000, ore: 5, crystal: 2 }, needs: ['griffinTower2', 'citadel'], says: 'Hires Golden Griffins', dwelling: 'griffin3' },
   barracks2: { name: 'Labyrinth', cost: { gold: 2000, ore: 5, crystal: 2 }, needs: ['barracks'], says: 'Hires Minotaur Guards', dwelling: 'swordsman2' },

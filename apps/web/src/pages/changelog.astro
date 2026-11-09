@@ -1,0 +1,36 @@
+---
+import Base from '../layouts/Base.astro';
+import ChangelogList from '../components/ChangelogList.astro';
+import { allUpdates } from '../data/changelog';
+import { listedGames } from '../data/games';
+
+// Rendered per request, so a game's notes show up on its release day.
+export const prerender = false;
+Astro.response.headers.set('cache-control', 'public, max-age=3600');
+
+const now = new Date();
+const games = listedGames(now);
+const updates = allUpdates(games, now);
+---
+<Base
+  title="What's New on 16bit.ink: Changelog for Every Game"
+  description="Every update to every 16bit.ink game, newest first: new games, chapters, levels, fixes and changes to the site."
+>
+  <section class="changelog">
+    <p class="pixel-label">Changelog</p>
+    <h1>What’s new</h1>
+    <p class="intro">Every update to every game, newest first. A new game comes out every Sunday.</p>
+    <p class="games">
+      Just one game:
+      {games.map((g, i) => <>{i > 0 && ' · '}<a href={`/games/${g.slug}/changelog`}>{g.title}</a></>)}
+    </p>
+    <ChangelogList updates={updates} showGame />
+  </section>
+</Base>
+
+<style>
+  .changelog { padding-top: 24px; }
+  h1 { margin: 6px 0 10px; line-height: 1.1; }
+  .intro { font-size: 1.2rem; max-width: 760px; }
+  .games { color: var(--ink-soft); }
+</style>

@@ -4,6 +4,7 @@
  * so a new game is listed the day it ships.
  */
 
+import { allUpdates, latestUpdate } from '../data/changelog';
 import { COMPANY } from '../data/company';
 import { findGame, isPurchasable, listedGames, type CatalogGame } from '../data/games';
 import { FLASH_GAMES, FLASH_PAGE } from '../data/flashGames';
@@ -40,6 +41,8 @@ export function sitemapXml(
   const entries = [
     urlEntry(new URL('/', site), newest),
     ...games.map((g) => urlEntry(new URL(`/games/${g.slug}`, site), lastChanged(g))),
+    urlEntry(new URL('/changelog', site), allUpdates(games, new Date())[0]?.entry.date),
+    ...games.map((g) => urlEntry(new URL(`/games/${g.slug}/changelog`, site), latestUpdate(g.slug)?.date)),
     ...(gamesLike.length ? [urlEntry(new URL('/games-like', site), gamesLike.map((p) => p.updated).sort().at(-1))] : []),
     ...gamesLike.map((p) => urlEntry(new URL(`/games-like/${p.slug}`, site), p.updated)),
     urlEntry(new URL('/flash-games', site), FLASH_PAGE.updated),

@@ -43,7 +43,7 @@ export interface CatalogGame {
   readonly loop?: boolean;
   /** Release day (YYYY-MM-DD, UTC): the home page marks a game "New" for NEW_FOR_DAYS from it. */
   readonly released?: string;
-  /** Last day the game itself changed (YYYY-MM-DD, UTC): bump it with each release. */
+  /** Last day the game itself changed (YYYY-MM-DD, UTC): its newest changelog entry's day (data/changelog.ts). */
   readonly updated?: string;
   /** How much game there is: chapters, and levels when counted; `ready` below `chapters` means the rest is still being made. */
   readonly size?: { readonly chapters: number; readonly ready?: number; readonly levels?: number };
@@ -86,7 +86,7 @@ export const GAMES: readonly CatalogGame[] = [
     cover: '/covers/inkfish.png',
     loop: true,
     released: '2026-10-03',
-    updated: '2026-10-16',
+    updated: '2026-10-14',
     size: { chapters: 10, levels: 100 },
     demo: '10 levels free',
     price: '$4.99',
@@ -121,7 +121,7 @@ export const GAMES: readonly CatalogGame[] = [
     cover: '/covers/inkcrab.png',
     loop: true,
     released: '2026-10-11',
-    updated: '2026-10-17',
+    updated: '2026-10-20',
     size: { chapters: 10, levels: 100 },
     demo: '10 levels free',
     price: '$4.99',
@@ -211,7 +211,7 @@ export const GAMES: readonly CatalogGame[] = [
     loop: true,
     // Listed on the home page from this day (see isOut); its pages answer before that, for a look ahead of launch.
     released: '2026-10-22',
-    updated: '2026-10-22',
+    updated: '2026-10-24',
     size: { chapters: 10, levels: 100 },
     demo: '10 levels free',
     price: '$4.99',
@@ -340,7 +340,7 @@ export const GAMES: readonly CatalogGame[] = [
     cover: '/covers/inkheroes.png',
     // Listed on the home page from this day (see isOut); its pages answer before that, for a look ahead of launch.
     released: '2026-11-08',
-    updated: '2026-11-08',
+    updated: '2026-11-09',
     size: { chapters: 4, ready: 1 },
     demo: 'Chapter 1 free',
     price: '$4.99',

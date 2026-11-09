@@ -4,7 +4,7 @@ import { getSound } from '../../host';
 import { alive, isStone, playerSide, stackById } from '../../logic/battle';
 import type { BattleEvent, BattleState, Stack } from '../../logic/battleTypes';
 import { createRng } from '../../logic/rng';
-import { creature } from '../../logic/creatures';
+import { creature, lineOf } from '../../logic/creatures';
 import { throughGate, type SiegePart } from '../../logic/siege';
 import { HEX_COUNT, type Hex } from '../../logic/hex';
 import { SPELLS } from '../../logic/spells';
@@ -454,8 +454,8 @@ export class BattleView {
     const blow = new Promise<void>((resolve) => (struck = resolve));
     const swing = a.fig.attack(struck);
     await blow;
-    // The slingers throw stones; their upgrades (javelins, bows) and the centaurs loose arrows.
-    if (ranged) await this.projectile(a.fig, t.fig, striker.creature !== 'bowman');
+    // The slingers (all three levels) throw stones; the other shooters loose arrows.
+    if (ranged) await this.projectile(a.fig, t.fig, lineOf(striker.creature) !== 'bowman');
     else this.recovered = swing.then(() => this.glide(a.fig, home, 200, 'Quad.easeOut'));
     void swing.then(() => a.fig.face(facing));
   }

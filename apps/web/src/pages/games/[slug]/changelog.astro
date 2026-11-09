@@ -1,0 +1,35 @@
+---
+import Base from '../../../layouts/Base.astro';
+import ChangelogList from '../../../components/ChangelogList.astro';
+import GameTitle from '../../../components/GameTitle.astro';
+import { changelogFor } from '../../../data/changelog';
+import { findGame, isOut } from '../../../data/games';
+
+// Rendered per request, like the game page, so it opens on the game's release day.
+export const prerender = false;
+
+const game = findGame(Astro.params.slug ?? '');
+const now = new Date();
+if (!game || game.status !== 'playable' || !isOut(game, now)) return new Response('Not found', { status: 404 });
+Astro.response.headers.set('cache-control', 'public, max-age=3600');
+const updates = changelogFor(game.slug).map((entry) => ({ game, entry }));
+---
+<Base
+  title={`${game.title} Changelog: What's New | 16bit.ink`}
+  description={`Every update to ${game.title}, newest first: new chapters, levels, fixes and balance changes.`}
+  image={game.cover}
+>
+  <section class="changelog">
+    <p class="pixel-label">Changelog</p>
+    <h1><GameTitle game={game} /> <span class="sub">what’s new</span></h1>
+    <p class="intro">Every update to {game.title}, newest first. <a href={`/play/${game.slug}`}>Play it</a> · <a href={`/games/${game.slug}`}>About the game</a> · <a href="/changelog">All games</a></p>
+    <ChangelogList updates={updates} />
+  </section>
+</Base>
+
+<style>
+  .changelog { padding-top: 24px; }
+  h1 { margin: 6px 0 10px; line-height: 1.1; }
+  .sub { font-family: var(--font-hand); font-size: 0.6em; color: var(--ink-soft); white-space: nowrap; }
+  .intro { color: var(--ink-soft); }
+</style>

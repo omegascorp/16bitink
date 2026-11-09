@@ -5,7 +5,9 @@ import BuyButton from '../../components/BuyButton.astro';
 import GameStats from '../../components/GameStats.astro';
 import PartnerAd from '../../components/PartnerAd.astro';
 import SundaySignup from '../../components/SundaySignup.astro';
+import { latestUpdate } from '../../data/changelog';
 import { findGame, homeGames, isPurchasable } from '../../data/games';
+import { formatDay } from '../../lib/gameFacts';
 import { gamesLikeFor, listedGamesLike } from '../../data/gamesLike';
 import { coverSrcset, coverVariant, loopSources } from '../../lib/covers';
 import { currentUser, ownedGameSlugs } from '../../lib/owner';
@@ -47,6 +49,8 @@ const site = Astro.site ?? Astro.url;
 const cover = game.cover ?? '/covers/inkfish.png';
 // Where a player lands on leaving a game: the other games, newest first, one tap from playing.
 const others = homeGames(new Date()).filter((g) => g.slug !== game.slug);
+// The newest changelog entry, with a link to the rest.
+const latest = latestUpdate(game.slug);
 ---
 <Base title={gameTitle(game)} description={game.description[0] ?? game.tagline} image={game.cover} user={user} jsonLd={[gameJsonLd(game, site), faqJsonLd(faq)]}>
   <article class="game">
@@ -103,6 +107,14 @@ const others = homeGames(new Date()).filter((g) => g.slug !== game.slug);
           </section>
         )}
       </div>
+      {latest && (
+        <section class="latest">
+          <h3>Latest update <time datetime={latest.date}>{formatDay(latest.date, new Date())}</time></h3>
+          <p class="latest-title">{latest.title}</p>
+          <ul>{latest.changes.slice(0, 3).map((c) => <li>{c}</li>)}</ul>
+          <p class="latest-more"><a href={`/games/${game.slug}/changelog`}>Every update to {game.title} →</a></p>
+        </section>
+      )}
     </div>
   </article>
   {others.length > 0 && (
@@ -180,6 +192,10 @@ const others = homeGames(new Date()).filter((g) => g.slug !== game.slug);
   ul { padding-left: 1.1em; margin: 0; }
   li { margin-bottom: 4px; }
   li::marker { content: '✎ '; color: var(--ink-faint); }
+  .latest { margin-top: 28px; }
+  .latest time { font-family: var(--font-body); font-size: 0.85rem; font-weight: 400; color: var(--ink-soft); margin-left: 6px; }
+  .latest-title { margin: 0 0 4px; font-weight: 600; }
+  .latest-more { margin: 8px 0 0; }
   .more { margin-top: 64px; }
   .more ul { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 32px; padding: 0; list-style: none; }
   .more li { margin: 0; }

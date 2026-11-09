@@ -3,14 +3,14 @@
  "units": {
   "spearman": {
    "name": "Hoplite",
-   "src": "art-direction/greek/hoplite.png",
+   "src": "pixel/src/spearman.png",
    "canvas": [
     96,
     96
    ],
    "foot": 6,
    "dx": -8,
-   "subject": "an ancient greek hoplite with bronze helmet, round bronze shield and spear",
+   "subject": "a lightly armed greek hoplite levy with a plain crestless bronze helmet, a linen tunic, bare legs, a round wooden shield and a spear",
    "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
    "strike": 4,
    "face": [
@@ -237,7 +237,7 @@
    ],
    "foot": 6,
    "dx": -8,
-   "subject": "a greek phalangite with a very long sarissa pike, crested bronze helmet and linen corselet",
+   "subject": "a greek phalangite with a white-crested bronze helmet, a white linen corselet, bronze greaves, a small shield and a long spear held level",
    "attack": "sarissa thrust attack: lowers the long pike, lunges forward thrusting it hard to the right, then recovers to the starting pose; feet stay in place",
    "strike": 4,
    "face": [
@@ -254,7 +254,7 @@
    ],
    "foot": 6,
    "dx": -8,
-   "subject": "a spartan warrior in a red cloak with a Corinthian helmet with a tall red crest, bronze shield with a lambda and a spear",
+   "subject": "a spartan in full bronze panoply: Corinthian helmet with a tall red crest, muscle cuirass, greaves, crimson cloak and a bronze shield with a red lambda, with a spear",
    "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
    "strike": 4,
    "face": [
@@ -263,7 +263,7 @@
    ]
   },
   "bowman2": {
-   "name": "Peltast",
+   "name": "Achaean Slinger",
    "src": "pixel/src/bowman2.png",
    "canvas": [
     96,
@@ -271,8 +271,8 @@
    ],
    "foot": 6,
    "dx": -6,
-   "subject": "a greek peltast skirmisher with a crescent wicker shield and a javelin",
-   "attack": "javelin throw attack: leans back, hurls the javelin forward to the right with a snap of the arm, then recovers; feet stay in place",
+   "subject": "a greek slinger in a bronze cap helmet and a leather corselet over a white tunic, with leather bracers, swinging a leather sling",
+   "attack": "slinging attack: whirls the sling overhead twice and releases the stone forward to the right with a snap of the arm, then recovers; feet stay in place",
    "strike": 5,
    "shot": [
     70,
@@ -284,7 +284,7 @@
    ]
   },
   "bowman3": {
-   "name": "Cretan Archer",
+   "name": "Rhodian Slinger",
    "src": "pixel/src/bowman3.png",
    "canvas": [
     96,
@@ -292,8 +292,8 @@
    ],
    "foot": 6,
    "dx": -6,
-   "subject": "a cretan archer with a recurved bow, leather cap and a quiver",
-   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; feet stay in place",
+   "subject": "a veteran greek slinger in a red-plumed bronze helmet, a bronze-scaled linen corselet, greaves and a crimson sash, swinging a leather sling",
+   "attack": "slinging attack: whirls the sling overhead twice and releases the stone forward to the right with a snap of the arm, then recovers; feet stay in place",
    "strike": 5,
    "shot": [
     70,
@@ -342,7 +342,7 @@
    "foot": 6,
    "dx": -6,
    "flies": true,
-   "subject": "a griffin with golden feathers and a laurel collar",
+   "subject": "a golden griffin with shining gold feathers and fur, engraved gold plate armour, a crimson gold-fringed saddle cloth and a gold laurel at the neck",
    "walk": "flying in place loop: big slow wing beats, body bobs up and down a little, legs tucked, ends back at the starting pose",
    "attack": "pounce attack: rears up, beats its wings once and lunges forward to the right with beak and talons, then settles back to the starting pose",
    "strike": 3,
@@ -369,7 +369,7 @@
    ],
    "foot": 6,
    "dx": -8,
-   "subject": "a huge bull-headed minotaur in a bronze breastplate with a double-headed axe",
+   "subject": "a huge grey bull-headed minotaur in a bronze breastplate, bronze pauldrons and bracers and a studded war skirt, with a double-headed axe",
    "attack": "axe chop attack: raises the double axe high over the horns and brings it down hard in front to the right, then lifts it back to the starting pose; hooves stay in place",
    "strike": 3,
    "face": [
@@ -386,7 +386,7 @@
    ],
    "foot": 6,
    "dx": -8,
-   "subject": "a huge black minotaur with gilded horns, crested helmet and a great labrys",
+   "subject": "a huge near-black minotaur lord with gilded horns, a red-crested bronze helmet, ornate gilded plate with a lion face, a crimson cloak and a gold-trimmed labrys",
    "attack": "axe chop attack: raises the double axe high over the horns and brings it down hard in front to the right, then lifts it back to the starting pose; hooves stay in place",
    "strike": 3,
    "face": [
@@ -403,7 +403,7 @@
    ],
    "foot": 6,
    "dx": -8,
-   "subject": "a centaur marksman in leather armour drawing a composite bow",
+   "subject": "a centaur marksman with a crested bronze helmet, a studded leather cuirass, bronze bracers, a quiver and a red saddle cloth, drawing a bow",
    "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, the bow snaps forward, then reaches for a new arrow and returns to the starting pose; hooves stay in place",
    "strike": 3,
    "shot": [
@@ -424,7 +424,7 @@
    ],
    "foot": 6,
    "dx": -8,
-   "subject": "an elder centaur with a white beard, laurel wreath and golden bow",
+   "subject": "an elder centaur sage with a white beard, a gold laurel over a bronze helmet, a gilded muscle cuirass, a white and gold sash, a blue saddle cloth and a golden bow",
    "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, the bow snaps forward, then reaches for a new arrow and returns to the starting pose; hooves stay in place",
    "strike": 3,
    "shot": [
@@ -445,7 +445,7 @@
    ],
    "foot": 6,
    "dx": -8,
-   "subject": "a royal companion cavalryman with a purple cloak and plumed Boeotian helmet on a white-grey warhorse",
+   "subject": "a royal companion cavalryman in a gilded plumed Boeotian helmet, bronze cuirass and gold-trimmed purple cloak, with a lance, on a white-grey warhorse with a bronze chamfron and purple saddle cloth",
    "walk": "galloping in place loop: the horse gallops with legs reaching and gathering, the rider rocks with the stride, stays in the same spot, ends back at the starting pose",
    "attack": "lance charge attack: the horse surges forward, the rider drives the long lance hard to the right, then the horse settles back to the starting pose",
    "strike": 2,
@@ -481,9 +481,9 @@
    ],
    "foot": 8,
    "dx": -8,
-   "subject": "a colossal titan in bronze armour holding a glowing staff",
+   "subject": "a colossal elder titan in golden armour with glowing blue runes, a long white beard, a spiked gold crown and a blue gold-trimmed cloak, holding a lightning bolt",
    "walk": "slow heavy striding in place loop: huge legs lift and plant, cloak sways, stays in the same spot, ends back at the starting pose",
-   "attack": "staff strike attack: raises the glowing staff high, the glow flares brighter, then slams it down and forward to the right with a flash, then returns to the starting pose; feet stay planted",
+   "attack": "lightning strike attack: raises the lightning bolt high, crackling brighter, then hurls it down and forward to the right with a flash, then returns to the starting pose; feet stay planted",
    "strike": 4,
    "face": [
     66,
@@ -499,7 +499,7 @@
    ],
    "foot": 8,
    "dx": -8,
-   "subject": "a colossal titan in golden armour crowned with storm clouds and lightning",
+   "subject": "a colossal titan lord in golden armour with blazing blue runes, a crown of storm clouds and lightning, a storm-blue cloak and sparks on the shoulders, holding a great lightning bolt",
    "walk": "slow heavy striding in place loop: huge legs lift and plant, cloak sways, stays in the same spot, ends back at the starting pose",
    "attack": "lightning strike attack: raises the lightning bolt high, crackling brighter, then hurls it down and forward to the right with a flash, then returns to the starting pose; feet stay planted",
    "strike": 4,
@@ -539,7 +539,7 @@
    ],
    "foot": 6,
    "dx": 0,
-   "subject": "an ancient greek wooden catapult on a four-wheeled timber frame, no crew",
+   "subject": "an ancient greek wooden catapult on a four-wheeled frame with bronze-plated corners, bronze bands on the throwing arm and bronze-rimmed wheels, no crew",
    "idle": "idle loop: the machine stands still, the stone at the end of the arm sways very slightly on its rope, ends back at the starting pose",
    "attack": "firing: the long throwing arm whips over the top and flings the stone away to the right, then swings back",
    "strike": 3,
@@ -561,7 +561,7 @@
    ],
    "foot": 6,
    "dx": 0,
-   "subject": "an ancient greek wooden catapult on a four-wheeled timber frame, no crew",
+   "subject": "a heavy greek war catapult with a red-painted frame clad in polished bronze plates, a red and bronze banded throwing arm, spiked bronze wheels and a bronze ball, no crew",
    "idle": "idle loop: the machine stands still, the stone at the end of the arm sways very slightly on its rope, ends back at the starting pose",
    "attack": "firing: the long throwing arm whips over the top and flings the stone away to the right, then swings back",
    "strike": 3,
@@ -927,7 +927,7 @@
    "walk": "flying in place loop: big slow wing beats, body bobs up and down a little, legs tucked, ends back at the starting pose"
   },
   "levy2": {
-   "name": "Khopesh Warrior",
+   "name": "Spearman of Amun",
    "src": "pixel/src/levy2.png",
    "canvas": [
     96,
@@ -935,9 +935,9 @@
    ],
    "foot": 6,
    "dx": -8,
-   "subject": "an egyptian warrior in a padded linen corselet with a curved bronze khopesh and a round shield",
-   "attack": "khopesh slash attack: raises the curved sword and slashes forward to the right, then recovers to the starting pose; feet stay in place",
-   "strike": 3,
+   "subject": "an egyptian spearman in a blue and gold striped headcloth and a padded linen corselet with bronze scale shoulders, with a spear and a bronze-rimmed round shield",
+   "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
    "face": [
     37,
     40
@@ -952,9 +952,9 @@
    ],
    "foot": 6,
    "dx": -8,
-   "subject": "an egyptian guard in a horned bronze helmet with a disc, a round bronze shield and a long sword",
-   "attack": "sword thrust attack: draws the sword back, lunges forward thrusting hard to the right, then recovers to the starting pose; feet stay in place",
-   "strike": 3,
+   "subject": "an elite shardana guard in a horned bronze helmet with a sun disc, a bronze scale corselet and greaves, with a spear, a studded round bronze shield and a sword at the hip",
+   "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
    "face": [
     37,
     38
@@ -969,7 +969,7 @@
    ],
    "foot": 6,
    "dx": -6,
-   "subject": "a medjay archer in leather armour drawing a big bow",
+   "subject": "a medjay archer in a leather skullcap, a studded leather cuirass, leather bracers and a leopard skin, drawing a bow",
    "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; feet stay in place",
    "strike": 5,
    "face": [
@@ -990,7 +990,7 @@
    ],
    "foot": 6,
    "dx": -6,
-   "subject": "a nubian bowman with tall ostrich plumes and gold armbands drawing a great bow",
+   "subject": "a nubian bowman of Ta-Seti with tall ostrich plumes, gilded bronze scales, gold armbands and collar and a red sash, drawing a great gold-tipped bow",
    "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; feet stay in place",
    "strike": 4,
    "face": [
@@ -1028,9 +1028,9 @@
    ],
    "foot": 6,
    "dx": -8,
-   "subject": "a jackal-headed egyptian temple guard in gilded black armour with a khopesh in each hand",
-   "attack": "twin khopesh attack: raises both curved swords and slashes down and forward to the right, then recovers to the starting pose; feet stay in place",
-   "strike": 3,
+   "subject": "a jackal-headed egyptian temple guard in solid gold plate with a gold and lapis collar, a black gold-trimmed cape and a red sash, with a glowing gold-tipped spear and a khopesh at the hip",
+   "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
    "face": [
     48,
     45
@@ -1081,7 +1081,7 @@
    ],
    "foot": 6,
    "dx": -8,
-   "subject": "a royal mummy in a gold-banded wrap with gold amulets and a khopesh",
+   "subject": "a royal mummy in linen wraps with wide gold bands, a gold and lapis collar, a gold scarab amulet, a gold circlet and a blue sash, with a bronze khopesh",
    "attack": "khopesh slash attack: raises the curved sword and slashes forward to the right, then recovers to the starting pose; feet stay in place",
    "strike": 3,
    "face": [
@@ -1133,7 +1133,7 @@
    ],
    "foot": 6,
    "dx": -8,
-   "subject": "a great sphinx with a gold nemes and a jewelled collar, lion body with a pharaoh's head",
+   "subject": "a great sphinx in polished gold armour plates with lapis inlay, a gold and blue nemes with a uraeus, a jewelled collar and gold leg bands, lion body with a pharaoh head",
    "attack": "pounce attack: crouches, lunges forward to the right with a roar and a swipe of the paw, then settles back to the starting pose",
    "strike": 3,
    "face": [
