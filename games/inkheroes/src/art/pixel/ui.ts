@@ -92,6 +92,8 @@ import itemAlexandrianCodex from './ui/item-alexandrianCodex.png?url';
 import itemCatapult from './ui/item-catapult.png?url';
 import itemCatapult2 from './ui/item-catapult2.png?url';
 import itemCatapult3 from './ui/item-catapult3.png?url';
+import itemKronosHelm from './ui/item-kronosHelm.png?url';
+import itemCrookAndFlail from './ui/item-crookAndFlail.png?url';
 import slotHelm from './ui/slot-helm.png?url';
 import slotCuirass from './ui/slot-cuirass.png?url';
 import slotBracers from './ui/slot-bracers.png?url';
@@ -172,7 +174,7 @@ export const SKILL_ICONS: Readonly<Record<SkillId, string>> = {
   learning: skillLearning,
 };
 
-export const SPELL_ICONS: Readonly<Record<SpellId, string>> = {
+export const SPELL_ICONS: Readonly<Partial<Record<SpellId, string>>> = {
   magicArrow: spellMagicArrow,
   haste: spellHaste,
   slow: spellSlow,
@@ -185,7 +187,7 @@ export const SPELL_ICONS: Readonly<Record<SpellId, string>> = {
 };
 
 /** The guild's spell paintings (64 x 64). */
-export const SPELL_ART: Readonly<Record<SpellId, string>> = {
+export const SPELL_ART: Readonly<Partial<Record<SpellId, string>>> = {
   magicArrow: spellArtMagicArrow,
   haste: spellArtHaste,
   slow: spellArtSlow,
@@ -216,7 +218,7 @@ export const BAG_ART: Readonly<Record<BagArt, string>> = {
 };
 
 /** The gear's item icons (64 x 64). */
-export const ITEM_ICONS: Readonly<Record<ItemId, string>> = {
+export const ITEM_ICONS: Readonly<Partial<Record<ItemId, string>>> = {
   bronzeHelm: itemBronzeHelm,
   bronzeCuirass: itemBronzeCuirass,
   bronzeBracers: itemBronzeBracers,
@@ -235,6 +237,8 @@ export const ITEM_ICONS: Readonly<Record<ItemId, string>> = {
   catapult: itemCatapult,
   catapult2: itemCatapult2,
   catapult3: itemCatapult3,
+  kronosHelm: itemKronosHelm,
+  crookAndFlail: itemCrookAndFlail,
 };
 
 export type SlotIcon = 'helm' | 'cuirass' | 'bracers' | 'belt' | 'greaves' | 'boots' | 'weapon' | 'shield' | 'amulet' | 'ring' | 'book' | 'machine';

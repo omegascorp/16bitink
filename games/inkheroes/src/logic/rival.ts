@@ -1,20 +1,24 @@
-import { gainItem, machineOf } from './items';
+import { gainItem, hasAsGood, machineOf } from './items';
+import { soldOn } from '../level/unlocks';
 import type { MapDef } from '../level/types';
 import {
-  calendar, checkGoal, dayOfWeek, DEFEND, fledHome, guardAt, lordSide, heroInGarrison, incomeOf, liveObjects, ourHeroes, playerArmy, RIVAL, rivalHero, revealAround, terrainView, toldPrompt, townAt, withTown, type Adventure, type Prompt,
+  calendar, checkGoal, dayOfWeek, DEFEND, fledHome, GATE, stormOf, townGuards, guardAt, lordSide, heroInGarrison, incomeOf, liveObjects, ourHeroes, playerArmy, RIVAL, rivalHero, revealAround, terrainView, toldPrompt, townAt, withTown, type Adventure, type Prompt,
 } from './adventure';
 import { CHAPTER1 } from '../narration/lines';
 import { armyMorale, armyOf, isEmptyArmy, splitMonster, type Army } from './army';
-import { act, createBattle, survivors, type BattleSide } from './battle';
-import { chooseAction } from './battleAi';
+import { survivors, type BattleSide, type SiegeSetup } from './battle';
 import type { BattleState } from './battleTypes';
 import { creature, strengthOf } from './creatures';
 import { dailyMp, toBattleHero, type Hero } from './hero';
 import { MINE_NAMES, type MapObject } from './objects';
 import { canStep, findPath, type PathStep } from './path';
 import { selectHero } from './heroes';
-import { addTo } from './resources';
-import { bestUnit, build, cantBuild, dwellings, hireable, hireAll, towersOf, undefended, weekly, type Town } from './town';
+import { addTo, canAfford, pay } from './resources';
+import { fortification } from './siege';
+import { armyStrength } from './strength';
+import { autoBattle } from './autoBattle';
+import { isLord, playLord } from './lord/turn';
+import { bestUnit, build, cantBuild, dwellings, has, hireable, hireAll, manTowers, towersOf, weekly, type Town } from './town';
 
 /**
  * The rival lord's turn, played after the night: his towns build and hire,
@@ -31,7 +35,7 @@ export interface RivalReport {
   readonly path: readonly { x: number; y: number }[];
   /** News for the day's card. */
   readonly notes: readonly string[];
-  /** A fight with us he started: RIVAL (our hero) or DEFEND + town id (a garrison alone). */
+  /** A fight with us he started: RIVAL (our hero in the field), GATE + town id (the hero at its gate) or DEFEND + town id (its walls). */
   readonly fight?: string;
 }
 
@@ -42,6 +46,8 @@ const VALUE = { pile: 600, campfire: 700, chest: 900, mine: 1600, ourMine: 2200,
 /** A trip home is worth this much per point of strength he could hire there (up to HIRE_MAX). */
 const HIRE_WORTH = 15;
 const HIRE_MAX = 9000;
+/** ...and only when he could hire at least this share of his army there. */
+const HIRE_SHARE = 0.15;
 /** Gold his towns keep for his hero when they hire into their own garrison. */
 const RESERVE = 3000;
 /** He only picks fights he expects to win easily (their strength over his). */
@@ -57,17 +63,11 @@ const SIGHTED = 3;
 /** The share of the days before a part opens that the rival has had at home. */
 const HEAD_START = 0.75;
 
-/** A rough fighting strength of an army. */
-export const armyStrength = (army: Army): number => army.reduce((n, s) => n + (s ? strengthOf(s.creature, s.count) : 0), 0);
+export { armyStrength };
 
 const hashId = (s: string): number => [...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0, 2166136261);
 
-/** A fight the AI plays out on both sides at once; a battle that drags on is held by the defender. */
-export function autoBattle(attacker: BattleSide, defender: BattleSide, seed: number): BattleState {
-  let st = createBattle(attacker, defender, seed).state;
-  for (let i = 0; i < 600 && st.winner === null; i++) st = act(st, chooseAction(st)).state;
-  return st.winner === null ? { ...st, winner: 1 } : st;
-}
+export { autoBattle };
 
 
 /** `adv` with the rival's hero replaced (null: beaten). */
@@ -75,6 +75,7 @@ const withRival = (adv: Adventure, hero: Hero | null): Adventure => ({ ...adv, r
 
 export function rivalTurn(adv: Adventure, def: MapDef): { adv: Adventure; report: RivalReport } {
   if (!adv.rival || adv.status !== 'playing') return { adv, report: { path: [], notes: [] } };
+  if (isLord(def)) return lordTurn(adv, def);
   let next = rivalTowns(adv, def);
   const path: { x: number; y: number }[] = [];
   const notes: string[] = [];
@@ -88,12 +89,20 @@ export function rivalTurn(adv: Adventure, def: MapDef): { adv: Adventure; report
     next = r.adv;
     path.push(...r.walked);
     notes.push(...r.notes);
-    if (r.fight) return { adv: withNews(next, notes, r.fight), report: { path, notes, fight: r.fight } };
+    if (r.fight) return { adv: withNews(next, def, notes, r.fight), report: { path, notes, fight: r.fight } };
     if (!r.stopped) break;
   }
   const after = sighted(checkGoal(next, def), def);
   const told = [...notes, ...after.notes];
-  return { adv: withNews(after.adv, told), report: { path, notes: told } };
+  return { adv: withNews(after.adv, def, told), report: { path, notes: told } };
+}
+
+/** A lord's night (src/logic/lord): his whole side played as a player plays, a fight with us left for the player. */
+function lordTurn(adv: Adventure, def: MapDef): { adv: Adventure; report: RivalReport } {
+  const r = playLord(adv, def, 'stop');
+  const after = r.fight ? { adv: r.adv, notes: [] } : sighted(r.adv, def);
+  const notes = [...r.notes, ...after.notes];
+  return { adv: withNews(after.adv, def, notes, r.fight), report: { path: r.path, notes, ...(r.fight ? { fight: r.fight } : {}) } };
 }
 
 /** With no town left he has nowhere to hide: each night the scouts find him, on the map and on the day's card. */
@@ -119,8 +128,10 @@ function compass(dx: number, dy: number): string {
  * set out), so he keeps close behind whenever the player gets there.
  */
 export function headStart(adv: Adventure, def: MapDef): Adventure {
+  // A lord has a fair start: none played in secret.
+  if (isLord(def)) return adv;
   let next = adv;
-  for (let day = 2; day <= Math.round(adv.day * HEAD_START); day++) {
+  for (let day = 2; day <= Math.round(adv.day * (def.rival?.headStart ?? HEAD_START)); day++) {
     const rival = next.rival!;
     const towns = next.towns.map((t) => (t.owner !== 'rival' ? t : dayOfWeek(day) === 1 ? weekly(t) : { ...t, builtToday: false }));
     next = rivalTowns({ ...next, towns, rival: { ...rival, purse: addTo(rival.purse, incomeOf(next, 'rival')) } }, def);
@@ -134,8 +145,11 @@ function lostAlly(foe: Hero, town: Town): Prompt {
   return { kind: 'message', title: `${town.name} has fallen`, text: `${foe.name} reached ${town.name} before you, and it flies his banner now. Take it back from him!` };
 }
 
+/** The towns of the map both sides race for (`race` on the map's town): never handed over, fought for. */
+const racedTowns = (def: MapDef): ReadonlySet<string> => new Set((def.towns ?? []).filter((t) => t.race).map((t) => t.id));
+
 /** The rival's news on the day's card (or a card of its own), and the fight he starts, announced and waiting. */
-function withNews(adv: Adventure, notes: readonly string[], fight?: string): Adventure {
+function withNews(adv: Adventure, def: MapDef, notes: readonly string[], fight?: string): Adventure {
   const foe = rivalHero(adv);
   let prompts = adv.prompts;
   if (notes.length) {
@@ -146,11 +160,15 @@ function withNews(adv: Adventure, notes: readonly string[], fight?: string): Adv
     const card = prompts[at];
     prompts = card?.kind === 'message'
       ? prompts.map((p, i) => (i === at ? { ...card, text: [card.text, ...notes].filter(Boolean).join('\n') } : p))
-      : [...prompts, { kind: 'message', title: 'The Black Banner', text: notes.join('\n') }];
+      : [...prompts, { kind: 'message', title: def.name, text: notes.join('\n') }];
   }
   if (!fight || !foe) return { ...adv, prompts };
-  const at = fight === RIVAL ? adv.hero.name : (adv.towns.find((t) => DEFEND + t.id === fight)?.name ?? 'your town');
-  const text = fight === RIVAL ? `${foe.name} rides against ${at}! Stand and fight.` : `${foe.name} storms ${at}! Its garrison must hold the walls alone.`;
+  const town = adv.towns.find((t) => DEFEND + t.id === fight || GATE + t.id === fight);
+  const at = town?.name ?? 'your town';
+  const lead = town ? townGuards(adv, town).garrison : undefined;
+  const text = fight === RIVAL ? `${foe.name} rides against ${adv.hero.name}! Stand and fight.`
+    : fight.startsWith(GATE) ? `${foe.name} storms ${at}! ${adv.hero.name} meets him at the gate, in the open; if the gate falls, the walls are next.`
+      : lead ? `${foe.name} storms ${at}! ${lead.name} holds the walls with its garrison.` : `${foe.name} storms ${at}! Its garrison must hold the walls alone.`;
   return { ...adv, prompts: [...prompts, { kind: 'message', title: `${foe.name} attacks`, text }], rivalFight: fight };
 }
 
@@ -167,38 +185,50 @@ function rivalTowns(adv: Adventure, def: MapDef): Adventure {
       next = { ...next, rival: { ...next.rival!, purse: r.purse } };
     }
     next = withTown(next, t);
-    next = hireAtHome(next, t);
+    next = hireAtHome(armAtHome(next, def, t), t, garrisonCap(def, t));
   }
   return next;
 }
 
 /**
+ * His hero in a town of his with a Blacksmith (Egypt's Workshop) buys the
+ * best war machine it sells on this part that is better than his, keeping
+ * RESERVE gold to hire with: as the player would. A machine he replaces is
+ * left behind (he carries no bag).
+ */
+function armAtHome(adv: Adventure, def: MapDef, town: Town): Adventure {
+  const hero = rivalHero(adv);
+  if (!hero || hero.x !== town.x || hero.y !== town.y || !has(town, 'blacksmith')) return adv;
+  const purse = adv.rival!.purse;
+  const best = soldOn(def.n).filter((m) => !hasAsGood(hero, m) && canAfford(purse, { gold: (creature(m).cost.gold ?? 0) + RESERVE })).at(-1);
+  if (!best) return adv;
+  return { ...adv, rival: { ...adv.rival!, purse: pay(purse, creature(best).cost), hero: { ...hero, gear: { ...hero.gear, machine: best } } } };
+}
+
+/**
  * The rival's hero in one of his towns hires all he can, the strongest
  * first; a town he isn't in hires into its own garrison, keeping RESERVE
- * gold for him.
+ * gold for him, up to `cap` of strength (GARRISON_GROWTH times what the map
+ * gave it): the rest waits in the dwellings for him.
  */
-function hireAtHome(adv: Adventure, town: Town): Adventure {
+function hireAtHome(adv: Adventure, town: Town, cap = Infinity): Adventure {
   const hero = rivalHero(adv);
   const home = !!hero && hero.x === town.x && hero.y === town.y;
-  const r = hireAll(town, home ? hero.army : town.garrison, adv.rival!.purse, home ? 0 : RESERVE);
+  const room = home ? Infinity : Math.max(0, cap - armyStrength(town.garrison));
+  const r = hireAll(town, home ? hero.army : town.garrison, adv.rival!.purse, home ? 0 : RESERVE, room);
   const t = home ? r.town : { ...r.town, garrison: r.army };
   return withTown({ ...adv, rival: { ...adv.rival!, purse: r.purse, hero: home ? { ...hero, army: r.army } : hero } }, t);
 }
 
-/** The strength the purse could hire in `town` today. */
-function hireStrength(town: Town, gold: number): number {
-  let left = gold;
-  let n = 0;
-  for (const base of dwellings(town).sort((x, y) => creature(y).level - creature(x).level)) {
-    const id = bestUnit(town, base);
-    if (!id) continue;
-    const k = Math.min(hireable(town, id, { ...EMPTY, gold: left }), Math.floor(left / (creature(id).cost.gold ?? 1)));
-    left -= k * (creature(id).cost.gold ?? 0);
-    n += strengthOf(id, k);
-  }
-  return n;
+/** A rival town's garrison grows from its recruits to this many times its strength on the map; the rest wait in the dwellings for him. */
+const GARRISON_GROWTH = 1.5;
+
+/** The most strength `town`'s own garrison may reach by hiring while he is away (coordinator, Nov 8). */
+function garrisonCap(def: MapDef, town: Town): number {
+  const spec = [def.town, ...(def.towns ?? [])].find((t) => t.id === town.id);
+  return armyStrength(armyOf(spec?.garrison ?? [])) * GARRISON_GROWTH;
 }
-const EMPTY = { gold: 0, wood: 0, ore: 0, mercury: 0, sulfur: 0, crystal: 0, gems: 0 } as const;
+
 
 interface Route {
   readonly steps: readonly PathStep[];
@@ -236,7 +266,9 @@ function targets(adv: Adventure, def: MapDef, hero: Hero, mine: number): { x: nu
     if (value && !guarded(o)) out.push({ x: o.x, y: o.y, value });
   }
   const ours = armyStrength(playerArmy(adv));
-  if (!heroInGarrison(adv) && ours < mine * SAFE.hero) out.push({ x: adv.hero.x, y: adv.hero.y, value: VALUE.ourHero });
+  // A hero of ours in a town of ours is no lone hero: storming it is both its battles (the town's target below).
+  const inTown = (h: Hero): boolean => adv.towns.some((t) => t.owner === 'player' && t.x === h.x && t.y === h.y);
+  if (!heroInGarrison(adv) && !inTown(adv.hero) && ours < mine * SAFE.hero) out.push({ x: adv.hero.x, y: adv.hero.y, value: VALUE.ourHero });
   // Our other heroes, out in the field.
   for (const h of adv.others ?? []) {
     const theirs = armyStrength(h.army);
@@ -245,20 +277,25 @@ function targets(adv: Adventure, def: MapDef, hero: Hero, mine: number): { x: nu
   const within = (p: { x: number; y: number }, t: { x: number; y: number }): boolean => Math.max(Math.abs(p.x - t.x), Math.abs(p.y - t.y)) <= THREAT.tiles;
   const strengthOfHero = (h: Hero): number => (h.id === adv.hero.id ? ours : armyStrength(h.army));
   for (const t of adv.towns.filter((x) => x.owner === 'player')) {
-    // Our heroes near the town would ride back to it: they count as its defence.
+    // Our heroes near the town would ride back to it, and one at its gate is fought first: all count as its defence (both battles).
     const heroNear = ourHeroes(adv).filter((h) => within(h, t)).reduce((n, h) => n + strengthOfHero(h), 0);
     const held = armyStrength(t.garrison) + armyStrength(towersOf(t)) + heroNear;
     if (held < mine * SAFE.town) out.push({ x: t.x, y: t.y, value: VALUE.ourTown });
   }
   // A town waiting to open its gates to us: from the part's RACE night on he races us for it, if its garrison won't stop him.
   const racing = adv.day - (adv.begun ?? 1) >= RACE;
-  for (const t of adv.towns.filter((x) => racing && x.ally && x.owner === 'neutral')) {
+  const raced = racedTowns(def);
+  for (const t of adv.towns.filter((x) => racing && (x.ally || raced.has(x.id)) && x.owner === 'neutral')) {
     if (armyStrength(t.garrison) < mine * SAFE.town) out.push({ x: t.x, y: t.y, value: VALUE.allyTown });
   }
   for (const t of adv.towns.filter((x) => x.owner === 'rival')) {
     if (t.x === hero.x && t.y === hero.y) continue;
     const near = ourHeroes(adv).some((h) => within(h, t) && strengthOfHero(h) > mine * THREAT.share);
-    out.push({ x: t.x, y: t.y, value: VALUE.home + Math.min(HIRE_MAX, hireStrength(t, adv.rival!.purse.gold) * HIRE_WORTH) + (near ? VALUE.defend : 0) });
+    // A trip home to hire is worth it for a real share of his army, not a day's trickle.
+    // What he could add to his own army there (a full army has no room for a new kind).
+    const hireable = armyStrength(hireAll(t, hero.army, adv.rival!.purse).army) - mine;
+    const recruits = hireable >= mine * HIRE_SHARE ? Math.min(HIRE_MAX, hireable * HIRE_WORTH) : 0;
+    out.push({ x: t.x, y: t.y, value: VALUE.home + recruits + (near ? VALUE.defend : 0) });
   }
   return out;
 }
@@ -281,22 +318,24 @@ function ride(adv: Adventure, def: MapDef, route: Route): Ride {
     const hero = rivalHero(next)!;
     if (step.day > 0 || !canStep(step, hero.mp)) break;
     const spent = { ...hero, mp: Math.max(0, hero.mp - step.cost) };
-    // A hero of ours: he attacks, and the player plays the fight (with that hero picked).
-    const here = ourHeroes(next).filter((h) => h.x === step.x && h.y === step.y);
-    // At a town the hero in the gate meets him first.
-    const met = here.find((h) => !isEmptyArmy(h.army)) ?? here[0];
-    if (met) return { adv: selectHero(next, met.id), walked, notes, stopped: true, fight: RIVAL };
     const gate = townAt(next, step.x, step.y);
     if (gate?.owner === 'player') {
-      if (!undefended(gate)) return { adv: next, walked, notes, stopped: true, fight: DEFEND + gate.id };
+      // A town of ours: the hero at its gate meets him first, in the open; then its walls, commanded by the hero in its garrison (picked, for the player to play).
+      const storm = stormOf(next, gate);
+      const { gate: atGate, garrison: inside } = townGuards(next, gate);
+      const met = atGate ?? inside;
+      if (storm) return { adv: met ? selectHero(next, met.id) : next, walked, notes, stopped: true, fight: storm };
       next = checkGoal(withTown(withRival(next, { ...spent, x: step.x, y: step.y }), { ...gate, owner: 'rival', garrison: armyOf([]) }), def);
       walked.push(step);
       notes.push(`${hero.name} rode into ${gate.name}, and it flies his banner now.`);
       return { adv: next, walked, notes, stopped: false };
     }
+    // A hero of ours in the field: he attacks, and the player plays the fight (with that hero picked).
+    const met = ourHeroes(next).find((h) => h.x === step.x && h.y === step.y);
+    if (met) return { adv: selectHero(next, met.id), walked, notes, stopped: true, fight: RIVAL };
     if (gate) {
       if (gate.owner === 'neutral' && !isEmptyArmy(gate.garrison)) {
-        const won = fight(next, hero, gate.garrison, gate.id);
+        const won = fight(next, hero, gate.garrison, gate.id, gate);
         next = won.adv;
         if (!won.won) return { adv: next, walked, notes: [...notes, ...won.notes], stopped: false };
       }
@@ -305,8 +344,8 @@ function ride(adv: Adventure, def: MapDef, route: Route): Ride {
       const home: Town = { ...taken, owner: 'rival', ...(gate.owner === 'neutral' ? { garrison: armyOf([]) } : {}) };
       next = hireAtHome(withTown(moved, home), home);
       walked.push(step);
-      if (waited) {
-        // A short note on the day's card, and the loss on a card (told by the narrator) of its own.
+      if (waited || racedTowns(def).has(home.id)) {
+        // A short note on the day's card, and the loss on a card (told by the narrator for Eudora) of its own.
         notes.push(`${hero.name} reached ${home.name} before you.`);
         next = { ...next, prompts: [...next.prompts, lostAlly(hero, home)] };
       }
@@ -339,9 +378,18 @@ function ride(adv: Adventure, def: MapDef, route: Route): Ride {
   return { adv: next, walked, notes, stopped: false };
 }
 
-/** The rival's hero fights `army` (a monster or a neutral garrison) to the end, at once. */
-function fight(adv: Adventure, hero: Hero, army: Army, id: string): { adv: Adventure; won: boolean; notes: string[] } {
-  const end = autoBattle(lordSide(adv, hero), { hero: null, army }, (adv.seed ^ (adv.day * 7919) ^ hashId(`rival:${id}`)) >>> 0);
+/** The rival storming a town held by its garrison alone: behind walls a siege, the garrison manning its towers, his war machine (a ramp's stretch picked by the AI) against them. */
+export function stormSides(adv: Adventure, hero: Hero, town: Town): { attacker: BattleSide; defender: BattleSide; siege?: SiegeSetup } {
+  const fort = fortification(town.built);
+  const attacker = lordSide(adv, hero);
+  if (!fort) return { attacker, defender: { hero: null, army: town.garrison } };
+  return { attacker, defender: { hero: null, ...manTowers(town.garrison, fort.places) }, siege: { fort, me: 0 } };
+}
+
+/** The rival's hero fights `army` (a monster, or the garrison of `town`, behind its walls) to the end, at once. */
+function fight(adv: Adventure, hero: Hero, army: Army, id: string, town?: Town): { adv: Adventure; won: boolean; notes: string[] } {
+  const sides = town ? stormSides(adv, hero, town) : { attacker: lordSide(adv, hero), defender: { hero: null, army } };
+  const end = autoBattle(sides.attacker, sides.defender, (adv.seed ^ (adv.day * 7919) ^ hashId(`rival:${id}`)) >>> 0, sides.siege);
   const home = end.fled === 0 ? fledHome(adv, hero) : null;
   if (home) return { adv: home.adv, won: false, notes: [`${hero.name} was beaten back and fled to ${home.town.name} without his army.`] };
   if (end.winner !== 0) {

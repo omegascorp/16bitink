@@ -1,3 +1,4 @@
+import { FACTIONS, factionOf } from '../../logic/factions';
 import type Phaser from 'phaser';
 import type { SlotIcon } from '../../art/pixel/ui';
 import type { Hero } from '../../logic/hero';
@@ -72,7 +73,7 @@ export function drawGear(host: GearHost, x: number, y: number, layout: GearLayou
 }
 
 /** What an empty slot says; the war machine's is where a hero learns what it's for. */
-const emptySlot = (slot: Slot): string => (slot === 'machine' ? 'No war machine: buy one at a Blacksmith to break town walls' : `${FULL[slot]}: nothing worn`);
+const emptySlot = (slot: Slot, hero: Hero): string => (slot === 'machine' ? FACTIONS[factionOf(hero)].siege.slot : `${FULL[slot]}: nothing worn`);
 
 /** What an empty place in the bag says: room, or (past the bag's size) the bag that would give it. */
 function emptyBag(hero: Hero, i: number): string {
@@ -85,7 +86,7 @@ function detail(host: GearHost, at: GearCell, w: number, hero: Hero, pick: GearP
   const { x, y } = at;
   const item = pickedItem(hero, pick);
   if (!item) {
-    line(host, !pick ? 'Tap a piece to see what it gives' : 'slot' in pick ? emptySlot(pick.slot) : emptyBag(hero, pick.bag), x, y + 6, INK.dim, w);
+    line(host, !pick ? 'Tap a piece to see what it gives' : 'slot' in pick ? emptySlot(pick.slot, hero) : emptyBag(hero, pick.bag), x, y + 6, INK.dim, w);
     return;
   }
   const def = itemDef(item);

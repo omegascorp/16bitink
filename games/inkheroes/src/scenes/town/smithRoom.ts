@@ -1,7 +1,7 @@
 import type Phaser from 'phaser';
 import type { Adventure } from '../../logic/adventure';
 import { itemQuality, type SoldMachine } from '../../logic/items';
-import type { Town } from '../../logic/town';
+import { buildingIn, type Town } from '../../logic/town';
 import { INK, PixelButton, UI_TEX } from '../battle/pixelUi';
 import { QUALITY_RIM } from '../hud/gearPanel';
 import { wareLayout, type GuildCell, type GuildLayout } from './guildLayout';
@@ -31,7 +31,7 @@ export interface SmithActions {
 export class SmithRoom extends TownRoom {
   constructor(scene: Phaser.Scene, adv: Adventure, town: Town, picked: SoldMachine | null, sold: readonly SoldMachine[], area: { w: number; h: number }, private readonly act: SmithActions, depth: number) {
     const l = wareLayout(roomIn(area), sold.length);
-    super(scene, area, l, { title: 'Blacksmith', art: UI_TEX.smithRoom }, () => act.close(), depth);
+    super(scene, area, l, { title: buildingIn(town, 'blacksmith').name, art: UI_TEX.smithRoom }, () => act.close(), depth);
     const wares = sold.map((m) => wareOf(adv, town, m));
     const pick = wares.find((w) => w.item === picked) ?? firstWare(wares)!;
     wares.forEach((w, i) => this.tile(l, l.tiles[i]!, w, w === pick));

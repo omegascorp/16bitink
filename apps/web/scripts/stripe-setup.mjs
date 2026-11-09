@@ -52,6 +52,13 @@ const PRODUCTS = [
     unitAmount: 499,
     currency: 'usd',
   },
+  {
+    lookupKey: 'inkheroes_full',
+    name: 'InkHeroes: Full Game',
+    description: 'The full InkHeroes game on 16bit.ink: chapter 2, The Two Lands, played as Egypt after the free Border March, and every new chapter as a free update. One-time purchase, no subscription.',
+    unitAmount: 499,
+    currency: 'usd',
+  },
 ];
 
 const key = process.env.STRIPE_SECRET_KEY;

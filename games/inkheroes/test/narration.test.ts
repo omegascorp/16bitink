@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import MANIFEST from '../narration/lines.json';
 import { ASHFORD, BLACK_BANNER, THORNWOOD } from '../src/level/borderMarch';
 import { MAPS } from '../src/level/maps';
+import { NEKHEN } from '../src/level/twoLands';
 import { answerPrompt, openingPrompt, startAdventure, takeTown, townById, withTown, type Adventure } from '../src/logic/adventure';
 import { rideOn } from '../src/logic/chapter';
 import { loadAdventure, saveAdventure } from '../src/logic/save';
@@ -131,7 +132,7 @@ describe('the recordings', () => {
 
 describe('narrated cards', () => {
   it('open each part with the brief and goal while the story is heard, and the story and goal when it is not', () => {
-    for (const def of MAPS) {
+    for (const def of [...MAPS, NEKHEN]) {
       const p = openingPrompt(def);
       expect(p.kind).toBe('message');
       if (p.kind !== 'message') continue;
@@ -141,7 +142,7 @@ describe('narrated cards', () => {
       // Short: the card is read in a glance while the voice tells the rest.
       expect(def.brief.length, def.id).toBeLessThan(160);
     }
-    expect(MAPS.map((m) => m.story)).toEqual(['part-ashford', 'part-thornwood', 'part-blackBanner']);
+    expect(MAPS.map((m) => m.story)).toEqual(['part-ashford', 'part-thornwood', 'part-blackBanner', 'part-othrys']);
   });
 
   it('keep their line and brief through a save, and drop a line the game no longer has', () => {
@@ -185,7 +186,7 @@ describe('the lines to come', () => {
     expect(upcoming(held, 2)).toEqual(['kassander-flees', 'korax-taken']);
     const korax = townById(held, CHAPTER1.korax)!;
     const hunted = withTown(held, { ...korax, owner: 'player' });
-    expect(upcoming(hunted, 2)).toEqual(['kassander-beaten', 'chapter-won']);
+    expect(upcoming(hunted, 2)).toEqual(['kassander-beaten', 'blackBanner-won']);
   });
 });
 

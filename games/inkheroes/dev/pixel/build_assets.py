@@ -20,6 +20,30 @@ TERRAINS = ('grass', 'dirt', 'rough', 'sand', 'snow', 'swamp')
 OBSTACLES = ('rock', 'tree')
 
 
+def shrink(im: Image.Image, scale: float) -> Image.Image:
+    """Scales pixel art down by a non-whole factor without blur: a premultiplied box filter,
+    then the alpha cut back to 0 or 255 (so the figure keeps hard edges)."""
+    w, h = im.size
+    nw, nh = round(w * scale), round(h * scale)
+    px = im.load()
+    pre = Image.new('RGBA', im.size)
+    pp = pre.load()
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            pp[x, y] = (r * a // 255, g * a // 255, b * a // 255, a)
+    small = pre.resize((nw, nh), Image.BOX)
+    sp = small.load()
+    out = Image.new('RGBA', (nw, nh))
+    op = out.load()
+    for y in range(nh):
+        for x in range(nw):
+            r, g, b, a = sp[x, y]
+            if a >= 128:
+                op[x, y] = (min(255, r * 255 // a), min(255, g * 255 // a), min(255, b * 255 // a), 255)
+    return out
+
+
 def pad(spec: dict) -> Image.Image:
     im = Image.open(DEV / spec['src']).convert('RGBA')
     if spec.get('flip'):
@@ -32,6 +56,8 @@ def pad(spec: dict) -> Image.Image:
                 if list(px[x, y][:3]) == rgb:
                     px[x, y] = (0, 0, 0, 0)
     c = im.crop(im.getbbox())
+    if spec.get('scale'):  # a figure drawn too big for its place: the canvas in `canvas` is already the scaled one
+        c = shrink(c, spec['scale'])
     w, h = spec['canvas']
     if c.width > w or c.height > h - spec['foot']:
         raise SystemExit(f"{spec['src']}: {c.size} does not fit canvas {w}x{h}")
@@ -125,11 +151,21 @@ def unit_entry(uid: str, spec: dict, defaults: dict, imports: list[str]) -> str:
             done.append(pose)
         elif src.exists():
             strip = Image.open(src)
+            if spec.get('scale'):  # frames were generated on `animCanvas`; scale each down onto `canvas`
+                aw, ah = spec['animCanvas']
+                if strip.height != ah or strip.width % aw:
+                    raise SystemExit(f'{src}: {strip.size} is not a strip of {aw}x{ah} frames')
+                n = strip.width // aw
+                scaled = Image.new('RGBA', (w * n, h))
+                for i in range(n):
+                    scaled.paste(shrink(strip.convert('RGBA').crop((i * aw, 0, (i + 1) * aw, ah)), spec['scale']), (i * w, 0))
+                strip = scaled
             if strip.height != h or strip.width % w:
                 raise SystemExit(f'{src}: {strip.size} is not a strip of {w}x{h} frames')
             clean = clean_strip(strip.convert('RGBA'), w)
             if pose == 'walk' and spec.get('walkLock'):
-                clean, walk_margin = locked_strip(clean, w, spec['walkLock'])
+                lock = [round(v * spec['scale']) for v in spec['walkLock']] if spec.get('scale') else spec['walkLock']
+                clean, walk_margin = locked_strip(clean, w, lock)
             clean.save(dst)
             frames[pose] = strip.width // w
             done.append(pose)
@@ -141,7 +177,7 @@ def unit_entry(uid: str, spec: dict, defaults: dict, imports: list[str]) -> str:
     shot = spec.get('shot')
     lines = [
         f"  {uid}: {{",
-        f"    name: '{spec['name']}', w: {w}, h: {h}, footX: {foot_x(still)}, footY: {h - spec['foot']},",
+        f"    name: {json.dumps(spec['name'])}, w: {w}, h: {h}, footX: {foot_x(still)}, footY: {h - spec['foot']},",
         f"    frames: {{ idle: {frames['idle']}, walk: {frames['walk']}, attack: {frames['attack']} }}, strike: {strike},",
     ]
     if shot:

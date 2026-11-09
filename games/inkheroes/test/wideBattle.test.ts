@@ -4,7 +4,7 @@ import { act, canShoot, createBattle, moveHeadFor, moves, occupiableHexes, stack
 import { chooseAction } from '../src/logic/battleAi';
 import type { BattleState } from '../src/logic/battleTypes';
 import { CREATURE_IDS, lineOf, type CreatureId } from '../src/logic/creatures';
-import { facesTarget, isWide, occupiedHexes, shotDistance, tailOf } from '../src/logic/footprint';
+import { facesTarget, isWide, occupiedHexes, shotDistance, sizeOf, tailOf } from '../src/logic/footprint';
 import { COLS, colOf, hexAt, ROWS, rowOf, type Hex } from '../src/logic/hex';
 
 /** A battle of one stack a side, no obstacles, with the stacks put where the test says and `active` to move. */
@@ -22,8 +22,12 @@ function duel(a: CreatureId, d: CreatureId, at: Hex, dt: Hex, active: 0 | 1 = 0,
 const side = (s: BattleState, k: 0 | 1) => s.stacks.find((x) => x.side === k)!;
 
 describe('two-hex units: occupancy', () => {
-  it('flags the griffin, centaur, companion, wolf, boar and hydra as wide (with their upgrades), nobody else', () => {
-    expect([...new Set(CREATURE_IDS.filter(isWide).map(lineOf))].sort()).toEqual(['boar', 'griffin', 'hydra', 'lancer', 'monk', 'wolf']);
+  it('gives two hexes to the griffin, centaur, companion, wolf, boar, hydra, sphinx and Gigas (with their upgrades); three to the chariot, crocodile, petsuchos, lion, Serpent of Apep and Ammit; one to everyone else', () => {
+    const lines = (n: number): CreatureId[] => [...new Set(CREATURE_IDS.filter((id) => sizeOf(id) === n).map(lineOf))].sort();
+    expect(lines(2)).toEqual(['boar', 'gigas', 'griffin', 'hydra', 'lancer', 'monk', 'sphinx', 'wolf']);
+    expect(lines(3)).toEqual(['ammit', 'apep', 'chariot', 'crocodile', 'lion', 'petsuchos']);
+    // A line keeps its size through its upgrades.
+    for (const id of CREATURE_IDS) expect(sizeOf(id), id).toBe(sizeOf(lineOf(id)));
   });
 
   it('a wide unit covers its head and the hex behind it: left for the attacker, right for the defender', () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ASHFORD } from '../src/level/borderMarch';
 import { MAPS } from '../src/level/maps';
+import { ABU } from '../src/level/twoLands';
 import { planPath, startAdventure, terrainView } from '../src/logic/adventure';
 import { townCore, townFootprint } from '../src/logic/objects';
 import { parseAdventure } from '../src/logic/save';
@@ -21,6 +22,13 @@ describe('a town blocks the ground its picture stands on', () => {
 
   it('keeps the inner tiles in the wider footprint', () => {
     for (const t of townCore(6, 5)) expect(has(townFootprint(6, 5), t.x, t.y)).toBe(true);
+  });
+
+  it('abu: a road (the causeway) reaches Abu’s gate from the south, past its walls', () => {
+    const town = ABU.towns![0]!;
+    expect('=#b').toContain(ABU.rows[town.y + 1]![town.x]);
+    expect('=#b').toContain(ABU.rows[town.y]![town.x]);
+    for (const t of townFootprint(town.x, town.y)) expect('=#b', `Abu ${t.x},${t.y}`).not.toContain(ABU.rows[t.y]?.[t.x] ?? '.');
   });
 
   for (const def of MAPS) {

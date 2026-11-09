@@ -1,5 +1,6 @@
 // Dev helper: opens the game, runs a few steps in the page, screenshots.
-//   node dev/drive.mjs <out-prefix> [width] [height] <step>...  each step (JS run in the page, or move:x,y / click:x,y / drag:x1,y1,x2,y2) is followed by a shot
+//   [QUERY='&unlock'] node dev/drive.mjs <out-prefix> [width] [height] <step>...  (QUERY is added to the page's URL: &unlock plays as an owner, &locked as a player without the full game)
+//    each step (JS run in the page, or move:x,y / click:x,y / drag:x1,y1,x2,y2) is followed by a shot
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
@@ -15,7 +16,7 @@ try {
   const page = await browser.newPage({ viewport: { width: Number(width), height: Number(height) }, deviceScaleFactor: Number(process.env.DPR ?? 1) });
   page.on('pageerror', (e) => console.error('pageerror', e.message));
   page.on('console', (m) => { if (m.type() === 'error') console.error('console', m.text()); });
-  await page.goto(`${base}/index.html?reset`);
+  await page.goto(`${base}/index.html?reset${process.env.QUERY ?? ""}`);
   await page.waitForTimeout(4000);
   await page.screenshot({ path: `${out}-0.png` });
   let i = 1;

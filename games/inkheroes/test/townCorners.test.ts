@@ -21,7 +21,7 @@ describe('the city wall corners', () => {
   it('centres each tower on the point where its walls meet', () => {
     for (const [name, c] of Object.entries(corners)) {
       const p = all().find((q) => q.art === name)!;
-      const s = TOWN_ART[p.art];
+      const s = TOWN_ART[p.art as keyof typeof TOWN_ART];
       expect(Math.abs(p.x + CORNER_POINT[p.art as keyof typeof CORNER_POINT].x - c.x)).toBeLessThanOrEqual(1);
       expect(p.y + s.h).toBeGreaterThanOrEqual(c.y);
     }

@@ -8,6 +8,8 @@ interface RegistryReader {
 export const REG = {
   host: 'host',
   sound: 'sound',
+  /** Why the full game's maps failed to load for an owner (null: they didn't fail). */
+  fullError: 'fullError',
 } as const;
 
 export const getHost = (s: RegistryReader): GameHost => s.registry.get(REG.host) as GameHost;
@@ -28,3 +30,6 @@ export function trackOffer(s: RegistryReader, where: OfferPlace): void {
 
 /** The game's sound, if it was set up (not in tests or headless runs). */
 export const getSound = (s: RegistryReader): SoundBoard | undefined => s.registry.get(REG.sound) as SoundBoard | undefined;
+
+/** Why the full game's maps could not be fetched for an owner, if they couldn't. */
+export const getFullError = (s: RegistryReader): string | null => (s.registry.get(REG.fullError) as string | null | undefined) ?? null;

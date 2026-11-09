@@ -3,6 +3,7 @@ import { creature } from './creatures';
 import { roll } from './rng';
 import { shotOverWall } from './siege';
 import { skillValue } from './skills';
+import { lineBonusFor } from './specialty';
 
 /** Beyond this many hexes shots do half damage (H3: 10, on a bigger field). */
 export const RANGE_PENALTY_DISTANCE = 7;
@@ -19,11 +20,12 @@ const has = (s: Stack, kind: string): boolean => s.effects.some((e) => e.kind ==
 
 export function attackOf(state: BattleState, s: Stack, melee: boolean): number {
   const hero = state.heroes[s.side];
-  return creature(s.creature).attack + (hero?.attack ?? 0) + (melee && has(s, 'bloodlust') ? 3 : 0);
+  return creature(s.creature).attack + (hero?.attack ?? 0) + lineBonusFor(hero?.specialty, s.creature) + (melee && has(s, 'bloodlust') ? 3 : 0);
 }
 
 export function defenseOf(state: BattleState, s: Stack): number {
-  const base = creature(s.creature).defense + (state.heroes[s.side]?.defense ?? 0) + (has(s, 'stoneSkin') ? 3 : 0);
+  const hero = state.heroes[s.side];
+  const base = creature(s.creature).defense + (hero?.defense ?? 0) + lineBonusFor(hero?.specialty, s.creature) + (has(s, 'stoneSkin') ? 3 : 0);
   return s.defending ? base + Math.max(1, Math.floor(base * 0.2)) : base;
 }
 
@@ -54,9 +56,10 @@ export function damageFactor(state: BattleState, a: Stack, d: Stack, ctx: Strike
   let lower = 1;
   if (def > att) lower *= 1 - Math.min(0.7, 0.025 * (def - att));
   lower *= 1 - skillValue(state.heroes[d.side]?.skills ?? {}, 'armorer');
-  if (ctx.ranged && ctx.distance > RANGE_PENALTY_DISTANCE) lower *= 0.5;
+  if (ctx.ranged && ctx.distance > RANGE_PENALTY_DISTANCE && !creature(a.creature).noRangePenalty) lower *= 0.5;
+  if (ctx.ranged && creature(d.creature).shieldWall) lower *= 0.5;
   if (ctx.ranged && inCover(state, a, d)) lower *= 0.5;
-  if (!ctx.ranged && creature(a.creature).shots) lower *= 0.5;
+  if (!ctx.ranged && creature(a.creature).shots && !creature(a.creature).noMeleePenalty) lower *= 0.5;
   return raise * lower;
 }
 
@@ -65,12 +68,20 @@ export function damageRange(state: BattleState, a: Stack, d: Stack, ctx: StrikeC
   const c = creature(a.creature);
   const f = damageFactor(state, a, d, ctx);
   const lo = has(a, 'bless') ? c.maxDmg : c.minDmg;
-  return { min: Math.max(1, Math.floor(lo * a.count * f)), max: Math.max(1, Math.floor(c.maxDmg * a.count * f)) };
+  const hi = has(a, 'curse') ? c.minDmg : c.maxDmg;
+  return { min: Math.max(1, Math.floor(lo * a.count * f)), max: Math.max(1, Math.floor(hi * a.count * f)) };
+}
+
+/** One creature's damage roll: Wisdom of Athena makes it the most, a curse the least. */
+function oneRoll(a: Stack, value: number): number {
+  const c = creature(a.creature);
+  if (has(a, 'bless')) return c.maxDmg;
+  if (has(a, 'curse')) return c.minDmg;
+  return c.minDmg + Math.floor(value * (c.maxDmg - c.minDmg + 1));
 }
 
 /** Rolls a strike's damage (and luck) from the battle's seed. */
 export function rollDamage(state: BattleState, a: Stack, d: Stack, ctx: StrikeCtx, seed: number): { damage: number; lucky: boolean; seed: number } {
-  const c = creature(a.creature);
   const luckPts = Math.max(0, state.heroes[a.side]?.luck ?? 0);
   const l = roll(seed);
   const lucky = l.value < luckPts / 24;
@@ -81,7 +92,7 @@ export function rollDamage(state: BattleState, a: Stack, d: Stack, ctx: StrikeCt
   for (let i = 0; i < rolls; i++) {
     const r = roll(s);
     s = r.seed;
-    base += has(a, 'bless') ? c.maxDmg : c.minDmg + Math.floor(r.value * (c.maxDmg - c.minDmg + 1));
+    base += oneRoll(a, r.value);
   }
   base = (base / rolls) * a.count;
   return { damage: Math.max(1, Math.floor(base * damageFactor(state, a, d, ctx, lucky))), lucky, seed: s };
@@ -98,6 +109,14 @@ export function hurt(s: Stack, damage: number): { stack: Stack; kills: number } 
 
 /** Creatures a strike of `damage` would kill. */
 export const killsBy = (s: Stack, damage: number): number => hurt(s, damage).kills;
+
+/** A stack with `amount` HP of its fallen brought back (the Rite of Osiris): the top creature healed, then whole ones, never past the count it began with. */
+export function raise(s: Stack, amount: number): Stack {
+  const hp = creature(s.creature).hp;
+  const total = Math.min(s.startCount * hp, (s.count - 1) * hp + s.topHp + amount);
+  const count = Math.ceil(total / hp);
+  return { ...s, count, topHp: total - (count - 1) * hp };
+}
 
 /** A stack after healing `amount` on its top creature (never past full; nobody comes back). */
 export function heal(s: Stack, amount: number): Stack {

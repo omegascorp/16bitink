@@ -194,13 +194,14 @@ describe('fighting', () => {
     expect(step.state.heroes[0]!.mana).toBe(15);
   });
 
-  it('sorts spells into common magic and Olympian Favor, every divine power with its god', () => {
+  it('sorts spells into common magic and the divine powers, every divine power with its god', () => {
     for (const def of Object.values(SPELLS)) {
       expect(SCHOOLS.map((s) => s.id)).toContain(def.school);
-      if (def.school === 'olympian') expect(def.god).toBeDefined();
+      if (def.school !== 'common') expect(def.god).toBeDefined();
       else expect(def.god).toBeUndefined();
     }
     expect(schoolSpellIds('olympian')).toEqual(['bless', 'bloodlust', 'lightningBolt']);
+    expect(schoolSpellIds('rites')).toEqual(['curse', 'ward', 'rebirth']);
   });
 
   it('the AI fights a battle to the end, and the winner earns the dead enemies’ HP', () => {

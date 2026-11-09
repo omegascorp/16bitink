@@ -1,0 +1,19 @@
+import type { FlagSpot } from '../../scenes/town/townFlags';
+
+/** Banners on the pylon masts: each cloth's box in its sprite (found with dev/pixel/town/egypt/flags.py; `over`: only its blue cloth and outline fly). */
+export const KEMET_FLAGS: Readonly<Partial<Record<KemetArt, readonly FlagSpot[]>>> = {
+  'corner-front': [{ x: 60, y: 0, w: 16, h: 8, over: true }],
+  'corner-back': [{ x: 80, y: 2, w: 13, h: 9, over: true }],
+  'corner-left': [{ x: 30, y: 1, w: 10, h: 7, over: true }],
+  'corner-right': [{ x: 80, y: 0, w: 9, h: 8, over: true }],
+  'walls-citadel': [{ x: 124, y: 4, w: 14, h: 9, over: true }, { x: 39, y: 47, w: 15, h: 9, over: true }, { x: 211, y: 47, w: 15, h: 9, over: true }],
+  'walls-castle': [{ x: 126, y: 7, w: 13, h: 9, over: true }, { x: 40, y: 65, w: 13, h: 9, over: true }, { x: 194, y: 67, w: 13, h: 10, over: true }],
+  'hall-city': [{ x: 146, y: 4, w: 14, h: 10, over: true }, { x: 32, y: 29, w: 15, h: 10, over: true }],
+  'guardhouse': [{ x: 82, y: 7, w: 14, h: 10, over: true }],
+  'archeryRange': [{ x: 80, y: 3, w: 12, h: 11, over: true }],
+};
+
+/** Chimney flues: the workshop's, pixels from the sprite's top-left. */
+export const KEMET_CHIMNEYS: Readonly<Partial<Record<KemetArt, { readonly x: number; readonly y: number }>>> = {
+  blacksmith: { x: 45, y: 6 },
+};

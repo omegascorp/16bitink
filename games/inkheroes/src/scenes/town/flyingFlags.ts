@@ -1,7 +1,8 @@
 import type Phaser from 'phaser';
-import { TOWN_ART, type TownArt } from '../../art/pixel/town';
+import type { TownFaction } from '../../logic/creatures';
 import { putBuffer, texturePixels } from '../battle/pixelUi';
-import { cutFlags, FLAG_FRAME_MS, FLAG_FRAMES, flagAmp, FLAGS } from './townFlags';
+import { cutFlags, FLAG_FRAME_MS, FLAG_FRAMES, flagAmp, flagsOf } from './townFlags';
+import { spriteOf, townKit, type PieceId } from './townKit';
 import { TOWN_TEX } from './townTex';
 
 /** A sprite's flags as textures: its still sprite and each flag's frames, with where the frames go. */
@@ -11,10 +12,10 @@ interface FlagTextures {
 }
 
 /** The textures for `art`'s flags, cut once and kept (null: it flies none). */
-export function flagTextures(scene: Phaser.Scene, art: TownArt): FlagTextures | null {
-  const spots = FLAGS[art];
+export function flagTextures(scene: Phaser.Scene, art: PieceId, faction: TownFaction = 'crown'): FlagTextures | null {
+  const spots = flagsOf(art, faction);
   if (!spots) return null;
-  const base = TOWN_TEX.piece(art);
+  const base = TOWN_TEX.piece(art, faction);
   const still = `${base}-still`;
   const frameKey = (i: number, f: number): string => `${base}-flag-${i}-${f}`;
   if (!scene.textures.exists(still)) {
@@ -36,13 +37,13 @@ export class FlyingFlags {
   private readonly flags: { readonly img: Phaser.GameObjects.Image; readonly frames: readonly string[]; readonly phase: number }[] = [];
   private t = 0;
 
-  constructor(private readonly scene: Phaser.Scene) {}
+  constructor(private readonly scene: Phaser.Scene, private readonly faction: TownFaction = 'crown') {}
 
   /** For a sprite of `art` with its top-left at (x, y), mirrored with `flip`: the texture to draw it with, and its flags (add them just after it). */
-  fly(art: TownArt, x: number, y: number, flip = false): { key: string; flags: Phaser.GameObjects.Image[] } {
-    const tex = flagTextures(this.scene, art);
-    if (!tex) return { key: TOWN_TEX.piece(art), flags: [] };
-    const w = TOWN_ART[art].w;
+  fly(art: PieceId, x: number, y: number, flip = false): { key: string; flags: Phaser.GameObjects.Image[] } {
+    const tex = flagTextures(this.scene, art, this.faction);
+    if (!tex) return { key: TOWN_TEX.piece(art, this.faction), flags: [] };
+    const w = spriteOf(townKit(this.faction), art).w;
     const flags = tex.flags.map((f) => {
       const fx = flip ? x + w - f.x - f.w : x + f.x;
       const img = this.scene.add.image(fx, y + f.y, f.frames[0]!).setOrigin(0).setFlipX(flip);

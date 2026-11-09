@@ -11,7 +11,9 @@ export type SiteArt =
   | 'town'
   | `mine-${Resource}`
   | `pile-${Resource}`
-  | 'chest' | 'campfire' | 'mercCamp' | 'watchtower' | 'standingStone' | 'shrine' | 'windmill' | 'stables' | 'spellbook';
+  | 'chest' | 'campfire' | 'mercCamp' | 'watchtower' | 'standingStone' | 'shrine' | 'windmill' | 'stables' | 'spellbook'
+  | 'learningStone' | 'cyclopsCave' | 'griffinCliff' | 'titanForge' | 'keep'
+  | 'crocodileMarsh' | 'lionRocks' | 'benbenHouse' | 'mastaba';
 
 export const SITE_TILE = 48;
 /** The baked frame for each site, units: width, height, and where the origin sits from the top-left. */

@@ -340,6 +340,8 @@ export function drawBook(pageW: number, pageH: number): PixelBuffer {
 export const RIBBONS = {
   common: { light: [140, 160, 236, 255], mid: [60, 82, 176, 255], dark: [28, 38, 98, 255] },
   olympian: RIMS.gold,
+  // Sacred Rites: the Nile's turquoise.
+  rites: { light: [120, 222, 206, 255], mid: [32, 150, 140, 255], dark: [14, 72, 68, 255] },
   red: { light: [232, 104, 80, 255], mid: [168, 42, 32, 255], dark: [92, 20, 14, 255] },
 } as const satisfies Record<string, Rim>;
 

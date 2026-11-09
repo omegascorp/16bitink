@@ -12,9 +12,10 @@ import { ArmyDrag } from '../hud/armyDrag';
 import { ArmyRow } from '../hud/armyRow';
 import { armyRowW, armyRowOf } from '../hud/armySlots';
 import { PurseRow, PURSE_BAR_H, PURSE_ROW_W } from '../hud/purseRow';
+import type { RideHere } from '../../logic/rideHere';
 import { armiesW, armyH, BTN, buttonGrid, buttonsGridW, cellsW, GAP, HEAD_GAP, LINE, NARROW_ROUND, narrowButtonW, PAD, ROW_GAP, stripLayout, townButtons, type TownButton } from './stripLayout';
 
-export type TownScreen = 'hall' | 'fort' | 'guild' | 'smith' | 'tavern' | 'store';
+export type TownScreen = 'hall' | 'fort' | 'guild' | 'smith' | 'tavern' | 'store' | 'market';
 /** A slot of a row; `i` HEAD is the row's head (the crest or the hero's face): picking the hero there moves them with every company. */
 export type SlotRef = { readonly army: 'hero' | 'garrison' | 'tower'; readonly i: number };
 export const HEAD = -1;
@@ -49,6 +50,8 @@ export interface TownBarActions {
   dropSlot(from: SlotRef, to: SlotRef): void;
   /** Split the picked company. */
   split(): void;
+  /** "Ride here": the picked hero rides to this town. */
+  ride(): void;
 }
 
 const SPLIT = { w: 100, h: 30 } as const;
@@ -94,6 +97,8 @@ export class TownBar {
   private narrowW: number = BTN.w;
   /** What the buttons were last made for. */
   private buttonsKey = '';
+  /** The ride to this town for the picked hero when they are away (or why not), else null. */
+  private ride: RideHere | null = null;
   private armiesAt = { x: 0, y: 0 };
   /** Where the strip begins on screen. */
   top = 0;
@@ -135,6 +140,7 @@ export class TownBar {
       smith: { label: 'Smith', icon: 'smith', onClick: () => actions.open('smith') },
       tavern: { label: 'Tavern', icon: 'tavern', onClick: () => actions.open('tavern') },
       store: { label: 'Store', icon: 'store', onClick: () => actions.open('store') },
+      ride: { label: 'Ride here', icon: 'auto', onClick: () => actions.ride() },
       leave: { label: 'Leave', icon: 'leave', rim: 'gold', onClick: () => actions.leave() },
     };
     const grid = buttonGrid(names.length);
@@ -210,8 +216,9 @@ export class TownBar {
   }
 
   /** Lays the strip out for town `t` on a `w` × `h` screen, with the Tavern's button when it `hires`; where its top lands. */
-  layout(w: number, h: number, t: Town, hires = false): number {
-    const names = townButtons(t.built, hires);
+  layout(w: number, h: number, t: Town, hires = false, ride: RideHere | null = null): number {
+    this.ride = ride;
+    const names = townButtons(t.built, hires, !!ride);
     const { narrow, slot, townW } = stripLayout(w, h, PURSE_BAR_H, names.length);
     if (slot !== this.slot) this.makeFaces(slot);
     const buttonsH = narrow ? BTN.narrowH : slot;
@@ -219,6 +226,7 @@ export class TownBar {
     const key = `${names.join()}:${buttonsH}:${narrow}:${this.narrowW}`;
     if (key !== this.buttonsKey) this.makeButtons(names, buttonsH, narrow);
     this.buttonsKey = key;
+    this.buttons[names.indexOf('ride')]?.setEnabled(!!ride && 'path' in ride);
     this.narrow = narrow;
     const barH = narrow ? NARROW_ROUND + armyH(slot) : PAD + armyH(slot) + PAD;
     const purseTop = h - PURSE_BAR_H + 2;
@@ -329,7 +337,8 @@ export class TownBar {
     const headPicked = (row: SlotRef['army']): boolean => picked?.i === HEAD && picked.army === row;
     const army = picked?.army === 'garrison' ? t.garrison : picked?.army === 'tower' ? towersOf(t) : visitor?.army ?? [];
     const company = picked && picked.i !== HEAD ? army[picked.i] ?? null : null;
-    this.status.setText(company ? 'Tap a slot to move them' : t.builtToday ? 'Built today: more tomorrow' : 'One building a day');
+    const noRide = this.ride && 'why' in this.ride ? this.ride.why : '';
+    this.status.setText(company ? 'Tap a slot to move them' : noRide ? noRide : t.builtToday ? 'Built today: more tomorrow' : 'One building a day');
     this.splitBtn.root.setVisible(!!company && company.count > 1 && picked?.army !== 'tower');
     this.splitBtn.setEnabled(army.includes(null));
     f.garrison.set(t.garrison, picked?.army === 'garrison' ? picked.i : null);

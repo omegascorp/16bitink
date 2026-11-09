@@ -103,6 +103,21 @@ describe('the rival lord', () => {
     expect(fell.status).toBe('lost');
   });
 
+  it('a defence carries the battle hero\'s spent Ankhs and mana back, win or lose', () => {
+    const start = lastTown(startAdventure(def));
+    const town = townById(start, eudora)!;
+    const hero = { ...start.rival!.hero!, x: town.x + 2, y: town.y + 1, army: armyOf([{ creature: 'swordsman', count: 30 }]) };
+    const held = withTown({ ...start, hero: { ...start.hero, ankhs: 2, mana: 30, x: 2, y: 9 }, rival: { ...start.rival!, hero } }, { ...town, garrison: armyOf([{ creature: 'spearman', count: 10 }]) });
+    const r = rivalTurn(held, def);
+    for (const side of [0, 1] as const) {
+      const done = wonBy(r.adv, DEFEND + eudora, side);
+      const spent = { ...done, heroes: [done.heroes[0], { name: 'Eudora', attack: 0, defense: 0, power: 1, mana: 12, spells: [], skills: {}, morale: 0, luck: 0, ankhs: 1 }] as BattleState['heroes'] };
+      const after = afterBattle(r.adv, def, DEFEND + eudora, spent);
+      expect(after.hero.ankhs).toBe(1);
+      expect(after.hero.mana).toBe(12);
+    }
+  });
+
   it('attacks our hero when he is the stronger, and the player plays it (RIVAL)', () => {
     const start = startAdventure(def);
     const hero = { ...start.rival!.hero!, x: start.hero.x + 2, y: start.hero.y, army: armyOf([{ creature: 'swordsman', count: 40 }]) };
@@ -117,12 +132,12 @@ describe('the rival lord', () => {
     expect(won.prompts.some((p) => p.kind === 'message' && /Kassander/.test(p.title))).toBe(true);
   });
 
-  it('our hero stepping onto him starts the fight; at his town gate it is the town and him together', () => {
+  it('our hero stepping onto him starts the fight; his walls stormed straight (an old save) hold him with the garrison', () => {
     const start = startAdventure(def);
     const r = start.rival!.hero!;
     const field = { ...start, rival: { ...start.rival!, hero: { ...r, x: start.hero.x + 1, y: start.hero.y } } };
     expect(stepHero(field, def, { x: r.x === 0 ? 0 : start.hero.x + 1, y: start.hero.y, cost: 100, day: 0 } as never).battle).toBe(RIVAL);
-    // At his gate: the town's garrison joins him.
+    // His walls fought with him still at the gate (the gate fight comes first now: test/townAssault.test.ts): the garrison joins him.
     const sides = battleSides(start, korax);
     expect(sides.defender.hero?.name).toBe('Kassander');
     expect(armyStrength(sides.defender.army)).toBeGreaterThan(armyStrength(r.army));
@@ -255,10 +270,13 @@ describe('a siege on the map', () => {
     const town = townById(start, eudora)!;
     const towers = armyOf([{ creature: 'bowman', count: 9 }]);
     const foe = { ...start.rival!.hero!, x: town.x, y: town.y + 1 };
-    const adv = withTown({ ...start, hero: { ...start.hero, x: town.x, y: town.y, gear: { ...start.hero.gear, machine: 'catapult' as const } }, rival: { ...start.rival!, hero: foe } }, { ...town, towers });
+    // Our hero holds the walls from the garrison (one at the gate is fought first, in the open: test/townAssault.test.ts).
+    const hero = { ...start.hero, x: town.x, y: town.y, army: armyOf([]), gear: { ...start.hero.gear, machine: 'catapult' as const } };
+    const adv = withTown({ ...start, hero, rival: { ...start.rival!, hero: foe } }, { ...town, garrison: start.hero.army, towers });
     const s = battleSides(adv, RIVAL);
     expect(s.siege?.me).toBe(1);
     expect(s.attacker.hero?.name).toBe('Kassander');
+    expect(s.defender.hero?.name).toBe(start.hero.name);
     const st = createBattle(s.attacker, s.defender, s.seed, s.siege).state;
     // Our Catapult has nothing to do from inside; his comes.
     expect(st.stacks.some((x) => x.side === 1 && x.creature === 'catapult')).toBe(false);

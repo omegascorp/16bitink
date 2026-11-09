@@ -28,7 +28,7 @@ TS = GAME / 'src' / 'art' / 'pixel' / 'ui.ts'
 
 ICONS = ('wait', 'defend', 'spell', 'auto', 'endDay', 'town', 'menu', 'hall', 'recruit', 'leave', 'smith', 'tavern', 'store', 'tower', 'voicePause', 'voicePlay', 'voiceSkip', 'voiceRead')
 STATS = ('attack', 'defense', 'shots', 'damage', 'health', 'left', 'speed', 'mana', 'power', 'knowledge', 'morale', 'luck', 'sight')
-ITEMS = ('bronzeHelm', 'bronzeCuirass', 'bronzeBracers', 'warBelt', 'bronzeGreaves', 'warSandals', 'linenHood', 'linenChiton', 'linenArmbands', 'cordSash', 'linenLeggings', 'templeSandals', 'noviceSpellbook', 'oracleSpellbook', 'alexandrianCodex', 'catapult', 'catapult2', 'catapult3')
+ITEMS = ('bronzeHelm', 'bronzeCuirass', 'bronzeBracers', 'warBelt', 'bronzeGreaves', 'warSandals', 'linenHood', 'linenChiton', 'linenArmbands', 'cordSash', 'linenLeggings', 'templeSandals', 'noviceSpellbook', 'oracleSpellbook', 'alexandrianCodex', 'catapult', 'catapult2', 'catapult3', 'kronosHelm', 'crookAndFlail')
 BAGS = ('satchel', 'saddlebags', 'packMule')
 SLOT_ICONS = ('helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots', 'weapon', 'shield', 'amulet', 'ring', 'book', 'machine')
 RESOURCES = ('gold', 'wood', 'ore', 'mercury', 'sulfur', 'crystal', 'gems')
@@ -116,12 +116,12 @@ export const SKILL_ICONS: Readonly<Record<SkillId, string>> = {{
 {chr(10).join(skill_rows)}
 }};
 
-export const SPELL_ICONS: Readonly<Record<SpellId, string>> = {{
+export const SPELL_ICONS: Readonly<Partial<Record<SpellId, string>>> = {{
 {chr(10).join(spell_rows)}
 }};
 
 /** The guild's spell paintings (64 x 64). */
-export const SPELL_ART: Readonly<Record<SpellId, string>> = {{
+export const SPELL_ART: Readonly<Partial<Record<SpellId, string>>> = {{
 {chr(10).join(spell_art_rows)}
 }};
 
@@ -142,7 +142,7 @@ export const BAG_ART: Readonly<Record<BagArt, string>> = {{
 }};
 
 /** The gear's item icons (64 x 64). */
-export const ITEM_ICONS: Readonly<Record<ItemId, string>> = {{
+export const ITEM_ICONS: Readonly<Partial<Record<ItemId, string>>> = {{
 {chr(10).join(item_rows)}
 }};
 

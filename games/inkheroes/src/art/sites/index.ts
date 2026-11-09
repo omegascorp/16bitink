@@ -15,7 +15,22 @@ import type { SiteArt, SiteDrawer } from './types';
  */
 const ALL: SiteArt[] = ['town', ...RESOURCES.map((r) => `mine-${r}` as const), ...RESOURCES.map((r) => `pile-${r}` as const), 'chest', 'campfire', 'mercCamp', 'watchtower', 'standingStone', 'shrine', 'windmill', 'stables'];
 
-export const SITE_ART: Readonly<Record<SiteArt, SiteDrawer>> = { town: drawTown, ...MINES_A, ...MINES_B, ...PILES, ...PLACES_A, ...PLACES_B };
+const DRAWN = { town: drawTown, ...MINES_A, ...MINES_B, ...PILES, ...PLACES_A, ...PLACES_B };
+
+/** Part 4's sites have pixel sprites (src/art/pixel/map.ts); these ink drawings stand in for them where the pixel art is off. */
+export const SITE_ART: Readonly<Record<SiteArt, SiteDrawer>> = {
+  ...DRAWN,
+  learningStone: DRAWN.standingStone,
+  cyclopsCave: DRAWN['mine-ore'],
+  griffinCliff: DRAWN.watchtower,
+  titanForge: DRAWN['mine-gold'],
+  keep: DRAWN.shrine,
+  // Part 8's sites, likewise.
+  crocodileMarsh: DRAWN['mine-wood'],
+  lionRocks: DRAWN['mine-ore'],
+  benbenHouse: DRAWN.standingStone,
+  mastaba: DRAWN.shrine,
+};
 export const SITE_ARTS = ALL;
 
 export { drawFlag, drawResourceIcon };

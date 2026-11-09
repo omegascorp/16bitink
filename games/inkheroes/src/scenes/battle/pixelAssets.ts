@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { BATTLE_BG, HERO_ART, OBSTACLE_ART, UNIT_ART, type Pose, type StillArt, type UnitArt } from '../../art/pixel/manifest';
 import { SCENERY } from '../../art/pixel/scenery';
-import { isCreatureId, lineOf } from '../../logic/creatures';
+import { figureArt, type FigureArt } from './standIns';
 import type { BackdropSource } from './pixelBackdrop';
 import type { PixelBuffer, Rgba } from './pixelRaster';
 import { drawBadge } from './pixelRaster';
@@ -10,6 +10,7 @@ import { siegeArt } from './siegeView';
 import { loadUiArt, texturePixels } from './pixelUi';
 import { FACE, faceBox } from './pixelFaces';
 import type { Pixels } from './pixelScenery';
+import { heroArtId } from './heroArtId';
 
 /**
  * The pixel battle's textures: the manifest's PNG strips and backgrounds
@@ -32,11 +33,8 @@ export const PX_TEX = {
   rock: 'px-ob-fallback-rock',
 } as const;
 
-/** The art for a creature, or the first one as a stand-in (an id the manifest doesn't know yet). */
-/** A unit's battle art: its own, or (an upgrade not drawn yet) its line's base unit's. */
-export function unitArt(id: string): UnitArt {
-  return UNIT_ART[id] ?? (isCreatureId(id) ? UNIT_ART[lineOf(id)] : undefined) ?? Object.values(UNIT_ART)[0]!;
-}
+/** A unit's battle art: its own; a stand-in's, tinted (standIns.ts); or (an upgrade not drawn yet) its line's base unit's. Never missing. */
+export const unitArt = (id: string): FigureArt => figureArt(id);
 
 /** The square of an idle strip's first frame round the art's face point (see faceBox), `size` across. */
 export function faceOf(scene: Phaser.Scene, key: string, art: UnitArt, size: number = FACE): Pixels {
@@ -44,8 +42,10 @@ export function faceOf(scene: Phaser.Scene, key: string, art: UnitArt, size: num
 }
 
 /**
- * A hero's art: the rival lord's ('rival'), or a hero of the player's, by
- * their id when that hero has art of their own (`HERO_ART.ianthe`), else the
+ * A hero's art: the rival lord's (by his id when he has art of his own,
+ * `HERO_ART.sethi`, else 'rival', Kassander), or a hero of the player's, by
+ * their id when that hero has art of their own (`HERO_ART.ianthe`,
+ * `HERO_ART.nyktimos`), else their class's: a Cleric Ianthe's, a Knight the
  * player's first hero's ('player', Rowan). Anything missing falls back to it.
  */
 export function heroArt(who: 'player' | 'rival' = 'player', heroId?: string): { id: string; art: UnitArt } {
@@ -53,13 +53,7 @@ export function heroArt(who: 'player' | 'rival' = 'player', heroId?: string): { 
   return { id, art: HERO_ART[id]! };
 }
 
-/** Which of the drawn heroes (`drawn`, HERO_ART's keys) stands for `who`, or for player hero `heroId`. */
-export function heroArtId(drawn: readonly string[], who: 'player' | 'rival', heroId?: string): string {
-  const has = (k: string): boolean => drawn.includes(k);
-  if (who === 'player' && heroId && heroId !== 'rival' && has(heroId)) return heroId;
-  if (has(who)) return who;
-  return has('player') ? 'player' : drawn[0]!;
-}
+export { heroArtId };
 
 /** Every hero drawn, for the loaders: each one's poses come in with the rest. */
 export const HERO_IDS: readonly string[] = Object.keys(HERO_ART);

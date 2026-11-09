@@ -17,7 +17,17 @@ export type LineId =
   | 'kassander-flees'
   | 'korax-taken'
   | 'kassander-beaten'
-  | 'chapter-won';
+  | 'blackBanner-won'
+  | 'part-othrys'
+  | 'othrys-won'
+  | 'chapter-won'
+  | 'part-nekhen'
+  | 'part-abu'
+  | 'abu-won'
+  | 'part-redLand'
+  | 'redLand-won'
+  | 'part-delta'
+  | 'twoLands-won';
 
 export interface NarratedLine {
   /** Who's speaking, named on the strip. */
@@ -47,11 +57,32 @@ export const LINES: Readonly<Record<LineId, NarratedLine>> = {
   'kassander-flees': told('Kassander flees', "[scornful] Kassander turns his horse and runs! [wry] He's left his whole army on the field… [warning] but he'll hire another at home. Take his town, and he'll have nowhere left to run."),
   'korax-taken': told('Korax is yours', '[triumphant] Korax is yours! [eager] Kassander has no town left to run to… and your scouts are on his trail. Hunt him down!'),
   'kassander-beaten': told('Kassander is beaten', "[triumphant] Kassander falls! [solemn] The black banner is down… and it won't rise again."),
+  'blackBanner-won': told('The Black Banner falls', "[triumphant] The black banner is down, and Korax opens its gates to the Crown! [puzzled] But in Kassander's tent, Rowan's scouts find letters… sealed with a wolf's head. [ominous] Kassander served a master. [grim] Lykaon, the wolf-king of Arcadia, has woken the old faith of the Titans… [urgent] and he rides for Mount Othrys!"),
+  'part-othrys': told('Othrys', "[grand, storytelling] South of the Border March rises Mount Othrys, where the Titans sat before the gods were born… [awed] and on its summit their forge still burns! [ominous] Lykaon of Lykosoura wants it: whoever holds the forge has the Titans' oath. [warning] He is no Kassander. He scouts, he hires more heroes, he waits for his moment… and he builds toward the Titans' own spire. [wry] Three roads lead in, by the ford, the coast or the mountain pass: none of them is easy. [resolute] Take his towns, beat the wolf-king himself… and finish your city before he finishes his!"),
+  'othrys-won': told('The Titans’ oath', "[triumphant] Lykaon falls, and the wolf banners fall from Lykosoura's walls! [solemn] On Othrys the forge burns on… [awed] and the Titans' oath passes to Rowan, the Crown's champion. [warm] For the first time in an age, the old giants and the young gods stand on one side."),
   'chapter-won': told('The Border March is free', "[warm, proud] The Border March is free! [storytelling] From Ashford's bridge to the walls of Korax, the Crown's roads are open again… [hopeful] and Rowan's name is known in every town along them."),
+  'part-nekhen': told('Nekhen', "[grand, storytelling] Far to the south, where the Nile runs between two deserts, the flood is late this year. [ominous] The great sluice of the canal is shut… and the Petsuchos lies across it, the temple's own crocodile, gone wild, with its brood. [warm] Neferet, priestess of Isis, holds Nekhen on the west bank. Her rites can curse a foe, ward a friend… [hopeful] and, with an Ankh, raise the fallen! [resolute] Cross the river… and take the sluice back."),
+  'part-abu': told('Abu', "[triumphant] The sluice is open, and the flood comes at last! [storytelling] Up the river road, at the First Cataract, the Nile breaks white over black granite… [grim] and Sand Raiders hold Abu, the island fort at the kingdom's southern gate. [sly] Its walls are high… but Egypt's builders don't break walls. They raise ramps against them! [resolute] Buy an Earth Ramp at your Workshop, choose your stretch of wall… and march straight up it. [warm] And Paser, a chariot captain, waits at your Tavern."),
+  'abu-won': told('The southern gate', "[triumphant] Abu is ours again, and the raiders scatter into the desert! [joyful] Boats run down from the cataract once more, heavy with granite and gold… [warm] Neferet watches the sunset from the island's walls. [ominous] But out in the Red Land, a lord with no love for Isis has heard the news… and he is calling his chariots."),
+  'part-redLand': told('The Red Land', "[grand, storytelling] Beyond the river lies Deshret, the Red Land… Set's own desert, where nothing green grows. [ominous] There Sethi, a lord who serves Set, has raised his red banner over Nubt, the city of gold! [grim] He rides with our own chariots and our own ramps… and he means to rule both lands. [urgent] Halfway across the sand, the caravan town of Gebtu still holds out. Whoever beats its garrison first holds the gold roads! [wry] And mind the sky: every few days, Set sends a storm. [resolute] Take Nubt… and bring Sethi down!"),
+  'redLand-won': told('Set’s banner falls', "[triumphant] Sethi falls, and Set's red banner comes down over Nubt! [joyful] The south is one at last… [uneasy] but a boat comes up the river with bad news. [grim] In the north a foreign king holds the Delta: Apepi of Avaris, who took the name of the serpent of chaos! [urgent] And he rides for Iunu, the city of the sun."),
+  'part-delta': told('The Delta', "[grand, storytelling] North of the Red Land the Nile spreads into a thousand channels… the Delta, green and wide, all the way to the sea. [ominous] There Apepi, a king of the Hyksos, rules from Avaris. His people came over Sinai with horses and took Egypt's gods as their own! [awed] He rides for Iunu, where the Benben stone stands, the hill the Bennu first landed on. Whoever holds it has the Bennu's flight! [warning] He scouts, he hires captains, he waits for his moment… [wry] Three ways lead in, by the White Walls, the north wadi or the desert road behind Nubt: none of them is easy. [resolute] Take Avaris and Per-Bastet… and bring the serpent-king down!"),
+  'twoLands-won': told('The Two Lands are one', "[triumphant] Apepi falls, and the serpent banners fall from the walls of Avaris! [solemn] The Hyksos ride back over Sinai… [joyful] and from the cataract to the sea, the Two Lands are one! [awed] Over Iunu the Bennu wheels in the morning light. [warm] From Nekhen's sluice to the marshes of the Delta, the Nile runs free… [hopeful] and Neferet's name is sung on every boat that sails it."),
 };
 
 /** Chapter 1's places and people the lines name: a line is told only where its words are true. */
 export const CHAPTER1 = { eudora: 'eudora-town', korax: 'korax-town', kassander: 'kassander' } as const;
+/** Chapter 2's first rival lord, his city and the town both race for (chapter 2's part 3, the Red Land). */
+export const CHAPTER2 = { redLand: 'red-land', sethi: 'sethi', nubt: 'nubt-town', gebtu: 'gebtu-town' } as const;
+
+/**
+ * Set's sandstorms (the Red Land, `MapDef.stormEvery`): the day card's words the
+ * morning before a storm, and on its day. Read, not told: no recording.
+ */
+export const STORM_WORDS = {
+  rising: 'A storm is rising in the east! Tomorrow Set’s sand will cost double to cross… but the roads will hold.',
+  blowing: 'Set’s storm howls across the desert! Every step on sand costs double today. Keep to the roads!',
+} as const;
 
 export const LINE_IDS = Object.keys(LINES) as LineId[];
 

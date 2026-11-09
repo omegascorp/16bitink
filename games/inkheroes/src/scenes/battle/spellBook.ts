@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { getSound } from '../../host';
 import { SCHOOLS, SPELLS, type SpellId, type SpellSchool } from '../../logic/spells';
+import { bookTabs, costLine } from './spellBookData';
 import { bookSize, drawBook, drawRibbon, drawRule, FILLS, pageOrigin, RIBBONS } from './pixelFrames';
 import { PixelBuffer, type Rgba } from './pixelRaster';
 import { LINE_H } from './pixelFont';
@@ -9,6 +10,8 @@ import { PixelFrame, PixelImage, putBuffer, TextLabel, UI_TEX } from './pixelUi'
 /** What the spellbook shows: the hero's mana, the spells it knows, why one can't be cast now, and what picking one does. */
 export interface BookSpec {
   readonly mana: number;
+  /** Ankhs the hero carries, shown by the rites that spend them. */
+  readonly ankhs?: number;
   readonly spells: readonly SpellId[];
   readonly why: (id: SpellId) => string | null;
   readonly onPick: (id: SpellId) => void;
@@ -36,7 +39,7 @@ const INK_OFF: Rgba = [150, 128, 100, 255];
 /** A school's name on its page, in red ink. */
 const INK_RED: Rgba = [130, 34, 22, 255];
 /** Each tab's emblem: a spell of its school. */
-const TAB_ICON: Readonly<Record<SpellSchool, SpellId>> = { common: 'magicArrow', olympian: 'lightningBolt' };
+const TAB_ICON: Readonly<Record<SpellSchool, SpellId>> = { common: 'magicArrow', olympian: 'lightningBolt', rites: 'rebirth' };
 
 /**
  * The hero's spellbook, as Heroes 3's: an open book with a ribbon tab per
@@ -73,7 +76,7 @@ export class SpellBook {
     const shade = scene.add.rectangle(0, 0, screen.w, screen.h, 0x0a0604, 0.6).setOrigin(0).setInteractive();
     // The tabs go behind the book, so only their ends show past its edge.
     const tabParts: Phaser.GameObjects.GameObject[] = [];
-    SCHOOLS.forEach((sch, i) => {
+    bookTabs(spec.spells).forEach((sch, i) => {
       const key = this.own(drawRibbon(TAB.w + TAB.out, TAB.h, RIBBONS[sch.id], 'right'));
       const img = scene.add.image(bx + size.w - TAB.w, by + 18 + i * (TAB.h + TAB.gap), key).setOrigin(0).setInteractive();
       const icon = scene.add.image(img.x + TAB.w + 3, img.y + Math.floor((TAB.h - 24) / 2), UI_TEX.spell(TAB_ICON[sch.id])).setOrigin(0);
@@ -110,7 +113,9 @@ export class SpellBook {
 
   /** The line under the book with nothing hovered: the open school, and the book's note. */
   private idle(): string {
-    return `${SCHOOLS.find((s) => s.id === this.school)!.name} · ${this.spec.note}`;
+    // A school with a rite that spends Ankhs counts the hero's.
+    const ankhs = schoolSpells(this.spec.spells, this.school).some((id) => SPELLS[id].ankhs) ? ` · Ankhs: ${this.spec.ankhs ?? 0}` : '';
+    return `${SCHOOLS.find((s) => s.id === this.school)!.name}${ankhs} · ${this.spec.note}`;
   }
 
   private own(b: PixelBuffer): string {
@@ -125,7 +130,7 @@ export class SpellBook {
     this.armed = null;
     this.foot.setText(this.idle());
     const size = bookSize(this.pageW, PAGE_H);
-    SCHOOLS.forEach((sch) => {
+    bookTabs(this.spec.spells).forEach((sch) => {
       const tab = this.tabs.get(sch.id)!;
       const out = sch.id === school ? 4 : 0;
       tab.setX(this.origin.x + size.w - TAB.w + out).setAlpha(sch.id === school ? 1 : 0.7);
@@ -176,7 +181,7 @@ export class SpellBook {
     const icon = this.scene.add.image(cx - 12, y + 4, UI_TEX.spell(id)).setOrigin(0).setAlpha(why ? 0.45 : 1);
     const level = new TextLabel(this.scene, { ink: why ? INK_OFF : INK_SOFT, anchor: { x: 0, y: 0 } }).setText(LEVELS[def.level - 1] ?? `${def.level}`).setPosition(cx + 14, y + 4);
     const name = new TextLabel(this.scene, { ink: why ? INK_OFF : INK_DARK, wrap: cw - 4, anchor: { x: 0.5, y: 0 } }).setText(def.name).setPosition(cx, y + 30);
-    const cost = new TextLabel(this.scene, { ink: why ? INK_OFF : INK_SOFT, anchor: { x: 0.5, y: 0 } }).setText(`${def.mana} mana`).setPosition(cx, y + 30 + name.height);
+    const cost = new TextLabel(this.scene, { ink: why ? INK_OFF : INK_SOFT, wrap: cw - 4, align: 'center', anchor: { x: 0.5, y: 0 } }).setText(costLine(id, this.spec.ankhs ?? 0)).setPosition(cx, y + 30 + name.height);
     glow.on('pointerover', () => {
       glow.setFillStyle(0xfff4d6, 0.35);
       this.foot.setText(why ? `${def.name}: ${why}` : `${def.name}: ${def.says}`);

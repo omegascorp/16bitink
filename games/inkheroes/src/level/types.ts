@@ -1,5 +1,7 @@
+import type { Specialty } from '../logic/specialty';
 import type { ArmySlot } from '../logic/army';
 import type { BuildingId } from '../logic/buildings';
+import type { TownFaction } from '../logic/creatures';
 import type { HeroClass } from '../logic/hero';
 import type { Gear } from '../logic/items';
 import type { LineId } from '../narration/lines';
@@ -39,6 +41,8 @@ export interface MapDef {
     readonly guild: readonly SpellId[];
     /** Troops holding it on day one (none if left out). */
     readonly garrison?: readonly ArmySlot[];
+    /** Its people (none: the Greeks'). */
+    readonly faction?: TownFaction;
   };
   /** The map's other towns, neutral and held by a garrison until a hero beats it and takes them. */
   readonly towns?: readonly {
@@ -53,6 +57,12 @@ export interface MapDef {
     readonly owner?: 'rival' | 'player';
     /** Ridden on into from the part before, it waits for the hero as an ally instead, so a new town isn't simply handed over. */
     readonly waits?: boolean;
+    /** Its people (none: the Greeks'). */
+    readonly faction?: TownFaction;
+    /** Both sides race for it from the part's third night (the rival rides for it then): it is never handed over, its garrison must be beaten. */
+    readonly race?: boolean;
+    /** Its own picture on the map (a key of TOWN_LOOKS in src/art/pixel/map.ts), when it isn't drawn as its people's town: Nubt flies Set's red banners. */
+    readonly look?: string;
   }[];
   readonly hero: HeroDef;
   /** A rival lord: an AI hero who rides out from the map's rival-held towns. */
@@ -61,14 +71,29 @@ export interface MapDef {
     /** What the rival builds, in order, one a day while the purse allows. */
     readonly build: readonly BuildingId[];
     readonly purse: Amount;
+    /** The share of the days before the part that he had at home (src/logic/rival.ts HEAD_START, 0.75, when left out). */
+    readonly headStart?: number;
+    /** How he thinks: left out, the one-hero rival of rival.ts (picks the best thing in reach, with a head start); `lord`, a player's mind (src/logic/lord/), with no head start. */
+    readonly mind?: 'lord';
+    /** A lord: the most heroes he rides with, hired at his Taverns (3 when left out, src/logic/lord/turn.ts). */
+    readonly heroes?: number;
   };
   readonly purse: Amount;
   /** What the Crown sends when the chapter rides on into this part (a part played straight on from the one before keeps its purse). */
   readonly grant?: Amount;
   /** The way into this part from the last: the land along it is seen from the start, and the map flies along it once the part's card is read. */
-  readonly opening?: { readonly text: string; readonly way: readonly { readonly x: number; readonly y: number }[] };
+  readonly opening?: {
+    readonly text: string;
+    readonly way: readonly { readonly x: number; readonly y: number }[];
+    /** The way's points are ways in of their own (Othrys's three): the land shows round each, not along the lines between. */
+    readonly apart?: boolean;
+  };
   /** The heroes a Tavern of ours can hire on this map, in order (each one once; x and y are where they stand when hired). */
   readonly recruits?: readonly HeroDef[];
+  /** Set's sandstorms: every this many days of the part (its 4th, 8th…), sand costs double to cross for everyone, and the day card warns the morning before. */
+  readonly stormEvery?: number;
+  /** What the narrator tells as this part is won and the chapter rides on (on a chapter's last part, before the chapter's ending). */
+  readonly won?: LineId;
   /** Buildings switched off on this map. */
   readonly off: readonly BuildingId[];
   readonly seed: number;
@@ -90,6 +115,12 @@ export interface HeroDef {
   /** What they wear from the start: a `book` is what gives them magic. */
   readonly gear?: Gear;
   readonly army: readonly ArmySlot[];
+  /** Their people (none: the Greeks'). */
+  readonly faction?: TownFaction;
+  /** Ankhs they carry from the start. */
+  readonly ankhs?: number;
   /** A line about them, for the Tavern that hires them. */
   readonly blurb?: string;
+  /** What they do best (src/logic/specialty.ts); left out, the roster's for their id (src/logic/roster). */
+  readonly specialty?: Specialty;
 }

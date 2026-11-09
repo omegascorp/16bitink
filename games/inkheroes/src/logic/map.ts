@@ -17,6 +17,8 @@ export interface Grid {
 export const TILE_CHARS: Readonly<Record<string, readonly [Terrain, Cover]>> = {
   g: ['grass', 'none'], d: ['dirt', 'none'], r: ['rough', 'none'], s: ['sand', 'none'], n: ['snow', 'none'], w: ['swamp', 'none'], '~': ['water', 'none'],
   b: ['water', 'road'], T: ['grass', 'tree'], P: ['grass', 'pine'], M: ['rough', 'mountain'], R: ['grass', 'rock'], '=': ['dirt', 'road'], '#': ['grass', 'road'],
+  // The desert's dunes and boulders (chapter 2): mountain and rock cover on sand.
+  D: ['sand', 'mountain'], k: ['sand', 'rock'],
 };
 
 export function parseGrid(rows: readonly string[]): Grid {

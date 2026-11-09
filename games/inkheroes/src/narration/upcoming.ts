@@ -20,15 +20,21 @@ function bannerLines(adv: Adventure): LineId[] {
     ...(eudora?.ally && eudora.owner === 'neutral' ? ['eudora-joins', 'eudora-lost'] as const : []),
     ...(foe && korax?.owner === 'rival' ? ['kassander-flees', 'korax-taken'] as const : []),
     ...(foe ? ['kassander-beaten'] as const : []),
-    'chapter-won' as const,
+    'blackBanner-won' as const,
+    'part-othrys' as const,
   ];
 }
 
-/** What each part of chapter 1 can tell next, by the part in play. */
+/** What each part can tell next, by the part in play. */
 function storyLines(adv: Adventure): LineId[] {
   if (adv.mapId === 'ashford') return ['part-thornwood'];
   if (adv.mapId === 'thornwood') return ['part-blackBanner'];
   if (adv.mapId === 'blackBanner') return bannerLines(adv);
+  if (adv.mapId === 'othrys') return ['othrys-won', 'chapter-won'];
+  if (adv.mapId === 'nekhen') return ['part-abu'];
+  if (adv.mapId === 'abu') return ['abu-won', 'part-redLand'];
+  if (adv.mapId === 'red-land') return ['redLand-won', 'part-delta'];
+  if (adv.mapId === 'delta') return ['twoLands-won'];
   return [];
 }
 

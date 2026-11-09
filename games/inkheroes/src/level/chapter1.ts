@@ -1,5 +1,6 @@
 import type { MapDef } from './types';
 import { lockedOn } from './unlocks';
+import { ROWAN } from '../logic/roster/greek';
 
 /**
  * Chapter 1, map 1: Ashford. Rowan holds a small hill town on the Crown's
@@ -42,11 +43,8 @@ export const ASHFORD_LAND: MapDef = {
     'TTTTTTTTTTTTTTTTTTTTTTTTT~~TTTTT',
   ],
   town: { id: 'ashford-town', name: 'Ashford', x: 6, y: 5, built: ['villageHall', 'tavern', 'guardhouse'], guild: ['bless', 'stoneSkin', 'slow', 'haste', 'cure'] },
-  hero: {
-    id: 'rowan', name: 'Rowan', heroClass: 'knight', x: 6, y: 6,
-    attack: 2, defense: 2, power: 1, knowledge: 1, skills: { leadership: 1 }, spells: [],
-    army: [{ creature: 'spearman', count: 18 }, { creature: 'bowman', count: 7 }],
-  },
+  // Rowan as the roster has him (src/logic/roster/greek.ts): the chapter's first numbers.
+  hero: { ...ROWAN, x: 6, y: 6 },
   purse: { gold: 7500, wood: 15, ore: 15, mercury: 3, sulfur: 3, crystal: 3, gems: 3 },
   // What the campaign has opened by this map (src/level/unlocks.ts).
   off: lockedOn(1),

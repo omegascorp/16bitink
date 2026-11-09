@@ -1,7 +1,8 @@
 import type { StatName } from '../../art/pixel/ui';
 import type { BattleState, Stack } from '../../logic/battleTypes';
-import { BUILDINGS, type BuildingId } from '../../logic/buildings';
-import { creature, lineOf, lineUnits, tierOf, type CreatureId } from '../../logic/creatures';
+import type { BuildingId } from '../../logic/buildings';
+import { creature, lineOf, lineUnits, tierOf, type CreatureId, type TownFaction } from '../../logic/creatures';
+import { dwellingOf } from '../../logic/factions';
 import { describeAmount } from '../../logic/resources';
 import { attackOf, defenseOf, speedOf } from '../../logic/damage';
 import { SPELLS } from '../../logic/spells';
@@ -35,6 +36,7 @@ function traitsOf(id: CreatureId): string[] {
   const out: string[] = [];
   if (c.machine) out.push('War machine: never moves, acts by itself');
   if (c.flies) out.push('Flies');
+  if (c.ramp) out.push(`Raises a ramp against the stretch of wall chosen, ready on round ${c.ramp.ready}${c.ramp.second ? ` (a second, elsewhere, on round ${c.ramp.second})` : ''}; it can’t be hit`);
   if (c.machine === 'catapult') out.push(`Brings down walls, towers and gates, ${c.stones!.throws === 1 ? '1 stone' : `${c.stones!.throws} stones`} a round; it can’t be hit`);
   if (c.shots) out.push('Shoots');
   if (c.undead) out.push('Undead');
@@ -44,7 +46,14 @@ function traitsOf(id: CreatureId): string[] {
   if (c.swoop) out.push('Swoops back after striking');
   if (c.cleave) out.push('Strikes all around it');
   if (c.regen) out.push(`Regrows ${c.regen} health a round`);
-  if (c.petrify) out.push('May turn its target to stone');
+  if (c.petrify) out.push(`May turn its target to stone (${Math.round(c.petrify * 100)}%)`);
+  if (c.curse) out.push(`Curse: ${Math.round(c.curse * 100)}% to curse its target (its least damage)`);
+  if (c.poison) out.push(`Poison: ${Math.round(c.poison * 100)}% of its blow again, 3 turns`);
+  if (c.guardian) out.push('Answers every strike');
+  if (c.shieldWall) out.push('Shield wall: shots against it do half');
+  if (c.noRangePenalty) out.push('Shoots as hard at any range');
+  if (c.noMeleePenalty) out.push('Strikes as hard hand to hand');
+  if (c.rebirth) out.push(c.rebirth === 'all' ? 'Rises again once a battle, all of it' : 'Rises again once a battle, half of it');
   return out;
 }
 
@@ -67,6 +76,8 @@ export function unitInfo(state: BattleState, s: Stack): UnitInfo {
   ];
   const spells = s.effects.map((e) => {
     const spell = Object.values(SPELLS).find((d) => d.effect === e.kind);
+    if (e.kind === 'ward') return `${spell!.name}: ${e.left ?? 0} damage to soak`;
+    if (e.kind === 'poison') return `Poisoned: ${e.rounds} turn${e.rounds === 1 ? '' : 's'}`;
     return `${spell?.name ?? e.kind}: ${e.rounds} round${e.rounds === 1 ? '' : 's'}`;
   });
   return { name: s.count === 1 ? c.name : c.plural, creature: s.creature, count: s.count, side: s.side, rows, notes: [...traits(s), ...spells] };
@@ -164,9 +175,9 @@ export interface DwellingPreview {
   readonly cost: string;
 }
 
-/** The preview for a building that hires a unit; null for any other building. */
-export function dwellingPreview(id: BuildingId): DwellingPreview | null {
-  const to = BUILDINGS[id].dwelling;
+/** The preview for a building that hires a unit (in a town of people `faction`); null for any other building. */
+export function dwellingPreview(id: BuildingId, faction: TownFaction = 'crown'): DwellingPreview | null {
+  const to = dwellingOf(faction, id);
   if (!to) return null;
   const from = previousUnit(to);
   const growth = creature(lineOf(to)).growth;

@@ -1,4 +1,4 @@
-import type { CreatureId } from './creatures';
+import type { CreatureId, TownFaction } from './creatures';
 import { ROAD_COST, STABLES_MP, tilesOf } from './map';
 import type { Amount } from './resources';
 
@@ -7,6 +7,7 @@ export const BUILDING_IDS = [
   'guardhouse', 'archeryRange', 'griffinTower', 'barracks', 'monastery', 'stables', 'tiltyard', 'seraphSpire',
   'guardhouse2', 'guardhouse3', 'archeryRange2', 'archeryRange3', 'griffinTower2', 'griffinTower3', 'barracks2', 'barracks3',
   'monastery2', 'monastery3', 'tiltyard2', 'tiltyard3', 'seraphSpire2', 'seraphSpire3',
+  'templeOsiris',
 ] as const;
 export type BuildingId = (typeof BUILDING_IDS)[number];
 
@@ -15,8 +16,12 @@ export interface BuildingDef {
   readonly cost: Amount;
   readonly needs: readonly BuildingId[];
   readonly says: string;
-  /** The unit it hires (an upgraded dwelling hires its line's upgrade, from the line's one stock). */
+  /** The unit it hires (an upgraded dwelling hires its line's upgrade, from the line's one stock). Here the Greeks'; each faction hires its own (factions.ts). */
   readonly dwelling?: CreatureId;
+  /** Only this people builds it (none: every town can). */
+  readonly only?: TownFaction;
+  /** Ankhs it makes a week, for a hero of ours in the town. */
+  readonly ankhs?: number;
   /** Gold a day (halls replace each other's income: the best counts). */
   readonly income?: number;
   /** Extra weekly growth for every dwelling (fraction of base). */
@@ -27,7 +32,7 @@ export interface BuildingDef {
   readonly store?: number;
 }
 
-/** The Crown's buildings. Numbers in docs/inkheroes-design.md. */
+/** The Crown's buildings (every people's, under its own names: factions.ts). Numbers in docs/inkheroes-design.md. */
 export const BUILDINGS: Readonly<Record<BuildingId, BuildingDef>> = {
   villageHall: { name: 'Village Hall', cost: {}, needs: [], says: '500 gold a day', income: 500 },
   townHall: { name: 'Town Hall', cost: { gold: 2500 }, needs: ['villageHall', 'tavern'], says: '1000 gold a day', income: 1000 },
@@ -40,7 +45,7 @@ export const BUILDINGS: Readonly<Record<BuildingId, BuildingDef>> = {
   blacksmith: { name: 'Blacksmith', cost: { gold: 1000, wood: 5 }, needs: [], says: 'Sells war machines, which break town walls' },
   storehouse: { name: 'Storehouse', cost: { gold: 1000, wood: 5 }, needs: [], says: 'Keeps 8 pieces of gear for your heroes; sells Saddlebags', store: 8 },
   treasury: { name: 'Treasury', cost: { gold: 2500, wood: 5, ore: 5 }, needs: ['storehouse'], says: 'Keeps 20 pieces of gear; sells a Pack Mule', store: 20 },
-  marketplace: { name: 'Marketplace', cost: { gold: 500, wood: 5 }, needs: [], says: 'Trade resources' },
+  marketplace: { name: 'Marketplace', cost: { gold: 500, wood: 5 }, needs: [], says: 'Trades any resource for any other, at better rates for each Marketplace you hold' },
   mageGuild1: { name: 'Mage Guild', cost: { gold: 2000, wood: 5, ore: 5 }, needs: [], says: 'Teaches 3 level-1 spells; sells a spellbook' },
   mageGuild2: { name: 'Mage Guild, 2nd floor', cost: { gold: 1000, wood: 5, ore: 5, mercury: 4, sulfur: 4, crystal: 4, gems: 4 }, needs: ['mageGuild1'], says: 'Teaches 2 level-2 spells' },
   guardhouse: { name: 'Guardhouse', cost: { gold: 1000, ore: 5 }, needs: [], says: 'Hires Hoplites', dwelling: 'spearman' },
@@ -66,6 +71,8 @@ export const BUILDINGS: Readonly<Record<BuildingId, BuildingDef>> = {
   tiltyard3: { name: 'Cataphract Lists', cost: { gold: 6000, wood: 10, ore: 10, crystal: 5 }, needs: ['tiltyard2', 'castle'], says: 'Hires Cataphracts', dwelling: 'lancer3' },
   seraphSpire2: { name: 'Elder Spire', cost: { gold: 15000, mercury: 5, sulfur: 5, crystal: 5, gems: 5 }, needs: ['seraphSpire', 'mageGuild2'], says: 'Hires Elder Titans', dwelling: 'seraph2' },
   seraphSpire3: { name: 'Olympus Gate', cost: { gold: 25000, mercury: 10, sulfur: 10, crystal: 10, gems: 10 }, needs: ['seraphSpire2', 'castle'], says: 'Hires Titan Lords', dwelling: 'seraph3' },
+  // A people's own buildings.
+  templeOsiris: { name: 'Temple of Osiris', cost: { gold: 2000, wood: 5, ore: 5 }, needs: ['mageGuild1'], says: 'One Ankh a week for a hero in town: the Rite of Osiris needs one', only: 'kemet', ankhs: 1 },
 };
 
 export const isBuildingId = (v: unknown): v is BuildingId => typeof v === 'string' && (BUILDING_IDS as readonly string[]).includes(v);

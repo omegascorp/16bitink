@@ -2,31 +2,35 @@ import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
 import { getHost, getSound } from '../host';
 import { buyMachine, cantBuyMachine, enterTown, garrisonHero, heroTown, leadOut, ourHeroes, playerTowns, townById, withTown, type Adventure } from '../logic/adventure';
-import { cantHireHero, hireHero, selectHero, swapTownHeroes, townHeroes, withHero, type TownHeroes } from '../logic/heroes';
+import { cantHireHero, hireHero, selectHero, swapTownHeroes, tavernsHire, townHeroes, withHero, type TownHeroes } from '../logic/heroes';
 import { gainItem } from '../logic/items';
 import type { SpellId } from '../logic/spells';
 import type { Town } from '../logic/town';
+import { rideHere, type RideHere } from '../logic/rideHere';
 import { moveSlot, splitSlot, type Army } from '../logic/army';
-import { BUILDINGS, type BuildingId } from '../logic/buildings';
+import type { BuildingId } from '../logic/buildings';
 import { canManTower, creature, type CreatureId } from '../logic/creatures';
 import { itemDef, type SoldMachine } from '../logic/items';
 import { canAfford, describeAmount, pay } from '../logic/resources';
 import { lineOf } from '../logic/creatures';
 import { tilesOf } from '../logic/map';
-import { build, buildAll, cantBuild, growthOf, hire, hireable, hireAll, SPELLBOOK_COST, SPELLBOOK_SOLD, stockOf, suggestBuilding, towerPlaces, towersOf, upgradeAll, upgradeCost, upgradeSlot, upgradeTo } from '../logic/town';
+import { build, buildAll, cantBuild, growthOf, hire, hireable, hireAll, SPELLBOOK_COST, spellbookSold, stockOf, buildingIn, suggestBuilding, towerPlaces, towersOf, upgradeAll, upgradeCost, upgradeSlot, upgradeTo } from '../logic/town';
 import { withinMana, type Hero } from '../logic/hero';
 import { faceOf, heroArt, PX_TEX } from './battle/pixelAssets';
 import { drawPortrait, FILLS } from './battle/pixelFrames';
 import { PixelButton, PixelFrame, putBuffer, TextLabel, texturePixels, UI_TEX } from './battle/pixelUi';
 import { HERO_SLOT } from './hud/armySlots';
 import { armyUnitInfo, dwellingPreview } from './battle/unitCard';
+import { factionOf } from '../logic/factions';
 import { UnitInfoCard, type InfoButton } from './battle/unitInfoCard';
+import { canCompare } from './battle/unitCompare';
+import { UnitCompareView } from './battle/unitCompareView';
 import { openCard, type CardButton } from './CardScene';
 import type { MapScene } from './MapScene';
 import { pixelUiCamera } from './pixelScreen';
 import { SplitPicker } from './hud/splitPicker';
 import { TownList } from './hud/townList';
-import { MAP_TEX } from './map/pixelMapArt';
+import { MAP_TEX, townTexOf } from './map/pixelMapArt';
 import { Session } from './session';
 import { soldOn } from '../level/unlocks';
 import { SOUND_BTN, soundCard } from './soundCard';
@@ -38,6 +42,8 @@ import { fortScreen, hallScreen, platePicture, upgradableArmies, type ScreenActi
 import { STAGE } from './town/townStage';
 import { GuildRoom } from './town/guildRoom';
 import { SmithRoom } from './town/smithRoom';
+import { firstPick, MarketRoom, type MarketPick } from './town/marketRoom';
+import { marketTrade } from '../logic/market';
 import { TavernRoom } from './town/tavernRoom';
 import { StoreRoom } from './town/storeRoom';
 import { storeTap, type StoreRef } from './town/storeData';
@@ -66,13 +72,13 @@ const OPENS: Partial<Record<BuildingId, TownScreen>> = {
   guardhouse: 'fort', archeryRange: 'fort', griffinTower: 'fort', barracks: 'fort', monastery: 'fort', tiltyard: 'fort', seraphSpire: 'fort',
   guardhouse2: 'fort', archeryRange2: 'fort', griffinTower2: 'fort', barracks2: 'fort', monastery2: 'fort', tiltyard2: 'fort', seraphSpire2: 'fort',
   guardhouse3: 'fort', archeryRange3: 'fort', griffinTower3: 'fort', barracks3: 'fort', monastery3: 'fort', tiltyard3: 'fort', seraphSpire3: 'fort',
-  mageGuild1: 'guild', mageGuild2: 'guild', blacksmith: 'smith', tavern: 'tavern', storehouse: 'store', treasury: 'store',
+  mageGuild1: 'guild', mageGuild2: 'guild', blacksmith: 'smith', tavern: 'tavern', storehouse: 'store', treasury: 'store', marketplace: 'market',
 };
 
-/** What a building does, in words (a dwelling names the creature it hires by its name in this game). */
-function saysOf(id: BuildingId): string {
-  const d = BUILDINGS[id].dwelling;
-  return d ? `Hires ${creature(d).plural}` : BUILDINGS[id].says;
+/** What a building does, in words (a dwelling names the creature it hires, the town's people's own). */
+function saysOf(town: Town, id: BuildingId): string {
+  const def = buildingIn(town, id);
+  return def.dwelling ? `Hires ${creature(def.dwelling).plural}` : def.says;
 }
 
 /**
@@ -89,7 +95,9 @@ export class TownScene extends Phaser.Scene {
   private size = { w: 0, h: 0, k: 1 };
   private view: PixelTownView | null = null;
   private bar: TownBar | null = null;
-  private window: TownWindow | GuildRoom | SmithRoom | TavernRoom | StoreRoom | null = null;
+  private window: TownWindow | GuildRoom | SmithRoom | TavernRoom | StoreRoom | MarketRoom | null = null;
+  /** What the Marketplace has picked to trade (none: its first pick). */
+  private marketPick: MarketPick | null = null;
   /** The spell being read in the guild. */
   private guildPick: SpellId | null = null;
   /** The machine being looked at in the Blacksmith. */
@@ -105,7 +113,7 @@ export class TownScene extends Phaser.Scene {
   private screen: TownScreen | null = null;
   private picked: SlotRef | null = null;
   /** A company's info card, while it's open. */
-  private info: { card: UnitInfoCard; layer: Phaser.GameObjects.Container } | null = null;
+  private info: { card: { close(): void }; layer: Phaser.GameObjects.Container } | null = null;
   /** The company being split, while its picker is open. */
   private splitter: SplitPicker | null = null;
   /** Whether this visit has said how to see a company's card. */
@@ -167,10 +175,10 @@ export class TownScene extends Phaser.Scene {
       this.closeSplit();
       for (const t of this.toastParts) t.destroy();
     });
-    void loadTownArt(this).then(() => {
+    void loadTownArt(this, factionOf(this.town())).then(() => {
       if (!this.sys.isActive()) return;
       this.ready = true;
-      this.bar = new TownBar(this, { open: (s) => this.openScreen(s), leave: () => this.leave(), pickSlot: (r) => this.pickSlot(r), canCarry: (r) => this.canPick(r), dropSlot: (from, to) => this.moveCompany(from, to), split: () => this.openSplit() }, DEPTH.bar);
+      this.bar = new TownBar(this, { open: (s) => this.openScreen(s), leave: () => this.leave(), pickSlot: (r) => this.pickSlot(r), canCarry: (r) => this.canPick(r), dropSlot: (from, to) => this.moveCompany(from, to), split: () => this.openSplit(), ride: () => this.rideHere() }, DEPTH.bar);
       this.drawAll();
     });
   }
@@ -208,7 +216,7 @@ export class TownScene extends Phaser.Scene {
 
   /** Whether this map's Taverns have heroes to hire (map 1's don't, so it shows no Tavern button). */
   private hires(): boolean {
-    return (this.session.def.recruits ?? []).length > 0;
+    return tavernsHire(this.session.def, this.town());
   }
 
   /** Dragging the townscape sideways pans it when it's wider than the screen. */
@@ -243,7 +251,7 @@ export class TownScene extends Phaser.Scene {
 
   private drawAll(): void {
     if (!this.bar) return;
-    this.bar.layout(this.size.w, this.size.h, this.town(), this.hires());
+    this.bar.layout(this.size.w, this.size.h, this.town(), this.hires(), this.rideOffer());
     this.pickHeroHere();
     this.bar.refresh(this.session.adv, this.town(), this.picked, this.heroesHere());
     this.drawView();
@@ -282,7 +290,7 @@ export class TownScene extends Phaser.Scene {
     const { adv, def } = this.session;
     const towns = playerTowns(adv);
     this.towns ??= new TownList(this, TOWNS.w, {
-      textureOf: (t) => MAP_TEX.town(`${def.id}-${t.id}`),
+      textureOf: (t) => townTexOf(def, t),
       onOpen: (townId) => this.scene.restart({ townId }),
     });
     this.towns.set(towns.length > 1 ? towns : [], this.townId);
@@ -300,7 +308,7 @@ export class TownScene extends Phaser.Scene {
     // A screen open over the town has its own say (the hall leads with the same building).
     if (!id || this.screen) return;
     this.plate = new BuildPlate(this, {
-      town, id, purse: adv.purse, picture: platePicture(this, id), area: this.size, depth: DEPTH.plate,
+      town, id, purse: adv.purse, picture: platePicture(this, id, factionOf(town)), area: this.size, depth: DEPTH.plate,
       onBuild: () => {
         if (!this.dragged) this.tryBuild(id);
       },
@@ -314,7 +322,7 @@ export class TownScene extends Phaser.Scene {
     if (!this.bar) return;
     const drift = this.view?.drift;
     this.view?.destroy();
-    this.view = new PixelTownView(this, this.town().built, { w: this.size.w, h: this.bar.top + 2 }, { onPick: (id, built) => this.pickBuilding(id, built), fresh: this.fresh, drift });
+    this.view = new PixelTownView(this, this.town().built, { w: this.size.w, h: this.bar.top + 2 }, { faction: factionOf(this.town()), onPick: (id, built) => this.pickBuilding(id, built), fresh: this.fresh, drift, nameOf: (b) => buildingIn(this.town(), b).name });
     this.fresh = undefined;
     this.panX = this.clampPan(this.panX);
     this.placeView();
@@ -346,11 +354,16 @@ export class TownScene extends Phaser.Scene {
       return;
     }
     if (this.screen === 'tavern') {
-      this.window = new TavernRoom(this, adv, this.session.def, this.town(), room, { close: () => this.openScreen(null), hire: () => this.hireHero() }, depth);
+      this.window = new TavernRoom(this, adv, this.session.def, this.town(), room, { close: () => this.openScreen(null), hire: (id) => this.hireHero(id) }, depth);
       return;
     }
     if (this.screen === 'store') {
       this.window = new StoreRoom(this, adv, this.townId, this.storePick.ref, this.storePick.note, room, { close: () => this.openScreen(null), tap: (r) => this.tapStore(r), buyBag: (id) => this.buyBag(id) }, depth);
+      return;
+    }
+    if (this.screen === 'market') {
+      const pick = this.marketPick ?? firstPick(adv);
+      this.window = new MarketRoom(this, adv, this.town(), pick, room, { close: () => this.openScreen(null), pick: (p) => this.pickTrade(p), trade: (p) => this.makeTrade(p) }, depth);
       return;
     }
     if (this.screen === 'smith') {
@@ -389,6 +402,22 @@ export class TownScene extends Phaser.Scene {
     this.refresh();
   }
 
+  private pickTrade(p: MarketPick): void {
+    this.marketPick = p;
+    this.drawWindow();
+  }
+
+  /** A trade at the Marketplace: the purse changes, the pick stays for another. */
+  private makeTrade(p: MarketPick): void {
+    const next = marketTrade(this.session.adv, p.give, p.get, p.lots);
+    if (!next) {
+      this.toast('That trade can’t be made');
+      return;
+    }
+    this.marketPick = { ...p, lots: 1 };
+    this.changed(next, 'card', `+${next.purse[p.get] - this.session.adv.purse[p.get]} ${p.get}`);
+  }
+
   private pickWare(m: SoldMachine): void {
     if (m === this.smithPick) return;
     this.smithPick = m;
@@ -413,6 +442,21 @@ export class TownScene extends Phaser.Scene {
     this.drawWindow();
   }
 
+  /** The ride here for the picked hero while they are away from this (our) town, else null. */
+  private rideOffer(): RideHere | null {
+    const { adv, def } = this.session;
+    const town = this.town();
+    return town.owner === 'player' && heroTown(adv)?.id !== town.id && !this.heroesHere(adv).garrison ? rideHere(adv, def, town) : null;
+  }
+
+  /** "Ride here": the town closes and the hero rides to its gate. */
+  private rideHere(): void {
+    const ride = this.rideOffer();
+    if (!ride || !('path' in ride)) return;
+    this.scene.stop();
+    (this.scene.get('Map') as MapScene).rideTo(ride.path);
+  }
+
   private leave(): void {
     this.scene.stop();
     (this.scene.get('Map') as MapScene).back();
@@ -427,7 +471,7 @@ export class TownScene extends Phaser.Scene {
     }
     const opens = OPENS[id];
     if (opens && (opens !== 'tavern' || this.hires())) this.openScreen(opens);
-    else this.toast(`${BUILDINGS[id].name}: ${saysOf(id).toLowerCase()}`);
+    else this.toast(`${buildingIn(this.town(), id).name}: ${saysOf(this.town(), id).toLowerCase()}`);
   }
 
   private buyMachine(m: SoldMachine): void {
@@ -441,9 +485,9 @@ export class TownScene extends Phaser.Scene {
   }
 
   /** The Tavern's hero joins: paid for, in the town's gate, and picked, so the town now serves them. */
-  private hireHero(): void {
+  private hireHero(id?: string): void {
     const { adv, def } = this.session;
-    const next = hireHero(adv, def, this.townId);
+    const next = hireHero(adv, def, this.townId, id);
     if (!next) {
       this.toast(cantHireHero(adv, def, this.town(adv)) ?? 'No hero can be hired here');
       return;
@@ -459,19 +503,23 @@ export class TownScene extends Phaser.Scene {
   /** A building's card from the hall: what it does and costs, and Build when it can be built today. */
   private buildingCard(id: BuildingId): void {
     const adv = this.session.adv;
-    const def = BUILDINGS[id];
+    const def = buildingIn(this.town(), id);
     const why = cantBuild(this.town(), id, adv.purse, this.session.def.off);
     if (id === 'blacksmith' && why === 'Built') {
       this.openScreen('smith');
       return;
     }
+    if (id === 'marketplace' && why === 'Built') {
+      this.openScreen('market');
+      return;
+    }
     const cost = Object.keys(def.cost).length ? `Costs ${describeAmount(def.cost)}.` : 'Costs nothing.';
     const state = !why ? 'The masons are ready.' : why === 'Built' ? 'Built.' : why === 'Not enough resources' ? 'Not enough resources yet.' : why === 'Not on this map' ? 'It opens on a later map of the campaign.' : `${why}.`;
     const buttons: CardButton[] = why ? [{ label: 'Close', kind: 'plain', onClick: () => undefined }] : [{ label: 'Build', onClick: () => this.tryBuild(id) }, { label: 'Not now', kind: 'plain', onClick: () => undefined }];
-    const preview = dwellingPreview(id) ?? undefined;
+    const preview = dwellingPreview(id, factionOf(this.town())) ?? undefined;
     // With a picture of what it hires, the card needn't say "Hires ..." as well.
     const perk = def.travel ? { icon: 'speed' as const, text: `+${tilesOf(def.travel)} tiles` } : undefined;
-    openCard(this, { title: def.name, body: preview ? `${cost}\n${state}` : `${saysOf(id)}.\n${cost}\n${state}`, buttons, preview, perk });
+    openCard(this, { title: def.name, body: preview ? `${cost}\n${state}` : `${saysOf(this.town(), id)}.\n${cost}\n${state}`, buttons, preview, perk });
   }
 
   /** A dwelling's card from the fort: how many wait and what they cost, and the hire buttons. */
@@ -491,7 +539,7 @@ export class TownScene extends Phaser.Scene {
 
   private tryBuild(id: BuildingId): void {
     const adv = this.session.adv;
-    const def = BUILDINGS[id];
+    const def = buildingIn(this.town(), id);
     if (cantBuild(this.town(), id, adv.purse, this.session.def.off)) return;
     const r = build(this.town(), id, adv.purse, this.session.def.off);
     let next = withTown({ ...adv, purse: r.purse }, r.town);
@@ -502,7 +550,7 @@ export class TownScene extends Phaser.Scene {
     this.screen = null;
     this.fresh = id;
     this.drawAll();
-    this.toast(`${def.name} built: ${saysOf(id).toLowerCase()}`);
+    this.toast(`${def.name} built: ${saysOf(r.town, id).toLowerCase()}`);
   }
 
   /** The testing cheat: the whole town goes up, free. */
@@ -559,6 +607,7 @@ export class TownScene extends Phaser.Scene {
       const can = canAfford(adv.purse, cost);
       buttons.push({ label: `Upgrade to ${creature(to).plural}`, note: can ? describeAmount(cost) : `Needs ${describeAmount(cost)}`, enabled: can, onClick: () => this.upgrade(ref) });
     }
+    if (canCompare(s.creature)) buttons.push({ label: 'Compare', note: 'with its earlier levels', onClick: () => this.compareCard(ref, s.creature) });
     const layer = this.add.container(0, 0).setDepth(DEPTH.info);
     const scenery = { atlas: texturePixels(this, PX_TEX.scenery('grass')), art: townScenery(), seed: ref.i + 3 };
     const card = new UnitInfoCard(this, layer, armyUnitInfo(s.creature, s.count), scenery, this.size, () => {
@@ -566,6 +615,18 @@ export class TownScene extends Phaser.Scene {
       this.info = null;
     }, buttons);
     this.info = { card, layer };
+  }
+
+  /** The unit's levels side by side; closing it returns to the card. */
+  private compareCard(ref: SlotRef, id: CreatureId): void {
+    const layer = this.add.container(0, 0).setDepth(DEPTH.info);
+    const scenery = { atlas: texturePixels(this, PX_TEX.scenery('grass')), art: townScenery(), seed: ref.i + 3 };
+    const view = new UnitCompareView(this, layer, id, scenery, this.size, () => {
+      layer.destroy();
+      this.info = null;
+      this.unitCard(ref);
+    });
+    this.info = { card: view, layer };
   }
 
   /** Raises the company at `ref` to its line's best level built here, for the difference in price. */
@@ -603,7 +664,7 @@ export class TownScene extends Phaser.Scene {
       this.toast(`A spellbook costs ${SPELLBOOK_COST} gold`);
       return;
     }
-    this.session.set(enterTown({ ...adv, purse: pay(adv.purse, { gold: SPELLBOOK_COST }), hero: gainItem(adv.hero, SPELLBOOK_SOLD).hero }));
+    this.session.set(enterTown({ ...adv, purse: pay(adv.purse, { gold: SPELLBOOK_COST }), hero: gainItem(adv.hero, spellbookSold(this.town())).hero }));
     this.refresh();
   }
 

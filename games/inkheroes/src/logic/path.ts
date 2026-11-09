@@ -26,7 +26,12 @@ export interface Terrainview {
   readonly visit?: ReadonlySet<number>;
   /** Pathfinding skill: 0..0.75 off rough ground's extra cost. */
   readonly pathfinding: number;
+  /** A sandstorm blows today: sand costs double (roads are spared). */
+  readonly storm?: boolean;
 }
+
+/** What a storm does to sand's cost. */
+export const STORM_SAND = 2;
 
 const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]] as const;
 
@@ -36,7 +41,8 @@ export function stepCost(v: Terrainview, from: Tile, to: Tile): number {
   const a = tileIndex(g, from.x, from.y);
   const b = tileIndex(g, to.x, to.y);
   // Off a bridge onto open ground costs as plain ground.
-  let base = g.cover[a] === 'road' && g.cover[b] === 'road' ? ROAD_COST : g.terrain[a] === 'water' ? 100 : TERRAIN_COST[g.terrain[a]!];
+  const road = g.cover[a] === 'road' && g.cover[b] === 'road';
+  let base = road ? ROAD_COST : g.terrain[a] === 'water' ? 100 : TERRAIN_COST[g.terrain[a]!] * (v.storm && g.terrain[a] === 'sand' ? STORM_SAND : 1);
   if (base > 100) base = Math.round(100 + (base - 100) * (1 - v.pathfinding));
   return from.x !== to.x && from.y !== to.y ? Math.round(base * Math.SQRT2) : base;
 }

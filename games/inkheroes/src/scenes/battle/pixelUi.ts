@@ -47,19 +47,37 @@ export const INK = {
   good: [186, 226, 140, 255],
 } as const satisfies Record<string, Rgba>;
 
+/** Spells and pieces not drawn yet borrow a drawn one's icon (Egypt's art is still to come). */
+const SPELL_STAND_IN: Readonly<Partial<Record<SpellId, SpellId>>> = { curse: 'slow', ward: 'stoneSkin', rebirth: 'cure' };
+const ITEM_STAND_IN: Readonly<Partial<Record<ItemId, ItemId>>> = {
+  novicePapyrus: 'noviceSpellbook',
+  // The Faience set borrows the Linen set's pictures, piece for piece, until its own are drawn.
+  faienceDiadem: 'linenHood', faienceCollar: 'linenChiton', faienceBangles: 'linenArmbands', scarabGirdle: 'cordSash', faienceAnklets: 'linenLeggings', reedSandals: 'templeSandals',
+  // The Scale set borrows the Bronze set's, and the siege ramps the catapults' of the same grade.
+  scaleHelm: 'bronzeHelm', scaleCoat: 'bronzeCuirass', scaleBracers: 'bronzeBracers', captainsSash: 'warBelt', scaleGreaves: 'bronzeGreaves', chariotSandals: 'warSandals',
+  ramp: 'catapult', ramp2: 'catapult2', ramp3: 'catapult3',
+};
+
+/** Each id with its own picture, or its stand-in's. */
+function withStandIns<K extends string>(drawn: Readonly<Partial<Record<K, string>>>, standIn: Readonly<Partial<Record<K, K>>>): [K, string][] {
+  const own = Object.entries(drawn) as [K, string][];
+  const borrowed = (Object.entries(standIn) as [K, K][]).flatMap(([id, from]): [K, string][] => (drawn[id] || !drawn[from] ? [] : [[id, drawn[from]!]]));
+  return [...own, ...borrowed];
+}
+
 /** Queues the icons (call with the battle's other art). */
 export function loadUiArt(scene: Phaser.Scene): string[] {
   const all: [string, string][] = [
     ...(Object.entries(ICONS) as [IconName, string][]).map(([n, url]): [string, string] => [UI_TEX.icon(n), url]),
     ...(Object.entries(STAT_ICONS) as [StatName, string][]).map(([n, url]): [string, string] => [UI_TEX.stat(n), url]),
     ...(Object.entries(SKILL_ICONS) as [SkillId, string][]).map(([n, url]): [string, string] => [UI_TEX.skill(n), url]),
-    ...(Object.entries(SPELL_ICONS) as [SpellId, string][]).map(([n, url]): [string, string] => [UI_TEX.spell(n), url]),
-    ...(Object.entries(SPELL_ART) as [SpellId, string][]).map(([n, url]): [string, string] => [UI_TEX.spellArt(n), url]),
+    ...withStandIns(SPELL_ICONS, SPELL_STAND_IN).map(([n, url]): [string, string] => [UI_TEX.spell(n), url]),
+    ...withStandIns(SPELL_ART, SPELL_STAND_IN).map(([n, url]): [string, string] => [UI_TEX.spellArt(n), url]),
     [UI_TEX.guildRoom, GUILD_ROOM],
     [UI_TEX.smithRoom, SMITH_ROOM],
     [UI_TEX.storeRoom, STORE_ROOM],
     ...(Object.entries(BAG_ART) as [BagArt, string][]).map(([n, url]): [string, string] => [UI_TEX.bag(n), url]),
-    ...(Object.entries(ITEM_ICONS) as [ItemId, string][]).map(([n, url]): [string, string] => [UI_TEX.item(n), url]),
+    ...withStandIns(ITEM_ICONS, ITEM_STAND_IN).map(([n, url]): [string, string] => [UI_TEX.item(n), url]),
     ...(Object.entries(SLOT_ICONS) as [SlotIcon, string][]).map(([n, url]): [string, string] => [UI_TEX.slot(n), url]),
     ...(Object.entries(RESOURCE_ICONS) as [Resource, string][]).map(([n, url]): [string, string] => [UI_TEX.res(n), url]),
   ];

@@ -39,14 +39,21 @@ export class PixelFigure {
   private strike: (() => void) | null = null;
   private done: (() => void) | null = null;
 
-  constructor(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer, readonly art: UnitArt, private readonly key: (pose: Pose) => string, feet: { x: number; y: number }, left: boolean) {
+  constructor(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer, readonly art: UnitArt & { readonly tint?: number }, private readonly key: (pose: Pose) => string, feet: { x: number; y: number }, left: boolean) {
     this.feet = { x: Math.round(feet.x), y: Math.round(feet.y) };
     this.left = left;
     this.frame = Math.floor(Math.random() * art.frames.idle);
     this.clock = Math.random() * (1000 / IDLE_FPS);
     this.sprite = scene.add.sprite(0, 0, key('idle'), this.frame);
     layer.add(this.sprite);
+    this.restTint();
     this.show();
+  }
+
+  /** Back to its own colours after a flash: a stand-in keeps the tint that tells it apart. */
+  restTint(): void {
+    this.sprite.clearTint();
+    if (this.art.tint) this.sprite.setTint(this.art.tint);
   }
 
   get facingLeft(): boolean {

@@ -4,18 +4,22 @@ import { getSound } from '../../host';
 import { alive, isStone, playerSide, stackById } from '../../logic/battle';
 import type { BattleEvent, BattleState, Stack } from '../../logic/battleTypes';
 import { createRng } from '../../logic/rng';
+import { creature } from '../../logic/creatures';
 import { throughGate, type SiegePart } from '../../logic/siege';
 import { HEX_COUNT, type Hex } from '../../logic/hex';
 import { SPELLS } from '../../logic/spells';
-import { adjacent, facesTarget, footprintAt, isWide, occupiedHexes } from '../../logic/footprint';
+import { adjacent, facesTarget, footprintAt, occupiedHexes, sizeOf } from '../../logic/footprint';
 import type { BattleCameras } from './battleCameras';
 import { badgeTexture, backdropSource, bufferTexture, heroArt, obstacleArt, PX_TEX, unitArt } from './pixelAssets';
 import { FIGURE_DEPTH, PixelFigure } from './pixelFigure';
 import { Backdrop } from './pixelBackdrop';
 import { feetOn, feetPx, heroFeet, hexPx, TOWER_FEET, WORLD } from './pixelLayout';
 import { PixelBuffer, type Rgba } from './pixelRaster';
-import { INK } from './pixelUi';
+import { INK, texturePixels } from './pixelUi';
 import { partAt, SiegeView } from './siegeView';
+import { rampLook } from './rampView';
+import { bodyMiddle, onBodyMiddle } from './bodyAnchor';
+import type { FigureArt } from './standIns';
 
 /** How far above the part struck by hand its message floats, native pixels. */
 const STRIKE_FLOAT = 44;
@@ -50,7 +54,7 @@ const FLOAT_ABOVE = 0.6;
 /** A stack turned to stone, until its lost turn: a tint only multiplies, so a cold blue is what cancels the art's warm colours to grey. */
 const STONE_TINT = 0x7388b0;
 
-/** The hexes a stack stands on, head first: a two-hex unit is stood centred between its head and tail. */
+/** The hexes a stack stands on, head first: a bigger unit is stood centred on them (between two, on the middle of three). */
 function stackHexes(s: Stack): readonly Hex[] {
   return occupiedHexes(s);
 }
@@ -80,7 +84,7 @@ interface UnitSprite {
 
 /** Highlights to show for the active unit. */
 export interface Marks {
-  /** The active unit's hex (or both hexes of a two-hex stack). */
+  /** The active unit's hex (or every hex of a bigger stack). */
   readonly active: Hex | readonly Hex[] | null;
   readonly reach: readonly Hex[];
   readonly targets: readonly Hex[];
@@ -101,6 +105,8 @@ export interface ViewOpts {
   readonly feet?: boolean;
   /** The id of the player's hero in this fight (the one picked on the map), for their own art. */
   readonly heroId?: string;
+  /** The rival lord's id, for his own art when he has it (Sethi). */
+  readonly rivalId?: string;
 }
 
 /**
@@ -111,6 +117,8 @@ export interface ViewOpts {
  */
 export class BattleView {
   private readonly units = new Map<number, UnitSprite>();
+  /** Three-hex units' art, re-anchored on the body's middle, by creature. */
+  private readonly centred = new Map<string, FigureArt>();
   /** Done once the last melee striker is back from its lunge. */
   private recovered: Promise<void> = Promise.resolve();
   /** Each side's hero beside the field, if it has one. */
@@ -134,11 +142,11 @@ export class BattleView {
     this.addStill(scene.add.image(0, 0, GRID_KEY).setOrigin(0).setDepth(DEPTH.grid));
     this.placeObstacles(state.obstacles, seed);
     this.me = playerSide(state);
-    if (state.siege) this.walls = new SiegeView(scene, layer, state.siege);
+    if (state.siege) this.walls = new SiegeView(scene, layer, state.siege, rampLook(state));
     heroes.forEach((has, side) => {
       if (!has) return;
       // The other side's hero is always the rival lord (monsters and garrisons fight without one).
-      const hero = side === this.me ? heroArt('player', opts.heroId) : heroArt('rival');
+      const hero = side === this.me ? heroArt('player', opts.heroId) : heroArt('rival', opts.rivalId);
       const fig = new PixelFigure(scene, layer, hero.art, (pose) => PX_TEX.hero(hero.id, pose), heroFeet(side as 0 | 1, !!state.siege), side === 1);
       if (opts.pose) fig.hold(opts.pose);
       this.heroes[side] = fig;
@@ -174,8 +182,21 @@ export class BattleView {
     }
   }
 
+  /** A unit's art, its feet under the body's middle when it fills three hexes (measured once per kind from its idle strip). */
+  private figureArtFor(id: Stack['creature']): FigureArt {
+    const art = unitArt(id);
+    if (sizeOf(id) < 3) return art;
+    const known = this.centred.get(id);
+    if (known) return known;
+    const key = PX_TEX.unit(id, 'idle');
+    const middle = this.scene.textures.exists(key) ? bodyMiddle(texturePixels(this.scene, key), art.w, art.frames.idle) : null;
+    const out = onBodyMiddle(art, middle);
+    this.centred.set(id, out);
+    return out;
+  }
+
   private addUnit(s: Stack): void {
-    const art = unitArt(s.creature);
+    const art = this.figureArtFor(s.creature);
     const fig = new PixelFigure(this.scene, this.cams.world, art, (pose) => PX_TEX.unit(s.creature, pose), stackFeet(s), s.side === 1);
     if (this.opts.pose) fig.hold(this.opts.pose);
     if (s.tower !== undefined) fig.sortOn(hexPx(s.hex).y + TOWER_SORT);
@@ -192,10 +213,11 @@ export class BattleView {
       u.fig.setFeet(p.x, p.y);
       if (s.tower === undefined) u.fig.sortOn(null);
       // A side whose hero fled has left the field with them.
-      const here = alive(s) && state.fled !== s.side;
+      // A ramp's workers are drawn as the ramp itself, on the wall.
+      const here = alive(s) && state.fled !== s.side && !creature(s.creature).ramp;
       u.fig.sprite.setVisible(here).setAlpha(1);
       if (isStone(s)) u.fig.sprite.setTint(STONE_TINT);
-      else u.fig.sprite.clearTint();
+      else u.fig.restTint();
       this.setBadge(u, s.count, here);
     }
     if (state.fled !== undefined) this.heroes[state.fled]?.sprite.setVisible(false);
@@ -249,7 +271,7 @@ export class BattleView {
         const t = this.units.get(ev.target)!;
         await this.playStrike(a, t, ev.ranged, stackById(after, ev.stack), stackById(after, ev.target));
         this.hit(t.fig);
-        this.floatAt(t.fig, `−${ev.damage}${ev.kills ? `  ${ev.kills} fall` : ''}${ev.lucky ? '  Lucky!' : ''}`, ev.retaliation ? INK.retaliation : INK.damage);
+        this.floatAt(t.fig, `−${ev.damage}${ev.kills ? `  ${ev.kills} fall` : ''}${ev.lucky ? '  Lucky!' : ''}${ev.soaked ? `  Ward soaks ${ev.soaked}` : ''}`, ev.retaliation ? INK.retaliation : INK.damage);
         await this.wait(260);
         this.syncOne(after, ev.target);
         return;
@@ -279,6 +301,16 @@ export class BattleView {
         await this.wait(200);
         return;
       }
+      case 'ramp': {
+        // The workers' turn (or a round's start): the ramp appears or grows a stage.
+        this.walls?.rampDust(ev.part);
+        if (after.siege) this.walls?.show(after.siege);
+        const done = ev.stage >= ev.need;
+        const at = partAt(ev.part);
+        this.floater(at.x - 30, at.y - STRIKE_FLOAT, ev.stage === 0 ? 'The workers begin a ramp' : done ? 'The ramp is ready!' : 'The ramp grows…', done ? INK.title : INK.text);
+        await this.wait(done ? 420 : 260);
+        return;
+      }
       case 'bash': {
         const u = this.units.get(ev.stack)!;
         const struck = new Promise<void>((resolve) => void u.fig.attack(resolve));
@@ -301,7 +333,7 @@ export class BattleView {
       }
       case 'fall': {
         const u = this.units.get(ev.stack)!;
-        const to = feetOn(footprintAt(ev.to, isWide(stackById(after, ev.stack).creature), stackById(after, ev.stack).side) ?? [ev.to]);
+        const to = feetOn(footprintAt(ev.to, sizeOf(stackById(after, ev.stack).creature), stackById(after, ev.stack).side) ?? [ev.to]);
         u.badge.setVisible(false);
         u.fig.sortOn(null);
         await this.glide(u.fig, to, FALL_MS, 'Quad.easeIn');
@@ -324,6 +356,27 @@ export class BattleView {
       }
       case 'morale': {
         this.floatAt(this.units.get(ev.stack)!.fig, ev.good ? 'High morale! Again!' : 'Low morale: falters', ev.good ? INK.good : INK.damage, 10);
+        await this.wait(450);
+        return;
+      }
+      case 'afflict': {
+        this.floatAt(this.units.get(ev.stack)!.fig, ev.effect === 'curse' ? 'Cursed!' : 'Poisoned!', INK.damage, 10);
+        await this.wait(350);
+        return;
+      }
+      case 'poison': {
+        const u = this.units.get(ev.stack)!;
+        this.hit(u.fig);
+        this.floatAt(u.fig, `Poison: −${ev.damage}${ev.kills ? `  ${ev.kills} fall` : ''}`, INK.damage);
+        this.syncOne(after, ev.stack);
+        await this.wait(350);
+        return;
+      }
+      case 'rebirth': {
+        const u = this.units.get(ev.stack)!;
+        this.syncOne(after, ev.stack);
+        await this.flash(u.fig);
+        this.floatAt(u.fig, `Rises again! ${ev.count}`, INK.good, 10);
         await this.wait(450);
         return;
       }
@@ -362,8 +415,8 @@ export class BattleView {
     u.badge.setVisible(false);
     if (!flies && throughGate(path)) await this.walls?.openGate();
     u.fig.walk();
-    // The sprite follows the footprint: a two-hex unit's midpoint as its head steps along the path.
-    const feetAt = (head: Hex): { x: number; y: number } => feetOn(footprintAt(head, isWide(from.creature), from.side) ?? [head]);
+    // The sprite follows the footprint: a bigger unit's midpoint as its head steps along the path.
+    const feetAt = (head: Hex): { x: number; y: number } => feetOn(footprintAt(head, sizeOf(from.creature), from.side) ?? [head]);
     if (flies) {
       const to = feetAt(path[path.length - 1]!);
       if (to.x !== u.fig.feet.x) u.fig.face(to.x < u.fig.feet.x);
@@ -440,7 +493,7 @@ export class BattleView {
   /** A blow lands: a red flash and a two-pixel jolt. */
   private hit(fig: PixelFigure): void {
     fig.sprite.setTint(0xd0574e);
-    this.scene.time.delayedCall(90, () => fig.sprite.clearTint());
+    this.scene.time.delayedCall(90, () => fig.restTint());
     [2, -2, 2, 0].forEach((dx, i) => this.scene.time.delayedCall(40 * (i + 1), () => fig.offset(0, dx)));
   }
 
@@ -449,7 +502,7 @@ export class BattleView {
     for (let i = 0; i < 3; i++) {
       fig.sprite.setTint(0xfff3c0).setTintMode(Phaser.TintModes.FILL);
       await this.wait(70);
-      fig.sprite.clearTint();
+      fig.restTint();
       await this.wait(70);
     }
   }

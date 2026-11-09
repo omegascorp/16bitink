@@ -1,8 +1,11 @@
 import Phaser from 'phaser';
-import { MAP_COVER, MAP_GROUND, MAP_SITES, MAP_VIGNETTES, type MapCover, type MapSprite } from '../../art/pixel/map';
+import { KEMET_TOWN, MAP_COVER, MAP_GROUND, MAP_SITES, MAP_VIGNETTES, TOWN_LOOKS, type MapCover, type MapSprite } from '../../art/pixel/map';
 import { HERO_ART, UNIT_ART } from '../../art/pixel/manifest';
 import type { SiteArt } from '../../art/sites/types';
 import { CREATURE_IDS } from '../../logic/creatures';
+import { factionOf } from '../../logic/factions';
+import type { Town } from '../../logic/town';
+import type { MapDef } from '../../level/types';
 import type { MapObject } from '../../logic/objects';
 import { HERO_IDS, nearest, POSES, PX_TEX, unitArt } from '../battle/pixelAssets';
 import { loadUiFont } from '../battle/pixelFont';
@@ -24,21 +27,42 @@ export const MAP_TEX = {
   fog: (map: string) => `pxm-fog-${map}`,
   vignette: (id: string) => `pxm-vignette-${id}`,
   town: (map: string) => `pxm-town-${map}`,
+  kemetTown: 'pxm-town-kemet',
+  townLook: (look: string) => `pxm-town-look-${look}`,
 } as const;
 
-/** The art a map object is drawn with (monsters, towns and gear on the ground are drawn apart). */
-export function siteArtOf(o: MapObject): SiteArt | null {
-  if (o.kind === 'mine' || o.kind === 'pile') return `${o.kind}-${o.resource!}` as SiteArt;
+/** The texture a town is drawn with on the map (and shrunk for the town list): its own look, Egypt's town, or the city as built. */
+export function townTexOf(def: MapDef, t: Town): string {
+  const look = def.towns?.find((d) => d.id === t.id)?.look;
+  if (look && TOWN_LOOKS[look]) return MAP_TEX.townLook(look);
+  if (factionOf(t) === 'kemet') return MAP_TEX.kemetTown;
+  return MAP_TEX.town(`${def.id}-${t.id}`);
+}
+
+/** The new sites' sprite keys (Othrys's, then the Delta's), and what each borrows while its own isn't drawn. */
+const NEW_SITES: Readonly<Record<string, SiteArt>> = {
+  learningStone: 'standingStone', cyclopsCave: 'mine-ore', griffinCliff: 'watchtower', titanForge: 'shrine', keep: 'mercCamp',
+  // The Delta's, each borrowing the nearest of Othrys's: a marsh for a cave, rocks for a cave, the Benben's house for the forge, a tomb for the keep.
+  crocodileMarsh: 'cyclopsCave', lionRocks: 'cyclopsCave', benbenHouse: 'titanForge', mastaba: 'keep',
+};
+
+/** The art a map object is drawn with (monsters, towns and gear on the ground are drawn apart): a SiteArt, or a new site's key. */
+export function siteArtOf(o: MapObject): string | null {
+  if (o.kind === 'mine' || o.kind === 'pile') return `${o.kind}-${o.resource!}`;
   if (o.kind === 'monster' || o.kind === 'town' || o.kind === 'item') return null;
+  if (o.kind === 'dwelling') return o.look ?? 'cyclopsCave';
+  if (o.kind === 'bank') return o.look ?? 'keep';
   return o.kind;
 }
 
-/** A site's sprite: its own, or (a mine drawn later) the gold mine's. */
-export function siteSprite(art: SiteArt): { key: string; sprite: MapSprite } | null {
-  const own = MAP_SITES[art];
-  if (own) return { key: MAP_TEX.site(art), sprite: own };
+/** A site's sprite: its own, or (a mine drawn later) the gold mine's, or (a new site drawn later) the one it borrows. */
+export function siteSprite(art: string): { key: string; sprite: MapSprite } | null {
+  const sites = MAP_SITES as Readonly<Partial<Record<string, MapSprite>>>;
+  const own = sites[art];
+  if (own) return { key: MAP_TEX.site(art as SiteArt), sprite: own };
   if (art.startsWith('mine-') && MAP_SITES['mine-gold']) return { key: MAP_TEX.site('mine-gold'), sprite: MAP_SITES['mine-gold'] };
-  return null;
+  const borrow = NEW_SITES[art];
+  return borrow ? siteSprite(borrow) : null;
 }
 
 /** Loads the campaign menu's map pictures, every creature's idle strip and the hero's (for the muster), and the UI's art and font. */
@@ -58,6 +82,8 @@ export function loadMapArt(scene: Phaser.Scene, creatures: readonly string[], wo
     for (const [t, url] of Object.entries(MAP_GROUND)) if (url) image(MAP_TEX.ground(t), url);
     for (const [art, s] of Object.entries(MAP_SITES) as [SiteArt, MapSprite][]) image(MAP_TEX.site(art), s.url);
     for (const [kind, list] of Object.entries(MAP_COVER) as [MapCover, readonly MapSprite[]][]) list.forEach((s, i) => image(MAP_TEX.cover(kind, i), s.url));
+    image(MAP_TEX.kemetTown, KEMET_TOWN.url);
+    for (const [look, s] of Object.entries(TOWN_LOOKS)) image(MAP_TEX.townLook(look), s.url);
     // The town's own sprites: the map draws its town from the city the town screen shows.
     keys.push(...queueTownArt(scene));
   }

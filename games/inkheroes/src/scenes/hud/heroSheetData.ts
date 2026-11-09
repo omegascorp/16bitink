@@ -4,6 +4,7 @@ import { tilesOf } from '../../logic/map';
 import { gearBonus, hasSpellbook, withGear } from '../../logic/items';
 import { RANK_NAMES, skillValue, SKILLS, type SkillId } from '../../logic/skills';
 import { SPELLS, type SpellId } from '../../logic/spells';
+import { specialtyText, type Specialty } from '../../logic/specialty';
 import type { StatName } from '../../art/pixel/ui';
 
 /** A line of the sheet: its icon, label and value. */
@@ -28,7 +29,12 @@ export interface HeroSheet {
   readonly magic: boolean;
   /** Said in place of the spells when there are none to show. */
   readonly spellsNote: string | null;
+  /** Their specialty, in one line (null: none, a hero the roster doesn't know). */
+  readonly specialty: { readonly spec: Specialty; readonly text: string } | null;
 }
+
+/** A specialty's line, with the spells' names as the game says them. */
+export const specialtyLine = (spec: Specialty): string => specialtyText(spec, (s) => SPELLS[s].name);
 
 /** Morale and luck as the game says them: +2, 0, -1. */
 const signed = (n: number): string => (n > 0 ? `+${n}` : String(n));
@@ -72,5 +78,6 @@ export function heroSheet(h: Hero): HeroSheet {
     spells,
     magic,
     spellsNote: spells.length ? null : 'No spells learned yet',
+    specialty: h.specialty ? { spec: h.specialty, text: specialtyLine(h.specialty) } : null,
   };
 }

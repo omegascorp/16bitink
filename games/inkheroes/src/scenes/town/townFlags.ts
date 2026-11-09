@@ -1,5 +1,6 @@
-import type { TownArt } from '../../art/pixel/town';
+import type { TownFaction } from '../../logic/creatures';
 import type { Pixels } from '../battle/pixelScenery';
+import { townKit, type PieceId } from './townKit';
 
 /**
  * The town's flags, cut from their sprites so they can fly: each one's
@@ -17,7 +18,7 @@ export interface FlagSpot {
   readonly over?: boolean;
 }
 
-export const FLAGS: Partial<Record<TownArt, readonly FlagSpot[]>> = {
+export const FLAGS: Partial<Record<PieceId, readonly FlagSpot[]>> = {
   'walls-castle': [{ x: 119, y: 4, w: 14, h: 10 }, { x: 44, y: 85, w: 13, h: 9 }, { x: 194, y: 86, w: 13, h: 9 }, { x: 122, y: 124, w: 13, h: 9, over: true }],
   'walls-citadel': [{ x: 113, y: 4, w: 19, h: 14 }, { x: 40, y: 37, w: 18, h: 14 }, { x: 188, y: 37, w: 18, h: 14 }, { x: 113, y: 69, w: 19, h: 14, over: true }],
   'hall-capitol': [{ x: 112, y: 6, w: 11, h: 10 }],
@@ -27,6 +28,9 @@ export const FLAGS: Partial<Record<TownArt, readonly FlagSpot[]>> = {
   'corner-right': [{ x: 81, y: 0, w: 8, h: 8 }],
   tiltyard: [{ x: 100, y: 1, w: 19, h: 9 }],
 };
+
+/** The flags a people's sprite flies (none: it flies none). */
+export const flagsOf = (art: PieceId, faction: TownFaction = 'crown'): readonly FlagSpot[] | undefined => (faction === 'kemet' ? townKit(faction).flags?.[art] : FLAGS[art]);
 
 /** Frames in a flag's wave, and how long each shows (ms). */
 export const FLAG_FRAMES = 6;

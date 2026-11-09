@@ -1,11 +1,12 @@
 import { BAGS, ITEM_IDS, MAX_BAG, ITEMS, SLOTS, type Gear, type ItemId } from './items';
 import type { KeyValueStore } from '@16bitink/game-sdk';
 import type { HeroDef, MapDef } from '../level/types';
-import { DEFEND, gridOf, lyingItem, MAX_MONSTER, queueLevelUps, RIVAL, type Adventure, type Prompt, type RivalState } from './adventure';
+import { DEFEND, GATE, gridOf, lyingItem, MAX_MONSTER, pickHero, queueLevelUps, RIVAL, townAt, townById, townGuards, type Adventure, type Prompt, type RivalState } from './adventure';
 import { ARMY_SLOTS, type Army, type ArmySlot } from './army';
 import { BUILDINGS, isBuildingId, type BuildingId } from './buildings';
+import { buildingOf, buildsAt } from './factions';
 import { parseDayReport } from './dayReport';
-import { canManTower, isCreatureId, lineOf, type CreatureId } from './creatures';
+import { canManTower, isCreatureId, lineOf, type CreatureId, type TownFaction } from './creatures';
 import { dailyMp, levelFor, maxMana, PRIMARIES } from './hero';
 import { passable, STABLES_MP } from './map';
 import { CHEST_XP, townCore, type MapObject } from './objects';
@@ -13,11 +14,16 @@ import { storeRoom } from './storage';
 import { addTo, RESOURCES, type Purse } from './resources';
 import { isSkillId, MAX_SKILLS, SKILL_IDS, type Rank } from './skills';
 import { isSpellId, type SpellId } from './spells';
-import { SPELLBOOK_SOLD, type Town } from './town';
+import { dwellings, SPELLBOOK_SOLD, type Town } from './town';
 import { isLineId } from '../narration/lines';
+import type { LordMemory } from './lord/knowledge';
+import { lordRules } from './lord/turn';
+import { rosterHero, specialtyOf } from './roster';
 
 /** What the war machines since cut from the game cost, gold. */
 const OLD_MACHINES: Readonly<Record<string, number>> = { ballista: 1500, tent: 750 };
+/** Most Ankhs a hero or a town's temple may hold in a save. */
+const MAX_ANKHS = 999;
 /** Most cards a save may hold waiting. */
 const MAX_PROMPTS = 20;
 /** The most a hero can have left today beyond a day's movement (a town's Stables, and one on the road). */
@@ -39,6 +45,8 @@ export interface Progress {
 export const EMPTY_PROGRESS: Progress = { maps: {} };
 const PROGRESS_KEY = 'inkheroes.progress.v1';
 const ADVENTURE_KEY = 'inkheroes.adventure.v1';
+/** Where a chapter's game is saved: chapter 1's where it always was, each later chapter's in a slot of its own. */
+export const adventureKey = (slot?: string): string => (slot ? `inkheroes.adventure.${slot}.v1` : ADVENTURE_KEY);
 const MAX_MAPS = 200;
 
 /** Blots for a won map: winning, winning within par, and losing no stack. */
@@ -95,13 +103,14 @@ export interface AdventureSave {
   readonly partStart?: Adventure;
 }
 
-export function saveAdventure(store: KeyValueStore | undefined, save: AdventureSave | null): void {
-  writeJson(store, ADVENTURE_KEY, save);
+/** Saves the game in play (`slot`: its chapter's; none for chapter 1). */
+export function saveAdventure(store: KeyValueStore | undefined, save: AdventureSave | null, slot?: string): void {
+  writeJson(store, adventureKey(slot), save);
 }
 
 /** The saved map in play, if there is one and it's sound; `defs` finds its map. */
-export function loadAdventure(store: KeyValueStore | undefined, defs: (id: string) => MapDef | undefined): AdventureSave | null {
-  const raw = readJson(store, ADVENTURE_KEY);
+export function loadAdventure(store: KeyValueStore | undefined, defs: (id: string) => MapDef | undefined, slot?: string): AdventureSave | null {
+  const raw = readJson(store, adventureKey(slot));
   if (!isObj(raw)) return null;
   const id = isObj(raw.current) ? raw.current.mapId : null;
   const def = typeof id === 'string' ? defs(id) : undefined;
@@ -143,29 +152,66 @@ export function parseAdventure(raw: unknown, def: MapDef): Adventure | null {
   const kept = prompts.map((x) => parsePrompt(x, objs)).filter((x): x is Prompt => !!x).slice(0, MAX_PROMPTS);
   const rival = parseRival(raw.rival, def);
   if (def.rival && rival === undefined) return null;
-  // A fight the rival started waits only while he rides, against our hero or a town of ours.
-  const fight = typeof raw.rivalFight === 'string' && rival?.hero && (raw.rivalFight === RIVAL || ts.some((t) => DEFEND + t!.id === raw.rivalFight && t!.owner === 'player')) ? raw.rivalFight : undefined;
+  // A fight waits only while he rides: one he started against our hero or a town of ours, or the walls of his town after we won its gate.
+  const waits = (f: string): boolean => f === RIVAL || ts.some((t) => (DEFEND + t!.id === f && t!.owner === 'player') || GATE + t!.id === f || (t!.id === f && t!.owner === 'rival'));
+  const fight = typeof raw.rivalFight === 'string' && rival?.hero && waits(raw.rivalFight) ? raw.rivalFight : undefined;
   // Level-ups are never read from a save: they're dealt again from the hero's experience.
-  return queueLevelUps({
+  return upgradeFight(queueLevelUps({
     mapId: def.id, day, seed, purse: refundMachines(hero, p), hero: h, ...(others.length ? { others } : {}), towns: ts as Town[], objects: objs, explored, status, prompts: kept, lostStacks,
     ...(isInt(raw.begun, 2, day) ? { begun: raw.begun } : {}),
     ...(rival ? { rival } : {}), ...(fight ? { rivalFight: fight } : {}),
-  });
+  }));
+}
+
+/**
+ * A night fight saved before a town's gate was fought first: the rival
+ * storming a town of ours with a hero of ours at its gate (saved as the
+ * walls, or as that hero met "in the field") is that gate fight now.
+ */
+function upgradeFight(adv: Adventure): Adventure {
+  const f = adv.rivalFight;
+  if (!f || f.startsWith(GATE)) return adv;
+  const town = f.startsWith(DEFEND) ? townById(adv, f.slice(DEFEND.length)) : f === RIVAL ? townAt(adv, adv.hero.x, adv.hero.y) : undefined;
+  if (!town || town.owner !== 'player') return adv;
+  const { gate } = townGuards(adv, town);
+  return gate ? { ...pickHero(adv, gate.id), rivalFight: GATE + town.id } : adv;
 }
 
 /** Which of the map's heroes a saved hero of ours is (the map's own hero for a save from before there were several). */
 function playerHeroDef(raw: Record<string, unknown>, def: MapDef): HeroDef {
-  return (def.recruits ?? []).find((r) => r.id === raw.id) ?? def.hero;
+  return heroDefFor(raw, def, def.hero);
+}
+
+const HERO_ID = /^[A-Za-z0-9_-]{1,40}$/;
+const isClass = (v: unknown): v is HeroDef['heroClass'] => v === 'knight' || v === 'cleric';
+const isPeople = (v: unknown): v is TownFaction => v === 'crown' || v === 'kemet';
+
+/**
+ * Which hero a saved one is, by id: one the map names (its hero, recruits or
+ * rival), else the roster's (a Tavern's hire, ours or a lord's, among them
+ * the old LORD_RECRUITS ids), else one nobody knows any more, who still
+ * loads under their saved name and class. No id at all: `fallback`.
+ */
+function heroDefFor(raw: Record<string, unknown>, def: MapDef, fallback: HeroDef): HeroDef {
+  const id = raw.id;
+  if (typeof id !== 'string' || !HERO_ID.test(id)) return fallback;
+  const named = [def.hero, ...(def.recruits ?? []), ...(def.rival ? [def.rival.hero, ...(lordRules(def).recruits ?? [])] : [])];
+  const known = named.find((h) => h.id === id) ?? rosterHero(id);
+  if (known) return known;
+  const name = typeof raw.name === 'string' && raw.name.trim().length > 0 && raw.name.length <= 24 ? raw.name.trim() : id;
+  return {
+    id, name, heroClass: isClass(raw.heroClass) ? raw.heroClass : 'knight', x: 0, y: 0, attack: 0, defense: 0, power: 0, knowledge: 0, skills: {}, spells: [], army: [],
+    ...(isPeople(raw.faction) && raw.faction !== 'crown' ? { faction: raw.faction } : {}),
+  };
 }
 
 /** The player's other heroes in a save: each one of the map's, none twice, none on another's tile (null: unreadable). */
 function parseOthers(raw: unknown, def: MapDef, picked: Adventure['hero'] | null): Adventure['hero'][] | null {
   if (raw === undefined) return [];
   if (!Array.isArray(raw) || !raw.every(isObj)) return null;
-  const known = [def.hero, ...(def.recruits ?? [])];
   const out = raw.map((h) => {
-    const d = known.find((k) => k.id === (h as Record<string, unknown>).id);
-    return d ? parseHero(h as Record<string, unknown>, def, d) : null;
+    const r = h as Record<string, unknown>;
+    return typeof r.id === 'string' ? parseHero(r, def, heroDefFor(r, def, def.hero)) : null;
   });
   if (!out.every((h) => !!h)) return null;
   const all = [...(picked ? [picked] : []), ...(out as Adventure['hero'][])];
@@ -187,9 +233,49 @@ function parseRival(raw: unknown, def: MapDef): RivalState | null | undefined {
   if (!isObj(raw)) return undefined;
   const p = parsePurse(raw.purse);
   if (!p) return undefined;
-  if (raw.hero === null) return { hero: null, purse: p };
-  const hero = isObj(raw.hero) ? parseHero(raw.hero, def, def.rival.hero) : null;
-  return hero ? { hero, purse: p } : undefined;
+  // A lord's (src/logic/lord): his other heroes, his fog and his memory; a save from before them has none.
+  const lord = parseLord(raw, def);
+  if (!lord) return undefined;
+  if (raw.hero === null) return { hero: null, purse: p, ...lord };
+  const hero = isObj(raw.hero) ? parseHero(raw.hero, def, lordHeroDef(raw.hero, def)) : null;
+  return hero ? { hero, purse: p, ...lord } : undefined;
+}
+
+/** Which of the lord's heroes a saved one is: the map's rival, or one his Taverns hired. */
+const lordHeroDef = (raw: Record<string, unknown>, def: MapDef): HeroDef => heroDefFor(raw, def, def.rival!.hero);
+
+/** A lord's other heroes, fog and memory in a save (null: unreadable). */
+function parseLord(raw: Record<string, unknown>, def: MapDef): Pick<RivalState, 'others' | 'explored' | 'memory' | 'fallen' | 'homeless'> | null {
+  const g = gridOf(def);
+  const out: { others?: Adventure['hero'][]; explored?: string; memory?: LordMemory; fallen?: { hero: Adventure['hero']; day: number }[]; homeless?: number } = {};
+  if (raw.others !== undefined) {
+    if (!Array.isArray(raw.others) || !raw.others.every(isObj)) return null;
+    const others = raw.others.map((h) => parseHero(h as Record<string, unknown>, def, lordHeroDef(h as Record<string, unknown>, def)));
+    if (!others.every((h) => !!h) || others.length > 10) return null;
+    out.others = others as Adventure['hero'][];
+  }
+  if (raw.explored !== undefined) {
+    if (typeof raw.explored !== 'string' || raw.explored.length !== g.w * g.h || !/^[01]*$/.test(raw.explored)) return null;
+    out.explored = raw.explored;
+  }
+  if (isObj(raw.memory)) out.memory = parseMemory(raw.memory);
+  if (isInt(raw.homeless, 1)) out.homeless = raw.homeless;
+  if (raw.fallen !== undefined) {
+    if (!Array.isArray(raw.fallen) || raw.fallen.length > 10) return null;
+    const fallen = raw.fallen.map((f) => (isObj(f) && isObj(f.hero) && isInt(f.day, 1) ? { hero: parseHero(f.hero, def, lordHeroDef(f.hero, def)), day: f.day as number } : null));
+    if (!fallen.every((f) => f?.hero)) return null;
+    out.fallen = fallen as { hero: Adventure['hero']; day: number }[];
+  }
+  return out;
+}
+
+/** A lord's memory: what can't be read is forgotten, never fatal. */
+function parseMemory(raw: Record<string, unknown>): LordMemory {
+  const foes = isObj(raw.foes)
+    ? Object.fromEntries(Object.entries(raw.foes).filter(([, v]) => isObj(v) && ['x', 'y', 'day'].every((k) => isInt((v as Record<string, unknown>)[k], 0)) && typeof v.strength === 'number' && v.strength >= 0))
+    : {};
+  const goals = isObj(raw.goals) ? Object.fromEntries(Object.entries(raw.goals).filter(([, v]) => isObj(v) && isInt(v.x, 0) && isInt(v.y, 0))) : undefined;
+  return { foes: foes as LordMemory['foes'], savings: isInt(raw.savings, 0) ? raw.savings : 0, ...(typeof raw.main === 'string' ? { main: raw.main } : {}), ...(goals ? { goals: goals as LordMemory['goals'] } : {}) };
 }
 
 function parsePurse(raw: unknown): Purse | null {
@@ -224,13 +310,17 @@ function parseHero(raw: Record<string, unknown>, def: MapDef, h: HeroDef = def.h
   const army = parseArmy(raw.army);
   if (!army) return null;
   const skills = Object.fromEntries(SKILL_IDS.filter((k) => (raw.skills as Record<string, unknown>)[k]).map((k) => [k, (raw.skills as Record<string, Rank>)[k]]));
+  // Their people come from the map; Ankhs from the save (a save from before Egypt has none).
+  const ankhs = isInt(raw.ankhs, 1, MAX_ANKHS) ? raw.ankhs : 0;
   const hero = {
-    id: h.id, name: h.name, heroClass: h.heroClass, x: raw.x, y: raw.y,
+    id: h.id, name: h.name, heroClass: h.heroClass, x: raw.x, y: raw.y, ...(h.faction ? { faction: h.faction } : {}), ...(ankhs ? { ankhs } : {}),
     attack: raw.attack as number, defense: raw.defense as number, power: raw.power as number, knowledge: raw.knowledge as number,
     mana: raw.mana, xp: raw.xp, level: Math.min(raw.level, levelFor(raw.xp)), skills, spells: [...new Set(raw.spells)], army, mp: raw.mp, visited: raw.visited as string[],
     ...bookFromFlag(raw, parseGear(raw)),
   };
-  return { ...hero, mana: Math.min(hero.mana, maxMana(hero)), mp: Math.min(hero.mp, dailyMp(hero) + MP_BONUS) };
+  // The specialty is the roster's for their id, never the save's (an old save's heroes get theirs).
+  const specialty = specialtyOf(h);
+  return { ...hero, ...(specialty ? { specialty } : {}), mana: Math.min(hero.mana, maxMana(hero)), mp: Math.min(hero.mp, dailyMp(hero) + MP_BONUS) };
 }
 
 /** A hero saved when a spellbook was only a flag has the guild's book now. */
@@ -263,8 +353,8 @@ function parseGear(raw: Record<string, unknown>): { gear?: Gear; bag?: ItemId[];
   return { ...(Object.keys(gear).length ? { gear } : {}), ...(bag.length ? { bag } : {}), ...(pack ? { pack } : {}) };
 }
 
-/** A saved town on the map's town `t` (its place, name and guild come from the map). The first town is always the player's. */
-function parseTown(raw: Record<string, unknown>, t: { id: string; name: string; x: number; y: number; built: readonly BuildingId[]; guild: readonly SpellId[] }, first: boolean, def: MapDef): Town | null {
+/** A saved town on the map's town `t` (its place, name, guild and people come from the map: a town from before Egypt is Greek). The first town is always the player's. */
+function parseTown(raw: Record<string, unknown>, t: { id: string; name: string; x: number; y: number; built: readonly BuildingId[]; guild: readonly SpellId[]; faction?: TownFaction }, first: boolean, def: MapDef): Town | null {
   if (!Array.isArray(raw.built) || !raw.built.every(isBuildingId) || typeof raw.builtToday !== 'boolean' || !isObj(raw.stock)) return null;
   if (!Object.entries(raw.stock).every(([k, v]) => isCreatureId(k) && isInt(v, 0, 1e6))) return null;
   // Any town can change hands; a save from before owners were kept has the first town as the player's.
@@ -272,26 +362,28 @@ function parseTown(raw: Record<string, unknown>, t: { id: string; name: string; 
   if (!owner) return null;
   const garrison = parseArmy(raw.garrison);
   if (!garrison) return null;
-  const built = buildable(raw.built, t.built, def);
-  // Stock is kept by line (every level of a line hires from its base's).
-  const lines = new Set(built.map((b) => BUILDINGS[b].dwelling).filter((d): d is CreatureId => !!d).map(lineOf));
+  const people = t.faction ? { faction: t.faction } : {};
+  const built = buildable(raw.built, t.built, def, t.faction);
+  // Stock is kept by line (every level of a line hires from its base's), the town's people's own.
+  const lines = new Set(dwellings({ built, ...people }).map(lineOf));
   const stock = Object.fromEntries(Object.entries(raw.stock).filter(([k]) => lines.has(k as CreatureId))) as Partial<Record<CreatureId, number>>;
   // Older saves have no towers; a company that can't stand on one comes down with its place lost.
   const up = raw.towers === undefined ? null : parseArmy(raw.towers);
   const towers = up?.some((s) => s && canManTower(s.creature)) ? { towers: up.map((s) => (s && canManTower(s.creature) ? s : null)) } : {};
   // Gear in its store, no more than its store keeps.
   const store = Array.isArray(raw.store) ? raw.store.filter(isItemId).slice(0, storeRoom({ built })) : [];
-  return { id: t.id, name: t.name, owner, x: t.x, y: t.y, built, builtToday: raw.builtToday, stock, garrison, ...towers, guild: t.guild, ...(raw.ally === true && owner === 'neutral' ? { ally: true } : {}), ...(store.length ? { store } : {}) };
+  const ankhs = isInt(raw.ankhs, 1, MAX_ANKHS) ? { ankhs: raw.ankhs } : {};
+  return { id: t.id, name: t.name, owner, x: t.x, y: t.y, built, builtToday: raw.builtToday, stock, garrison, ...towers, guild: t.guild, ...people, ...ankhs, ...(raw.ally === true && owner === 'neutral' ? { ally: true } : {}), ...(store.length ? { store } : {}) };
 }
 
-/** The saved buildings the map allows and whose needs are met (the town's starting ones always). */
-export function buildable(raw: readonly BuildingId[], start: readonly BuildingId[], def: MapDef): BuildingId[] {
+/** The saved buildings the map allows, the town's people build, and whose needs are met (the town's starting ones always). */
+export function buildable(raw: readonly BuildingId[], start: readonly BuildingId[], def: MapDef, faction: TownFaction = 'crown'): BuildingId[] {
   let kept = new Set<BuildingId>(start);
-  const wanted = new Set(raw.filter((b) => !def.off.includes(b)));
+  const wanted = new Set(raw.filter((b) => !def.off.includes(b) && buildsAt(faction, b)));
   for (let grew = true; grew;) {
     grew = false;
     for (const b of wanted) {
-      if (!kept.has(b) && BUILDINGS[b].needs.every((n) => kept.has(n))) {
+      if (!kept.has(b) && buildingOf(faction, b).needs.every((n) => kept.has(n))) {
         kept = new Set([...kept, b]);
         grew = true;
       }
@@ -317,13 +409,24 @@ function parseObjects(raw: readonly unknown[], def: MapDef): MapObject[] | null 
       out.push(lyingItem(base, s.item));
       continue;
     }
-    const ownable = base.kind === 'mine' || base.kind === 'town';
+    const ownable = base.kind === 'mine' || base.kind === 'town' || base.kind === 'dwelling';
     const owner = ownable && (s.owner === 'player' || s.owner === 'neutral' || s.owner === 'rival') ? s.owner : base.owner;
     const count = base.kind === 'monster' && isInt(s.count, 1, MAX_MONSTER) ? s.count : base.count;
     const week = (base.kind === 'windmill' || base.kind === 'stables') && isInt(s.week, 1) ? s.week : undefined;
-    out.push({ ...base, ...(owner ? { owner } : {}), ...(count !== undefined ? { count } : {}), ...(week !== undefined ? { week } : {}), ...(s.gone === true ? { gone: true } : {}) });
+    out.push({ ...base, ...(owner ? { owner } : {}), ...(count !== undefined ? { count } : {}), ...(week !== undefined ? { week } : {}), ...siteState(base, s), ...(s.gone === true ? { gone: true } : {}) });
   }
   return out;
+}
+
+/** What play changed at Othrys's new sites: a dwelling's stock, who read a learning stone, a keep emptied. */
+function siteState(base: MapObject, s: Record<string, unknown>): Partial<MapObject> {
+  if (base.kind === 'dwelling') return isInt(s.stock, 0, MAX_MONSTER) ? { stock: s.stock } : {};
+  if (base.kind === 'learningStone') {
+    const by = Array.isArray(s.visitedBy) ? s.visitedBy.filter((h): h is string => typeof h === 'string').slice(0, 20) : [];
+    return by.length ? { visitedBy: [...new Set(by)] } : {};
+  }
+  if (base.kind === 'bank') return { ...(s.looted === true ? { looted: true } : {}), ...(isObj(s.prize) && Object.keys(s.prize).length === 0 ? { prize: {} } : {}) };
+  return {};
 }
 
 /** A saved card: messages as text; a chest only for a real, unopened chest, with what that chest holds. */
@@ -340,6 +443,11 @@ function parsePrompt(raw: unknown, objects: readonly MapObject[]): Prompt | null
     if (!chest) return null;
     const gold = chest.gold ?? 1000;
     return { kind: 'chest', id: chest.id, gold, xp: CHEST_XP[gold] ?? Math.floor(gold / 2) };
+  }
+  if (raw.kind === 'dwelling' && typeof raw.id === 'string') {
+    const home = objects.find((o) => o.id === raw.id && o.kind === 'dwelling' && !o.gone);
+    if (!home) return null;
+    return { kind: 'dwelling', id: home.id, ...(typeof raw.text === 'string' ? { text: raw.text.slice(0, 500) } : {}) };
   }
   return null;
 }

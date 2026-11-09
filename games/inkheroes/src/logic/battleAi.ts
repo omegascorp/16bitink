@@ -1,10 +1,11 @@
-import { activeStack, alive, answers, canShoot, handOptions, isStone, moves, strikeFrom, struckBy, targetable } from './battle';
+import { activeStack, alive, answers, canShoot, handOptions, isStone, moves, rampsToPlace, strikeFrom, struckBy, targetable } from './battle';
 import type { Action, BattleState, Side, Stack } from './battleTypes';
+import { bestCast, lastToAct } from './battleCasts';
 import { creature, strengthOf } from './creatures';
 import { damageRange, killsBy } from './damage';
 import { distance, HEX_COUNT, neighbours, type Hex } from './hex';
 import { occupiedHexes, shotDistance } from './footprint';
-import { aimFor, insideWalls, moatFor, PART_HEX, standing, TOWERS, wallsAgainst, type SiegePart } from './siege';
+import { aimFor, insideWalls, moatFor, PART_HEX, rampDone, rampFoot, rampStretch, standing, TOWERS, wallsAgainst, type SiegePart, type TowerPart } from './siege';
 
 /** A lord who can leave the field does once his army is cut down this far and the enemy's is this much stronger. */
 const FLEE = { kept: 0.6, odds: 2 } as const;
@@ -32,31 +33,53 @@ function worth(target: Stack, damage: number): number {
   return Math.min(total, damage) * (1 + c.level * 0.15);
 }
 
-/** The trade one blow on `e` makes: damage dealt, less what's answered, plus what a chance of stone would spare. */
+/** The trade one blow on `e` makes: damage dealt, less what's answered, plus what a chance of stone, a curse or poison would spare or take. */
 function tradeOn(state: BattleState, me: Stack, e: Stack, moved: number): number {
+  const c = creature(me.creature);
   const dealt = average(damageRange(state, me, e, { ranged: false, distance: 1, moved }));
   const left = { ...e, count: e.count - killsBy(e, dealt) };
   const threat = left.count > 0 ? worth(me, average(damageRange(state, left, me, { ranged: false, distance: 1, moved: 0 }))) : 0;
   const back = answers(me, e) ? threat : 0;
-  const stone = isStone(e) ? 0 : (creature(me.creature).petrify ?? 0) * threat;
-  return worth(e, dealt) - back * 0.8 + stone;
+  const stone = isStone(e) ? 0 : (c.petrify ?? 0) * threat;
+  const mortal = left.count > 0 && !creature(e.creature).undead;
+  // A curse takes about a third off its blows for a few rounds; poison three ticks of a share of the blow (a fresh one replaces the old).
+  const curse = mortal && !hasEffect(e, 'curse') ? (c.curse ?? 0) * threat * 0.3 : 0;
+  const poison = mortal && c.poison ? worth(e, 3 * dealt * c.poison) : 0;
+  return worth(e, dealt) - back * 0.8 + stone + curse + poison;
 }
+
+const hasEffect = (s: Stack, kind: string): boolean => s.effects.some((x) => x.kind === kind);
 
 /**
  * The neutral AI, after VCMI's StupidAI: a shooter shoots the target it hurts
  * most; otherwise hit the reachable enemy that gives the best trade (damage
  * dealt minus damage taken back, over every stack a cleaver would hit from
- * that hex); otherwise walk towards the nearest enemy.
+ * that hex); otherwise walk towards the nearest enemy. A side with a hero
+ * casts first when a spell is worth it (battleCasts.ts), unless `casts` is off.
  */
-export function chooseAction(state: BattleState): Action {
+export function chooseAction(state: BattleState, casts = true): Action {
   const me = activeStack(state);
   if (!me) throw new Error('no active stack');
   if (creature(me.creature).machine) return machineAction(state, me);
+  // Held after the player's move (Auto switched on then): strike from here, or end the turn.
+  if (state.held) return stackAction(state, me).action;
   if (losing(state, me.side)) return { type: 'flee' };
+  const move = stackAction(state, me);
+  // The hero's spell, once a round, when it beats the stack's own move (or this is the round's last chance to cast it).
+  const cast = casts ? bestCast(state, me.side) : null;
+  if (cast && (cast.value > move.score * CAST_OVER || lastToAct(state, me))) return cast.action;
+  return move.action;
+}
+
+/** A spell is cast in place of waiting for a later stack when it is worth this share of the active stack's best move (casting costs the stack nothing). */
+const CAST_OVER = 0.5;
+
+/** The active stack's own move, and what it is worth (in the health its blow takes off). */
+function stackAction(state: BattleState, me: Stack): { action: Action; score: number } {
   const enemies = foesOf(state, me);
   if (canShoot(state, me)) {
     const best = maxBy(enemies, (e) => worth(e, average(damageRange(state, me, e, { ranged: true, distance: shotDistance(me, e), moved: 0 }))));
-    if (best) return { type: 'shoot', target: best.id };
+    if (best) return { action: { type: 'shoot', target: best.id }, score: worth(best, average(damageRange(state, me, best, { ranged: true, distance: shotDistance(me, best), moved: 0 }))) };
   }
   let bestStrike: { action: Action; score: number } | null = null;
   for (const e of enemies) {
@@ -66,28 +89,35 @@ export function chooseAction(state: BattleState): Action {
       if (!bestStrike || score > bestStrike.score) bestStrike = { action: { type: 'attack', target: e.id, from }, score };
     }
   }
-  if (bestStrike) return bestStrike.action;
+  if (bestStrike) return bestStrike;
   // A garrison on foot holds its walls and lets the enemy come.
-  if (state.siege && me.side === 1 && !creature(me.creature).flies) return { type: 'defend' };
+  if (state.siege && me.side === 1 && !creature(me.creature).flies) return { action: { type: 'defend' }, score: 0 };
   const stone = atTheStone(state, me);
-  if (stone) return stone;
+  if (stone) return { action: stone, score: 0 };
   // Shooters with no shots left, or nothing in reach: close in.
   const reach = [...moves(state).keys()].filter((h) => h !== me.hex);
   const nearest = stepsToFoe(state, me, enemies);
   const go = minBy(reach, nearest);
-  if (go !== null && nearest(go) < nearest(me.hex)) return { type: 'move', to: go };
-  return { type: 'defend' };
+  if (go !== null && nearest(go) < nearest(me.hex)) return { action: { type: 'move', to: go }, score: 0 };
+  return { action: { type: 'defend' }, score: 0 };
 }
 
 /** A garrison on foot fights from behind its walls: it doesn't open its gate to march out at a foe still outside them. */
 const leavesWalls = (state: BattleState, me: Stack, from: Hex): boolean => !!state.siege && me.side === 1 && !creature(me.creature).flies && !insideWalls(from);
 
-/** What a side with no war machine must break by hand: the gate while it shuts a walker out, then any tower still holding a company. */
+/**
+ * What a side must break by hand: with no war machine, the gate while it
+ * shuts a walker out, then any tower still holding a company. A Catapult
+ * breaks both itself; a ramp opens no tower, so once only the towers' companies
+ * are left, they are struck down by hand (the gate never is: the ramp is the way in).
+ */
 function stoneInTheWay(state: BattleState, me: Stack): SiegePart | null {
   const siege = state.siege;
-  if (!siege || me.side !== 0 || state.stacks.some((s) => s.side === 0 && creature(s.creature).machine)) return null;
+  const machine = state.stacks.find((s) => s.side === 0 && creature(s.creature).machine);
+  if (!siege || me.side !== 0 || (machine && creature(machine.creature).machine === 'catapult')) return null;
   const onFoot = foesOf(state, me).filter((s) => s.tower === undefined);
   if (!onFoot.length) return minBy(TOWERS.filter((t, i) => standing(siege, t) && state.stacks.some((s) => s.tower === i && alive(s))), (t) => distance(me.hex, PART_HEX[t]));
+  if (machine) return null;
   const shutOut = !creature(me.creature).flies && standing(siege, 'gate') && !stepsFrom(onFoot.flatMap(occupiedHexes), new Set(wallsAgainst(siege, 0))).has(me.hex);
   return shutOut ? 'gate' : null;
 }
@@ -119,7 +149,10 @@ function stepsToFoe(state: BattleState, me: Stack, enemies: readonly Stack[]): (
   const steps = stepsFrom(hexes, new Set(wallsAgainst(state.siege, me.side)));
   if (steps.has(me.hex)) return (h) => steps.get(h) ?? Infinity;
   const moat = moatFor(state.siege, me.side);
-  return (h) => (moat.has(h) ? Infinity : straight(h));
+  // A ramp going up: wait near its foot, ready to go up it.
+  const ramp = me.side === 0 ? state.siege.ramps?.find((r) => !rampDone(r)) : undefined;
+  const toward = ramp ? (h: Hex): number => distance(h, rampFoot(ramp.part)) : straight;
+  return (h) => (moat.has(h) ? Infinity : toward(h));
 }
 
 /** Steps to every hex from the nearest of `from`, round `closed`. */
@@ -136,8 +169,13 @@ function stepsFrom(from: readonly Hex[], closed: ReadonlySet<Hex>): Map<Hex, num
 
 /** A war machine's turn: it hurls at the walls while any stand, then has nothing to do. */
 export function machineAction(state: BattleState, me: Stack): Action {
+  const part = rampsToPlace(state) > 0 && state.siege ? rampStretch(state.siege, mannedTowers(state)) : null;
+  if (part) return { type: 'ramp', part };
   return creature(me.creature).machine === 'catapult' && state.siege && aimFor(state.siege).length ? { type: 'catapult' } : { type: 'defend' };
 }
+
+/** The towers with a living company up on them. */
+const mannedTowers = (state: BattleState): TowerPart[] => TOWERS.filter((_, i) => state.stacks.some((s) => s.tower === i && alive(s)));
 
 function maxBy<T>(xs: readonly T[], f: (x: T) => number): T | null {
   let best: T | null = null;

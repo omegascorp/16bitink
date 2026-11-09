@@ -13,6 +13,7 @@ import { gearLayout } from './gearLayout';
 import { drawGear, type GearHost, type GearPick } from './gearPanel';
 import { heroSheet, type HeroSheet, type SheetRow } from './heroSheetData';
 import { SKILL_ICON, skillGrid } from './skillGrid';
+import { specialtyIcon } from './specialtyIcon';
 import { SplitPicker } from './splitPicker';
 
 /** A column's width at its widest, the padding, and the spaces between parts, UI pixels. */
@@ -23,6 +24,8 @@ const LINE = 15;
 const ICON = 16;
 const ICON_GAP = 3;
 const RULE_H = 5;
+/** The specialty's icon. */
+const SPEC_ICON = 24;
 const BAR_H = 4;
 const BTN_H = 30;
 const BAR_BACK = 0x160e09;
@@ -170,6 +173,7 @@ export class PixelHeroSheet implements CardView {
     const second = two ? x + col + GAP * 2 : x;
     const heroW = two ? col * 2 + GAP * 2 : col;
     let left = this.head(x, top, col, data, this.source.face);
+    left = this.specialty(x, left + GAP, col, hero.id, data);
     left = this.stats(x, left + GAP, col, data, !two && this.screen.h < WORDY_H);
     left = this.lines(x, left + GAP, col, data.lines);
     let right = this.heading(second, two ? top : left + GAP, col, 'Skills');
@@ -286,6 +290,15 @@ export class PixelHeroSheet implements CardView {
     this.body.add(this.scene.add.rectangle(x, barY, w, BAR_H, BAR_BACK).setOrigin(0));
     this.body.add(this.scene.add.rectangle(x, barY, Math.round(w * data.xp.part), BAR_H, BAR_FILL).setOrigin(0));
     return barY + BAR_H;
+  }
+
+  /** The specialty: its icon and its one line. Returns the y below (none: y less the gap). */
+  private specialty(x: number, y: number, w: number, id: string, data: HeroSheet): number {
+    if (!data.specialty) return y - GAP;
+    this.body.add(specialtyIcon(this.scene, id, data.specialty.spec, x, y, SPEC_ICON, this.keys));
+    const text = this.label({ wrap: w - SPEC_ICON - ICON_GAP * 2, align: 'left', anchor: { x: 0, y: 0 } }, data.specialty.text, x + SPEC_ICON + ICON_GAP * 2, y);
+    text.setPosition(x + SPEC_ICON + ICON_GAP * 2, y + Math.max(0, Math.floor((SPEC_ICON - text.height) / 2)));
+    return y + Math.max(SPEC_ICON, text.height);
   }
 
   private row(x: number, y: number, w: number, r: SheetRow): void {
