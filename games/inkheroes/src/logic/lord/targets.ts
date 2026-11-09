@@ -143,6 +143,8 @@ function siteValue(ctx: Ctx, h: Hero, o: MapObject, job: Job): number {
     case 'mercCamp': case 'watchtower': case 'standingStone': return h.visited.includes(o.id) ? 0 : VALUE.site;
     case 'shrine': return h.visited.includes(o.id) || !hasSpellbook(h) ? 0 : VALUE.site;
     case 'bank': return o.looted || job === 'runner' ? 0 : VALUE.keep;
+    // Training sites aren't in a lord's plans yet: he rides past them.
+    case 'arena': case 'sanctum': return 0;
     case 'dwelling': {
       if (o.owner !== 'player') return isForge(o) ? VALUE.forge : VALUE.dwelling;
       // One of ours: worth the ride for what can be hired there.

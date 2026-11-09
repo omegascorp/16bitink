@@ -12,6 +12,7 @@ import { creature } from './creatures';
 import { dwellingName, dwellingStock } from './dwellings';
 import { addTo, RESOURCES } from './resources';
 import { SPELLS } from './spells';
+import { visitTraining } from './training';
 
 export interface VisitResult {
   readonly adv: Adventure;
@@ -109,6 +110,9 @@ export function visitSite(adv: Adventure, o: MapObject, def: MapDef | undefined 
       return lootKeep(adv, o);
     case 'lair':
       return { adv: message(adv, lairName(o), `${lairWords(o)}. It can't be taken or destroyed.`), notes: [] };
+    case 'arena':
+    case 'sanctum':
+      return { adv: visitTraining(adv, o), notes: [] };
     case 'town':
     case 'monster':
       return { adv, notes: [] };

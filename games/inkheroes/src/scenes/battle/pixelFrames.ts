@@ -27,6 +27,10 @@ export const RIMS = {
   dim: { light: [150, 136, 112, 255], mid: [106, 94, 76, 255], dark: [60, 52, 42, 255] },
   green: { light: [176, 226, 140, 255], mid: [84, 156, 76, 255], dark: [34, 84, 44, 255] },
   purple: { light: [214, 170, 240, 255], mid: [136, 80, 184, 255], dark: [66, 34, 104, 255] },
+  // The ranks' own (src/scenes/battle/rankLook.ts): a cool grey (the warm 'dim' is for what isn't there), a sky blue apart from our side's royal blue, an orange apart from the enemy's brick red and the gold of what's picked.
+  grey: { light: [214, 216, 220, 255], mid: [146, 150, 158, 255], dark: [78, 82, 90, 255] },
+  blue: { light: [168, 226, 252, 255], mid: [56, 156, 220, 255], dark: [20, 76, 128, 255] },
+  orange: { light: [255, 204, 120, 255], mid: [238, 128, 24, 255], dark: [132, 58, 8, 255] },
 } as const satisfies Record<string, Rim>;
 export type RimName = keyof typeof RIMS;
 

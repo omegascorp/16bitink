@@ -2,17 +2,18 @@ import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
 import { getSound } from '../host';
 import type { MapDef } from '../level/types';
-import { gridOf, guardAt, heroInGarrison, holdOff, heroTown, isSeen, objectCovering, otherHeroAt, planPath, rivalHeroes, stepHero, wallsToStorm, type Adventure } from '../logic/adventure';
+import { gridOf, guardAt, heroInGarrison, holdOff, heroTown, isSeen, objectCovering, otherHeroAt, planPath, rivalHeroes, stepHero, wallsToStorm, weekOf, type Adventure } from '../logic/adventure';
 import { splitRides } from './map/rivalRides';
 import { rivalHeroAt } from '../logic/mapIntent';
 import { wearsWords } from '../logic/sets';
 import { lairWords } from '../logic/lairs';
+import { trainingWords } from '../logic/training';
 import { isLying, roomFor } from '../logic/lying';
 import { itemDef } from '../logic/items';
 import { besideEachOther, selectHero } from '../logic/heroes';
 import type { Army } from '../logic/army';
 import { creature, sizeWord, type CreatureId } from '../logic/creatures';
-import { intentAt, townToEnter, type MapIntent } from '../logic/mapIntent';
+import { intentAt, townTap, townWords, type MapIntent } from '../logic/mapIntent';
 import { bankName, LEARNING_XP, MINE_NAMES, MINE_OUTPUT, SITE_NAMES } from '../logic/objects';
 import { dwellingName } from '../logic/dwellings';
 import type { PathStep } from '../logic/path';
@@ -26,6 +27,7 @@ import { loadMapArt } from './map/pixelMapArt';
 import { PixelMapWorld } from './map/pixelMapWorld';
 import { GROUND_BORDER, MAP_TILE as TILE } from './map/pixelGround';
 import { coverWhileLoading } from './LoadingScene';
+import { prepareGround } from './map/groundPrep';
 import { narratorReading } from './NarratorScene';
 import { PixelCursors, type CursorKind } from './pixelCursors';
 import { pixelZoom } from './pixelScreen';
@@ -43,7 +45,7 @@ const ZOOM_STEPS = 1;
 const PINCH_STEP = 1.35;
 
 /** The cursor that says what a tap would do. */
-const CURSOR: Readonly<Record<MapIntent, CursorKind>> = { move: 'move', attack: 'attack', visit: 'visit' };
+const CURSOR: Readonly<Record<MapIntent, CursorKind>> = { move: 'move', attack: 'attack', visit: 'visit', enter: 'enter', open: 'open' };
 
 /**
  * The adventure map: the painted ground, sites, monsters and the heroes.
@@ -84,6 +86,8 @@ export class MapScene extends Phaser.Scene {
     const monsters = [...new Set(this.session.def.objects.flatMap((o) => (o.kind === 'monster' && o.creature ? [o.creature] : [])))];
     void loadMapArt(this, monsters)
       .then(() => cover.laying('painting the land…'))
+      // The ground a little each frame, so the screen keeps moving instead of freezing at the end (user, Nov 9).
+      .then(() => (this.sys.isActive() ? prepareGround(this, this.session.def, (f) => cover.layingProgress(f * 0.9)) : undefined))
       .then(() => {
         // The scene may have been left while its art was loading.
         if (this.sys.isActive()) this.build();
@@ -203,6 +207,8 @@ export class MapScene extends Phaser.Scene {
       this.tap(Math.floor(w.x / TILE), Math.floor(w.y / TILE));
     };
     this.input.on('pointerup', release);
+    // The pointer left the page's game: no town keeps its signs up.
+    this.input.on(Phaser.Input.Events.GAME_OUT, () => this.clearCursor());
     this.input.on('pointerupoutside', release);
     this.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => {
       if (!this.blocked()) this.zoomTo(this.k + (dy > 0 ? -1 : 1));
@@ -264,6 +270,8 @@ export class MapScene extends Phaser.Scene {
     const friend = otherHeroAt(adv, x, y);
     if (friend) return `${friend.name}, leading ${armyWords(friend.army)}: ${besideEachOther(adv.hero, friend) ? 'tap to meet and trade companies' : 'tap to pick'}`;
     const town = adv.towns.find((t) => Math.abs(x - t.x) <= 1 && (y === t.y || y === t.y - 1));
+    const ours = townWords(adv, def, x, y);
+    if (ours) return ours;
     if (town) {
       if (town.owner === 'player') return `${town.name}: your town`;
       if (town.ally) return `${town.name}: its gates will open to you`;
@@ -291,6 +299,7 @@ export class MapScene extends Phaser.Scene {
     if (o.kind === 'learningStone') return `Learning Stone: +${LEARNING_XP} experience${o.visitedBy?.includes(adv.hero.id) ? ' (read)' : ''}`;
     if (o.kind === 'bank') return o.looted ? `${bankName(o)} (empty)` : bankName(o);
     if (o.kind === 'lair') return lairWords(o);
+    if (o.kind === 'arena' || o.kind === 'sanctum') return trainingWords(o, weekOf(adv.day));
     // A piece lying on the ground: ridden over, taken in passing when there is room (src/logic/lying.ts).
     if (isLying(o)) return `${itemDef(o.item!).name} on the ground: ${roomFor(adv.hero, o.item!) ? 'ride over it to take it' : 'no room in the bag, but the way is open'}`;
     return SITE_NAMES[o.kind];
@@ -308,13 +317,7 @@ export class MapScene extends Phaser.Scene {
     }
     const { adv, def } = this.session;
     const end = this.path?.[this.path.length - 1];
-    // Anywhere on the picture of a town of ours goes in, unless a ride to its gate is already planned.
-    const entering = townToEnter(adv, def, x, y, end);
-    if (entering) {
-      this.events.emit('status', this.describe(x, y));
-      this.openTown(entering.id);
-      return;
-    }
+    if (this.tapTown(x, y)) return;
     if (this.tapFriend(x, y)) return;
     this.events.emit('status', this.describe(x, y));
     const on = isSeen(adv, def, x, y) ? objectCovering(adv, x, y) : undefined;
@@ -339,6 +342,25 @@ export class MapScene extends Phaser.Scene {
     // A tap anywhere on an object's picture heads for the object itself.
     const o = objectCovering(adv, x, y);
     this.setPath(planPath(adv, def, o?.x ?? x, o?.y ?? y));
+  }
+
+  /**
+   * A tap on a town of ours (false: not one): its top opens it where the
+   * hero is; its gate half plans the ride to the gate, a second tap rides in,
+   * and arriving enters it as a visit. With the hero at the gate, it opens.
+   */
+  private tapTown(x: number, y: number): boolean {
+    const { adv, def } = this.session;
+    const tap = townTap(adv, def, x, y, this.path?.[this.path.length - 1]);
+    if (!tap) return false;
+    this.events.emit('status', this.describe(x, y));
+    if (tap.kind === 'open') this.openTown(heroTown(adv)?.id === tap.town.id ? undefined : tap.town.id);
+    else if (heroInGarrison(adv)) {
+      this.setPath(null);
+      this.events.emit('status', `${adv.hero.name} is in the garrison: lead the army out in the town`);
+    } else if (tap.kind === 'ride') this.walk(this.path!);
+    else this.setPath(planPath(adv, def, tap.town.x, tap.town.y));
+    return true;
   }
 
   /**

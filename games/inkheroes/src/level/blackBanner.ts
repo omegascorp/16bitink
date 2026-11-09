@@ -139,5 +139,8 @@ export const BLACK_BANNER_LAND: MapDef = {
     { id: 'pile-ore-2', kind: 'pile', x: 34, y: 17, resource: 'ore', amount: 8 },
     { id: 'pile-wood-2', kind: 'pile', x: 45, y: 13, resource: 'wood', amount: 8 },
     { id: 'pile-gold-3', kind: 'pile', x: 38, y: 24, resource: 'gold', amount: 1000 },
+    // Rarity: an Arena of Heroes in the glade north of Eudora (Rare troops train to Epic, once a week), guarded as the shrine is.
+    { id: 'banner-arena', kind: 'arena', x: 10, y: 16 },
+    { id: 'banner-arena-hydras', kind: 'monster', x: 11, y: 17, creature: 'hydra', count: 10 },
   ],
 };

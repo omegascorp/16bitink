@@ -56,9 +56,21 @@ describe('battle scenery', () => {
   it('covers every pixel of the area, sky above the horizon and ground below', () => {
     const out = composeScenery(atlas(), ART, WORLD_AREA, 7);
     for (let i = 3; i < out.data.length; i += 4) expect(out.data[i]).toBe(255);
-    const sky = new Set(['160,96,64', '192,128,96', '176,176,160']);
-    const top = at(out, 3, 0).slice(0, 3).join();
-    expect(sky.has(top) || top === COLOURS.cloud.join()).toBe(true);
+    // The sky blends its stops (#a06040, #c08060, #b0b0a0): the top lies between them, unless a cloud covers it.
+    const top = at(out, 3, 0).slice(0, 3);
+    const inSky = top.every((v, k) => v >= [160, 96, 64][k]! && v <= [192, 176, 160][k]!);
+    expect(inSky || top.join() === COLOURS.cloud.join()).toBe(true);
+  });
+
+  it('blends the sky smoothly: one colour a row, each a small step from the row above', () => {
+    const sky = composeSky(ART, { x: 0, y: HORIZON_Y - 220, w: 16, h: 220 });
+    let last: number[] | null = null;
+    for (let y = 0; y < sky.h; y++) {
+      const row = at(sky, 0, y).slice(0, 3);
+      for (let x = 1; x < sky.w; x++) expect(at(sky, x, y).slice(0, 3)).toEqual(row);
+      if (last) for (let k = 0; k < 3; k++) expect(Math.abs(row[k]! - last[k]!)).toBeLessThanOrEqual(4);
+      last = row;
+    }
   });
 
   it('is the same for the same seed and differs for another', () => {

@@ -11,6 +11,9 @@ import { loadUiArt, texturePixels } from './pixelUi';
 import { FACE, faceBox } from './pixelFaces';
 import type { Pixels } from './pixelScenery';
 import { heroArtId } from './heroArtId';
+import { RIMS } from './pixelFrames';
+import { RANK_RIM } from './rankLook';
+import type { Rarity } from '../../logic/rarity';
 
 /**
  * The pixel battle's textures: the manifest's PNG strips and backgrounds
@@ -27,7 +30,7 @@ export const PX_TEX = {
   bg: (terrain: string) => `px-bg-${terrain}`,
   scenery: (terrain: string) => `px-scenery-${terrain}`,
   obstacle: (kind: string) => `px-ob-${kind}`,
-  badge: (side: number, n: number) => `px-badge-${side}-${n}`,
+  badge: (side: number, n: number, rank: number | null = null) => `px-badge-${side}-${n}${rank ? `-r${rank}` : ''}`,
   stone: 'px-shot-stone',
   arrow: 'px-shot-arrow',
   rock: 'px-ob-fallback-rock',
@@ -176,9 +179,9 @@ const BADGE_COLOURS: readonly { fill: Rgba; top: Rgba }[] = [
   { fill: [150, 105, 30, 255], top: [240, 200, 110, 255] },
 ];
 
-/** The badge texture for side `side` showing `n`, drawn the first time it's needed. */
-export function badgeTexture(scene: Phaser.Scene, side: number, n: number): string {
-  const key = PX_TEX.badge(side, n);
-  if (!scene.textures.exists(key)) bufferTexture(scene, key, drawBadge(n, BADGE_COLOURS[side === 0 ? 0 : 1]!));
+/** The badge texture for side `side` showing `n` (with `rank`, ringed in its colour), drawn the first time it's needed. */
+export function badgeTexture(scene: Phaser.Scene, side: number, n: number, rank: Rarity | null = null): string {
+  const key = PX_TEX.badge(side, n, rank);
+  if (!scene.textures.exists(key)) bufferTexture(scene, key, drawBadge(n, BADGE_COLOURS[side === 0 ? 0 : 1]!, rank ? RIMS[RANK_RIM[rank]].mid : undefined));
   return key;
 }

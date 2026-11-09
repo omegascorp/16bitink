@@ -20,6 +20,8 @@ export interface DriftingSceneryOpts {
   readonly paint?: (front: Pixels) => void;
   /** How far the clouds have drifted already (carried over from the screen before). */
   readonly drift?: number;
+  /** Native pixels a second the clouds drift; the battle's slow drift when unset. */
+  readonly speed?: number;
 }
 
 /**
@@ -57,7 +59,7 @@ export class DriftingScenery {
   }
 
   update(delta: number): void {
-    this.drift = (this.drift + (CLOUD_SPEED * delta) / 1000) % CLOUD_PERIOD;
+    this.drift = (this.drift + ((this.opts.speed ?? CLOUD_SPEED) * delta) / 1000) % CLOUD_PERIOD;
     this.place();
   }
 

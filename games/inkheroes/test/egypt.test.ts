@@ -13,7 +13,7 @@ import { bestUnit, BUILD_ORDER, BUILD_PLAN, BUILD_PLANS, build, buildAll, buildi
 import { chooseAction } from '../src/logic/battleAi';
 import { cantCast, castSpell } from '../src/logic/battleSpells';
 import type { BattleEvent, BattleHero, BattleState, Stack } from '../src/logic/battleTypes';
-import { creature, CREATURE_IDS, lineUnits, strengthOf, type CreatureId } from '../src/logic/creatures';
+import { creature, CREATURE_IDS, lineUnits, strengthOf, tierOf, type CreatureId } from '../src/logic/creatures';
 import { damageRange, RANGE_PENALTY_DISTANCE } from '../src/logic/damage';
 import { hexAt, neighbours, type Hex } from '../src/logic/hex';
 import { ITEMS } from '../src/logic/items';
@@ -51,13 +51,13 @@ function seedWhere(f: (seed: number) => boolean): number {
 describe('the Two Lands', () => {
   const EGYPT = ['levy', 'nubian', 'jackal', 'chariot', 'mummy', 'sphinx', 'bennu'] as const;
 
-  it('has seven lines of three, all of them Egypt’s', () => {
+  it('has seven lines of five ranks, all of them Egypt’s', () => {
     for (const [i, base] of EGYPT.entries()) {
       const units = lineUnits(base);
-      expect(units, base).toEqual([base, `${base}2`, `${base}3`]);
+      expect(units, base).toEqual([base, `${base}2`, `${base}3`, `${base}4`, `${base}5`]);
       for (const id of units) expect(creature(id)).toMatchObject({ faction: 'kemet', level: i + 1 });
     }
-    expect(CREATURE_IDS.filter((id) => creature(id).faction === 'kemet')).toHaveLength(21);
+    expect(CREATURE_IDS.filter((id) => creature(id).faction === 'kemet')).toHaveLength(35);
   });
 
   it('carries the design’s numbers and traits', () => {
@@ -501,9 +501,10 @@ describe('saves and the two peoples', () => {
 describe('art not drawn yet', () => {
   it('draws every Egypt unit itself: no stand-in, no tint', () => {
     const egypt = CREATURE_IDS.filter((id) => creature(id).faction === 'kemet');
-    expect(egypt.length).toBe(21);
+    expect(egypt.length).toBe(35);
     for (const id of egypt) {
-      expect(UNIT_ART[id], id).toBeDefined();
+      // Epic and Legendary art comes in its own pass; until then a rank wears its line's base art (figureArt).
+      if (tierOf(id) <= 3) expect(UNIT_ART[id], id).toBeDefined();
       expect(standInFor(id), id).toBeNull();
       expect(figureArt(id).tint, id).toBeUndefined();
     }

@@ -2,8 +2,10 @@ import { FACTIONS, factionOf } from '../../logic/factions';
 import type Phaser from 'phaser';
 import type { SlotIcon } from '../../art/pixel/ui';
 import type { Hero } from '../../logic/hero';
-import { BAGS, bagOf, bagSize, itemDef, itemQuality, itemSays, QUALITY_NAMES, SET_NAMES, takeOff, wear, type ItemId, type Quality, type Slot } from '../../logic/items';
-import { drawSocket, type RimName } from '../battle/pixelFrames';
+import { BAGS, bagOf, bagSize, itemDef, itemQuality, itemSays, QUALITY_NAMES, SET_NAMES, takeOff, wear, type ItemId, type Slot } from '../../logic/items';
+import { drawSocket } from '../battle/pixelFrames';
+import type { Rgba } from '../battle/pixelRaster';
+import { QUALITY_RIM, qualityInk } from '../battle/rankLook';
 import { INK, PixelButton, putBuffer, TextLabel, UI_TEX } from '../battle/pixelUi';
 import { SETS_LINE, type GearCell, type GearLayout } from './gearLayout';
 import { setProgress } from '../../logic/sets';
@@ -13,8 +15,8 @@ const BTN_GAP = 6;
 /** How faint a place the bag doesn't have yet is drawn. */
 const LOCKED_ALPHA = 0.35;
 
-/** A piece's grade shows in its frame. */
-export const QUALITY_RIM: Readonly<Record<Quality, RimName>> = { gray: 'bronze', green: 'green', blue: 'player', purple: 'purple', gold: 'gold' };
+/** A piece's grade shows in its frame, in the ranks' colours (src/scenes/battle/rankLook.ts: the top grade orange, not the picked gold). */
+export { QUALITY_RIM };
 
 /** A slot's full name, for the line under the panel. */
 const FULL: Readonly<Record<Slot, string>> = {
@@ -50,7 +52,7 @@ function cell(host: GearHost, at: GearCell, layout: GearLayout, item: ItemId | u
   if (texture) host.body.add(host.scene.add.image(mid.x, mid.y, texture).setScale(layout.scale / 2));
 }
 
-function line(host: GearHost, text: string, x: number, y: number, ink: typeof INK[keyof typeof INK], wrap?: number): TextLabel {
+function line(host: GearHost, text: string, x: number, y: number, ink: Rgba, wrap?: number): TextLabel {
   const l = new TextLabel(host.scene, { align: 'left', anchor: { x: 0, y: 0 }, ink, ...(wrap ? { wrap } : {}) }).setText(text).setPosition(x, y);
   host.owned.push(l);
   host.body.add(l.img);
@@ -81,6 +83,7 @@ function drawSets(host: GearHost, at: GearCell, w: number, hero: Hero): void {
   };
   for (const s of setProgress(hero)) {
     put(`${s.name} ${s.worn}/6`, INK.title, true);
+    if (!s.tiers.length) put('common: no set bonus', INK.dim);
     for (const t of s.tiers) put(`${t.at}: ${t.says}`, t.lit ? INK.good : INK.dim);
   }
 }
@@ -121,11 +124,11 @@ function detail(host: GearHost, at: GearCell, w: number, hero: Hero, pick: GearP
     return;
   }
   if (!item) {
-    line(host, !pick ? 'Tap a piece to see what it gives' : 'slot' in pick ? emptySlot(pick.slot, hero) : emptyBag(hero, pick.bag), x, y + 6, INK.dim, w);
+    line(host, !pick ? 'Tap a piece for its card: what it gives, its set, and how it compares' : 'slot' in pick ? emptySlot(pick.slot, hero) : emptyBag(hero, pick.bag), x, y + 6, INK.dim, w);
     return;
   }
   const def = itemDef(item);
-  line(host, def.name, x, y, INK.title);
+  line(host, def.name, x, y, qualityInk(item));
   line(host, `${QUALITY_NAMES[def.quality]}: ${itemSays(item)}${def.set ? ` · ${SET_NAMES[def.set]}` : ''}`, x, y + 15, INK.dim, w - BTN.w - BTN_GAP);
   const next = pick && 'slot' in pick ? takeOff(hero, pick.slot) : wear(hero, (pick as { bag: number }).bag);
   const btn = new PixelButton(host.scene, { w: BTN.w, h: BTN.h, label: pick && 'slot' in pick ? 'Take off' : 'Wear', onClick: () => on.change(next) });

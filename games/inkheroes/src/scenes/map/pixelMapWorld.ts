@@ -7,7 +7,6 @@ import type { RivalRide } from './rivalRides';
 import { isEmptyArmy } from '../../logic/army';
 import type { Hero } from '../../logic/hero';
 import type { Town } from '../../logic/town';
-import type { Terrain } from '../../logic/map';
 import type { MapObject, Owner } from '../../logic/objects';
 import type { PathStep } from '../../logic/path';
 import { heroArt, PX_TEX, unitArt } from '../battle/pixelAssets';
@@ -21,13 +20,12 @@ import type { BuildingId } from '../../logic/buildings';
 import { renderMapTown, type CityArt } from '../town/cityRender';
 import { TOWN_TEX } from '../town/townTex';
 import { MAP_TEX, siteArtOf, siteSprite } from './pixelMapArt';
-import { composeFog, composeGround, fogPieces, GROUND_BORDER, MAP_TILE, touchedPieces, type PixelRect } from './pixelGround';
+import { composeFog, fogPieces, GROUND_BORDER, MAP_TILE, touchedPieces, type PixelRect } from './pixelGround';
+import { groundNow } from './groundPrep';
 import { Ride, RIDE_FPS } from './ride';
 
 /** The sand an Egyptian town's stand-in picture wears on the map. */
 
-/** Ground chunks are cut this many pixels square (a texture each). */
-const CHUNK_PX = 768;
 /** The fog is cut into squares this many pixels wide (a texture each): a step redraws only those it touches. */
 const FOG_PIECE_PX = 480;
 /** Feet stand this far down a tile. */
@@ -181,27 +179,12 @@ export class PixelMapWorld {
     });
   }
 
-  /** The map's ground, composed once and cut into chunk textures. */
+  /** The map's ground, composed once and cut into chunk textures (made ahead under the loading screen when it could be: groundPrep.ts). */
   private drawGround(): void {
-    const g = gridOf(this.def);
-    const swatches: Partial<Record<Terrain, Pixels>> = {};
-    for (const t of ['grass', 'dirt', 'rough', 'sand', 'swamp', 'snow'] as const) {
-      const key = MAP_TEX.ground(t);
-      if (this.scene.textures.exists(key)) swatches[t] = texturePixels(this.scene, key);
-    }
-    const ground = composeGround({ grid: g, swatches, seed: this.def.seed });
     const off = -GROUND_BORDER * MAP_TILE;
-    let n = 0;
-    for (let y0 = 0; y0 < ground.h; y0 += CHUNK_PX) {
-      for (let x0 = 0; x0 < ground.w; x0 += CHUNK_PX) {
-        const w = Math.min(CHUNK_PX, ground.w - x0);
-        const h = Math.min(CHUNK_PX, ground.h - y0);
-        const piece = new PixelBuffer(w, h);
-        for (let y = 0; y < h; y++) piece.data.set(ground.data.subarray(((y0 + y) * ground.w + x0) * 4, ((y0 + y) * ground.w + x0 + w) * 4), y * w * 4);
-        const key = putBuffer(this.scene, piece, MAP_TEX.chunk(this.def.id, n++));
-        this.chunkKeys.push(key);
-        this.layer.add(this.scene.add.image(off + x0, off + y0, key).setOrigin(0).setDepth(0));
-      }
+    for (const c of groundNow(this.scene, this.def)) {
+      this.chunkKeys.push(c.key);
+      this.layer.add(this.scene.add.image(off + c.x, off + c.y, c.key).setOrigin(0).setDepth(0));
     }
   }
 
@@ -334,7 +317,8 @@ export class PixelMapWorld {
     const live = new Set(liveObjects(adv).map((o) => o.id));
     const seen = (x: number, y: number): boolean => isSeen(adv, this.def, x, y);
     for (const o of adv.objects) {
-      if (o.kind === 'item' && this.monsters.has(o.id)) this.addLyingItem(o);
+      // A piece newly on the ground: a beaten monster's drop where it stood, or a beaten hero's spoils (new objects) laid near the battle.
+      if (o.kind === 'item' && (this.monsters.has(o.id) || !this.sprites.has(o.id))) this.addLyingItem(o);
       this.sprites.get(o.id)?.setVisible(live.has(o.id) && seen(o.x, o.y));
       const flag = this.flags.get(o.id);
       if (flag) flag.setTexture(this.flagKey(o.owner === 'player' ? 'player' : o.owner === 'rival' ? 'rival' : 'neutral')).setVisible(seen(o.x, o.y));

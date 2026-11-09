@@ -20,6 +20,7 @@ import { partAt, SiegeView } from './siegeView';
 import { rampLook } from './rampView';
 import { bodyMiddle, onBodyMiddle } from './bodyAnchor';
 import type { FigureArt } from './standIns';
+import { rankOf, type Rarity } from '../../logic/rarity';
 
 /** How far above the part struck by hand its message floats, native pixels. */
 const STRIKE_FLOAT = 44;
@@ -80,6 +81,8 @@ interface UnitSprite {
   readonly fig: PixelFigure;
   readonly badge: Phaser.GameObjects.Image;
   readonly side: number;
+  /** Its rank, ringed on its count badge (null: a neutral or a war machine). */
+  readonly rank: Rarity | null;
 }
 
 /** Highlights to show for the active unit. */
@@ -200,9 +203,10 @@ export class BattleView {
     const fig = new PixelFigure(this.scene, this.cams.world, art, (pose) => PX_TEX.unit(s.creature, pose), stackFeet(s), s.side === 1);
     if (this.opts.pose) fig.hold(this.opts.pose);
     if (s.tower !== undefined) fig.sortOn(hexPx(s.hex).y + TOWER_SORT);
-    const badge = this.scene.add.image(0, 0, badgeTexture(this.scene, s.side === this.me ? 0 : 1, s.count)).setOrigin(0).setDepth(DEPTH.badge);
+    const rank = rankOf(s.creature);
+    const badge = this.scene.add.image(0, 0, badgeTexture(this.scene, s.side === this.me ? 0 : 1, s.count, rank)).setOrigin(0).setDepth(DEPTH.badge);
     this.cams.world.add(badge);
-    this.units.set(s.id, { fig, badge, side: s.side });
+    this.units.set(s.id, { fig, badge, side: s.side, rank });
   }
 
   /** Puts every unit where the state has it, its count on its badge. */
@@ -228,7 +232,7 @@ export class BattleView {
 
   /** The count badge at the unit's lower front corner: right of the feet facing right, left of them facing left. */
   private setBadge(u: UnitSprite, count: number, visible: boolean): void {
-    u.badge.setTexture(badgeTexture(this.scene, u.side === this.me ? 0 : 1, count));
+    u.badge.setTexture(badgeTexture(this.scene, u.side === this.me ? 0 : 1, count, u.rank));
     const { x, y } = u.fig.feet;
     const left = u.side === 1;
     u.badge.setPosition(left ? x - BADGE_AT.x - u.badge.width + 1 : x + BADGE_AT.x, y + BADGE_AT.y).setVisible(visible);

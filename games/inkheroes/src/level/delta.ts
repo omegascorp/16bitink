@@ -225,5 +225,10 @@ export const DELTA_LAND: MapDef = {
     { id: 'delta-chest-dunes', kind: 'chest', x: 76, y: 52, gold: 2000 },
     { id: 'dunes-hyenas', kind: 'monster', x: 75, y: 51, creature: 'hyena', count: 120 },
     { id: 'delta-pile-gems-east', kind: 'pile', x: 52, y: 51, resource: 'gems', amount: 5 },
+    // Rarity: an Arena of Heroes in the fields above the wadi, and the chapter's legendary site, the Temple of Ra, west of the Benben's house at Iunu (Heliopolis, the sun's city).
+    { id: 'delta-arena', kind: 'arena', x: 23, y: 18 },
+    { id: 'delta-arena-lions', kind: 'monster', x: 24, y: 19, creature: 'lion', count: 24 },
+    { id: 'ra-temple', kind: 'sanctum', x: 42, y: 16, look: 'raTemple' },
+    { id: 'temple-petsuchoi', kind: 'monster', x: 43, y: 17, creature: 'petsuchos', count: 14 },
   ],
 };

@@ -12,6 +12,7 @@ import { describeAmount, RESOURCES } from '../../logic/resources';
 import { PX_TEX, unitArt } from '../battle/pixelAssets';
 import { drawFrame, drawPicture, FILLS, inkBox, pictureOffset, type RimName } from '../battle/pixelFrames';
 import type { Rgba } from '../battle/pixelRaster';
+import { rimOfUnit } from '../battle/rankLook';
 import { composeScenery, HORIZON_Y, type Pixels } from '../battle/pixelScenery';
 import { INK, PixelButton, PixelFrame, PixelImage, TextLabel, texturePixels, UI_TEX } from '../battle/pixelUi';
 import { TOWN_TEX, townScenery } from './pixelTownView';
@@ -88,10 +89,10 @@ function countryside(scene: Phaser.Scene, w: number, h: number, horizon: number,
   return composeScenery(atlas, townScenery(faction), { x: 40 + seed * 37, y: HORIZON_Y - horizon, w, h }, seed);
 }
 
-/** A picture in a dim frame: `px` inside, at (x, y). */
-function framed(scene: Phaser.Scene, px: Pixels, x: number, y: number): Drawn {
+/** A picture in a frame (dim, unless `look` gives another): `px` inside, at (x, y). */
+function framed(scene: Phaser.Scene, px: Pixels, x: number, y: number, look: RimName = 'dim'): Drawn {
   const pic = new PixelImage(scene, px).setPosition(x + 1, y + 1);
-  const rim = new PixelImage(scene, drawFrame(px.w + 2, px.h + 2, { rim: 'dim', fill: null })).setPosition(x, y);
+  const rim = new PixelImage(scene, drawFrame(px.w + 2, px.h + 2, { rim: look, fill: null })).setPosition(x, y);
   return { parts: [pic.img, rim.img], owned: [pic, rim] };
 }
 
@@ -228,7 +229,8 @@ export function fortScreen(scene: Phaser.Scene, adv: Adventure, town: Town, act:
       hireBtn.setEnabled(can > 0);
       return merge(
         card(scene, x, y, FORT_CARD.w, FORT_CARD.h, () => act.pickDwelling(id)),
-        framed(scene, creaturePicture(scene, id, i), x + 3, y + 3),
+        // Framed in its rank's colour.
+        framed(scene, creaturePicture(scene, id, i), x + 3, y + 3, rimOfUnit(id)),
         label(scene, cr.plural, tx, y + 5, { kind: 'title' }),
         ...stats,
         { parts: [gold], owned: [] },

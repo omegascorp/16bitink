@@ -2,6 +2,7 @@ import { bagRoom, gainItem, gearGold, hasAsGood, hasSpellbook, itemDef, itemQual
 import { dropOf } from './loot';
 import { lairsOut } from './lairs';
 import { stripped, takeSpoils } from './spoils';
+import { setLine } from './itemCompare';
 import { kitOf, kitted } from './lord/kit';
 import type { HeroDef, MapDef } from '../level/types';
 import type { DayReport, GoldSource, TownRecruits } from './dayReport';
@@ -34,6 +35,8 @@ export type Prompt =
   | { readonly kind: 'levelUp'; readonly offer: LevelUp }
   /** An outer dwelling of ours with creatures waiting: hire them, or leave them. `text`: news to show first (its flag just went up). */
   | { readonly kind: 'dwelling'; readonly id: string; readonly text?: string }
+  /** A training site (an Arena of Heroes, a legendary site) with companies it can train: pick one, or leave (src/logic/training.ts). */
+  | { readonly kind: 'train'; readonly id: string }
   | {
     readonly kind: 'message';
     readonly title: string;
@@ -784,10 +787,10 @@ function claimDrop(adv: Adventure, beaten: MapObject | undefined, def: MapDef): 
   return { ...adv, hero: got.hero, objects, prompts: [...adv.prompts, prompt] };
 }
 
-/** A piece's grade, what it gives and its set, in a line. */
+/** A piece's grade and what it gives, and on a line of its own its set's bonuses. */
 export function itemLine(id: ItemId): string {
-  const { set } = itemDef(id);
-  return `${QUALITY_NAMES[itemQuality(id)]}: ${itemSays(id)}${set ? ` · ${SET_NAMES[set]}` : ''}`;
+  const set = setLine(id);
+  return `${QUALITY_NAMES[itemQuality(id)]}: ${itemSays(id)}${set ? `\n${set}` : ''}`;
 }
 
 /** Piece `id` lying where `o` stood (a beaten monster's place). */

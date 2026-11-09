@@ -6,6 +6,9 @@ import { dwellingOf } from '../../logic/factions';
 import { describeAmount } from '../../logic/resources';
 import { attackOf, defenseOf, speedOf } from '../../logic/damage';
 import { SPELLS } from '../../logic/spells';
+import { rankLine } from '../../logic/rarity';
+import type { Rgba } from './pixelRaster';
+import { rankInk } from './rankLook';
 
 /** One row of a unit's stats: its icon, its name and its value. */
 export interface StatRow {
@@ -23,6 +26,8 @@ export interface UnitInfo {
   readonly rows: readonly StatRow[];
   /** Its abilities and the spells on it, a line each. */
   readonly notes: readonly string[];
+  /** Its name's ink: its rank's colour (none: a neutral or a war machine, the title's gold). */
+  readonly nameInk?: Rgba;
 }
 
 /** "5", or "5 (7)" when the battle has changed the creature's own number (as Heroes 3 shows it). */
@@ -80,7 +85,7 @@ export function unitInfo(state: BattleState, s: Stack): UnitInfo {
     if (e.kind === 'poison') return `Poisoned: ${e.rounds} turn${e.rounds === 1 ? '' : 's'}`;
     return `${spell?.name ?? e.kind}: ${e.rounds} round${e.rounds === 1 ? '' : 's'}`;
   });
-  return { name: s.count === 1 ? c.name : c.plural, creature: s.creature, count: s.count, side: s.side, rows, notes: [...traits(s), ...spells] };
+  return { name: s.count === 1 ? c.name : c.plural, creature: s.creature, count: s.count, side: s.side, rows, notes: [...traits(s), ...spells], ...inkOf(s.creature) };
 }
 
 /** A company's info card out of battle (in a town or an army): its own stats, its level and abilities. */
@@ -94,7 +99,14 @@ export function armyUnitInfo(id: CreatureId, count: number): UnitInfo {
     { stat: 'health', label: 'Health', value: `${c.hp}` },
     { stat: 'speed', label: 'Speed', value: `${c.speed}` },
   ];
-  return { name: count === 1 ? c.name : c.plural, creature: id, count, side: 0, rows, notes: [`Level ${tierOf(id)} of 3`, ...traitsOf(id)] };
+  const rank = rankLine(id);
+  return { name: count === 1 ? c.name : c.plural, creature: id, count, side: 0, rows, notes: [...(rank ? [rank] : []), ...traitsOf(id)], ...inkOf(id) };
+}
+
+/** A unit's name ink, when it has a rank. */
+function inkOf(id: CreatureId): { nameInk?: Rgba } {
+  const ink = rankInk(id);
+  return ink ? { nameInk: ink } : {};
 }
 
 /** The traits a creature shows as abilities, a line each (the card's notes without its level). */

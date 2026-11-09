@@ -3,6 +3,7 @@ import { addTroops, armyOf, emptyArmy, isEmptyArmy, type Army, type ArmySlot } f
 import { BUILDINGS, type BuildingDef, type BuildingId } from './buildings';
 import { canManTower, creature, lineOf, strengthOf, tierOf, type CreatureId, type TownFaction } from './creatures';
 import { buildingIdsOf, buildingOf, buildsAt, FACTIONS, factionOf } from './factions';
+import { TOWN_TOP } from './rarity';
 import type { Owner } from './objects';
 import { affordable, canAfford, pay, RESOURCES, shortfall, type Amount, type Purse } from './resources';
 import { fortification } from './siege';
@@ -120,8 +121,8 @@ export function growthOf(t: Town, id: CreatureId): number {
   return Math.floor(creature(lineOf(id)).growth * (1 + bonus));
 }
 
-/** The units the town's built dwellings hire, its people's own. */
-const hiredBy = (t: Pick<Town, 'built' | 'faction'>): CreatureId[] => t.built.map((b) => buildingIn(t, b).dwelling).filter((d): d is CreatureId => !!d);
+/** The units the town's built dwellings hire, its people's own: never past Rare (Epic and Legendary are trained on the map). */
+const hiredBy = (t: Pick<Town, 'built' | 'faction'>): CreatureId[] => t.built.map((b) => buildingIn(t, b).dwelling).filter((d): d is CreatureId => !!d && tierOf(d) <= TOWN_TOP);
 
 /** The lines the town hires, by their base units, in the order their dwellings were built. */
 export const dwellings = (t: Pick<Town, 'built' | 'faction'>): CreatureId[] => [...new Set(hiredBy(t).map(lineOf))];

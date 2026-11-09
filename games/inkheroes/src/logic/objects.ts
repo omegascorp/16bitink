@@ -18,7 +18,11 @@ export type ObjectKind =
   /** A treasure keep: a ruin with a strong guard (a monster beside it) and a big prize inside (H3's creature bank). */
   | 'bank'
   /** A lair: a den or a tomb that sends out a new group of its creature each week it has none (src/logic/lairs.ts); never taken, never destroyed. */
-  | 'lair';
+  | 'lair'
+  /** An Arena of Heroes: once a week it trains one Rare company of the visiting hero's up to Epic (src/logic/training.ts). */
+  | 'arena'
+  /** A chapter's legendary site (the Forge of Hephaestus, the Temple of Ra): once a week it trains one Epic company up to Legendary. */
+  | 'sanctum';
 
 /** How an outer dwelling is drawn (a map sprite key of the same name; src/scenes/map/pixelMapArt.ts falls back while one isn't drawn). */
 export type DwellingLook = 'cyclopsCave' | 'griffinCliff' | 'titanForge' | 'crocodileMarsh' | 'lionRocks' | 'benbenHouse';
@@ -29,6 +33,10 @@ export const BANK_LOOKS: readonly BankLook[] = ['keep', 'mastaba'];
 /** How a lair is drawn: a cave in a Greek hillside, or a half-buried Egyptian tomb (a map sprite key of the same name, src/scenes/map/pixelMapArt.ts falls back while one isn't drawn). */
 export type LairLook = 'den' | 'tomb';
 export const LAIR_LOOKS: readonly LairLook[] = ['den', 'tomb'];
+
+/** How a legendary site is drawn and named: Othrys's forge of the smith god, or the Delta's temple of the sun (a map sprite key of the same name, src/scenes/map/pixelMapArt.ts falls back while one isn't drawn). */
+export type SanctumLook = 'hephaestusForge' | 'raTemple';
+export const SANCTUM_LOOKS: readonly SanctumLook[] = ['hephaestusForge', 'raTemple'];
 
 /** A thing on the map. Fields beyond kind/x/y depend on the kind. */
 export interface MapObject {
@@ -58,15 +66,15 @@ export interface MapObject {
   readonly growth?: number;
   /** Dwelling: creatures waiting to be hired. */
   readonly stock?: number;
-  /** Dwelling: its picture; bank: 'keep' or 'mastaba'; lair: 'den' or 'tomb'. */
-  readonly look?: DwellingLook | BankLook | LairLook;
+  /** Dwelling: its picture; bank: 'keep' or 'mastaba'; lair: 'den' or 'tomb'; sanctum: its picture and name. */
+  readonly look?: DwellingLook | BankLook | LairLook | SanctumLook;
   /** Learning stone: the heroes who have read it (each may once). */
   readonly visitedBy?: readonly string[];
   /** Bank: its prize, taken once its guard is beaten: gold and goods (and `item`, a piece of gear). */
   readonly prize?: Amount;
   /** Bank: emptied, it stands as a ruin. */
   readonly looted?: boolean;
-  /** Weekly sites: the week last emptied; lair: the week its last group came out. */
+  /** Weekly sites: the week last emptied (an arena or a sanctum: last trained); lair: the week its last group came out. */
   readonly week?: number;
   /** Lair: the day its part opened, which its groups grow from. */
   readonly since?: number;
@@ -77,7 +85,7 @@ export interface MapObject {
 /** Things that vanish once visited. */
 export const PICKUPS: readonly ObjectKind[] = ['pile', 'chest', 'campfire', 'spellbook', 'item'];
 /** Sites drawn a building tall: they also block the tile behind their own. */
-const TALL: readonly ObjectKind[] = ['mine', 'mercCamp', 'watchtower', 'windmill', 'stables', 'dwelling', 'bank', 'lair'];
+const TALL: readonly ObjectKind[] = ['mine', 'mercCamp', 'watchtower', 'windmill', 'stables', 'dwelling', 'bank', 'lair', 'arena'];
 
 /**
  * Tiles an object blocks besides its own (x, y). As in H3 a hero never
@@ -104,7 +112,10 @@ export const SITE_NAMES: Readonly<Record<ObjectKind, string>> = {
   mercCamp: 'Mercenary Camp', watchtower: 'Old Watchtower', standingStone: 'Standing Stone', shrine: 'Wayside Shrine',
   windmill: 'Windmill', stables: 'Stables', spellbook: 'Spellbook Altar', monster: 'Monster', item: 'Gear on the ground',
   learningStone: 'Learning Stone', dwelling: 'Dwelling', bank: 'Treasure Keep', lair: 'Lair',
+  arena: 'Arena of Heroes', sanctum: 'Legendary Site',
 };
+/** Each legendary site's name on the map. */
+export const SANCTUM_NAMES: Readonly<Record<SanctumLook, string>> = { hephaestusForge: 'Forge of Hephaestus', raTemple: 'Temple of Ra' };
 /** Each lair's name on the map. */
 export const LAIR_NAMES: Readonly<Record<LairLook, string>> = { den: 'Den', tomb: 'Tomb' };
 

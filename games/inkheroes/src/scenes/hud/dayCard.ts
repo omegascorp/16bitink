@@ -4,6 +4,7 @@ import type { DayReport, GoldSource, SourceKind } from '../../logic/dayReport';
 import { RESOURCES } from '../../logic/resources';
 import { badgeTexture, faceOf, heroArt, PX_TEX, unitArt } from '../battle/pixelAssets';
 import { cardButtonLook, drawPortrait, drawRule, FILLS, RIMS, SLOT, SLOT_GAP, type RimName } from '../battle/pixelFrames';
+import { rimOfUnit } from '../battle/rankLook';
 import type { CardView } from '../battle/pixelBuildCard';
 import { INK, PixelButton, PixelFrame, PixelImage, TextLabel, UI_TEX } from '../battle/pixelUi';
 import type { CardSpec } from '../CardScene';
@@ -213,7 +214,7 @@ export class PixelDayCard implements CardView {
       name.setPosition(x + BOX, at + Math.floor((slot - LINE) / 2));
       t.units.forEach((u, i) => {
         const fx = x + BOX + NAME_W + i * (slot + SLOT_GAP);
-        const face = this.keep(new PixelImage(this.scene, drawPortrait(faceOf(this.scene, PX_TEX.unit(u.creature, 'idle'), unitArt(u.creature), slot - FRAME), 'bronze', false, false, slot)));
+        const face = this.keep(new PixelImage(this.scene, drawPortrait(faceOf(this.scene, PX_TEX.unit(u.creature, 'idle'), unitArt(u.creature), slot - FRAME), rimOfUnit(u.creature), false, false, slot)));
         face.setPosition(fx, at);
         this.front!.add([face.img, this.scene.add.image(fx + slot - 1, at + slot - 1, badgeTexture(this.scene, 0, u.count)).setOrigin(1, 1)]);
       });

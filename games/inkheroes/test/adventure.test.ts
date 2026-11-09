@@ -370,17 +370,18 @@ describe('three levels of every unit', () => {
   /** The town with `more` built (no needs checked), the day's build free again. */
   const withBuilt = (...more: (typeof BUILDING_IDS)[number][]) => ({ ...start.towns[0]!, built: [...start.towns[0]!.built, ...more], builtToday: false });
 
-  it('gives each of the seven lines a base and two upgrades, all sharing the line', () => {
+  it('gives each of the seven lines a base and four ranks above it, all sharing the line', () => {
     for (const base of ['spearman', 'bowman', 'griffin', 'swordsman', 'monk', 'lancer', 'seraph'] as const) {
       const units = lineUnits(base);
-      expect(units.map(tierOf)).toEqual([1, 2, 3]);
+      expect(units.map(tierOf)).toEqual([1, 2, 3, 4, 5]);
       expect(units.every((u) => lineOf(u) === base)).toBe(true);
       // Each level is better than the one below it, and dearer.
-      for (let i = 1; i < 3; i++) {
+      for (let i = 1; i < units.length; i++) {
         const [a, b] = [creature(units[i - 1]!), creature(units[i]!)];
         expect(b.attack + b.defense + b.hp).toBeGreaterThan(a.attack + a.defense + a.hp);
         expect(b.cost.gold!).toBeGreaterThan(a.cost.gold!);
-        expect(!!b.flies).toBe(!!a.flies);
+        // The Pegasus Rider, the Companions' Legendary, is the one rank that takes wing.
+        expect(!!b.flies).toBe(!!a.flies || b.id === 'lancer5');
         expect(!!b.wide).toBe(!!a.wide);
       }
     }

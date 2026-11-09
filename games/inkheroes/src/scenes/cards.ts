@@ -17,7 +17,9 @@ import { isLineId, lineText } from '../narration/lines';
 import { addTroops } from '../logic/army';
 import { creature } from '../logic/creatures';
 import { dwellingHireable, dwellingName, dwellingStock } from '../logic/dwellings';
-import { RESOURCES } from '../logic/resources';
+import { briefAmount, RESOURCES } from '../logic/resources';
+import { RARITY_NAMES, type Rarity } from '../logic/rarity';
+import { trainAt, trainingName, trainOffers, trainsFrom } from '../logic/training';
 
 /**
  * The cards the map shows from the adventure's state: its waiting prompts
@@ -64,6 +66,13 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
   }
   if (first?.kind === 'dwelling') {
     openCard(scene, dwellingCard(adv, first, next));
+    return;
+  }
+  if (first?.kind === 'train') {
+    openCard(scene, trainCard(adv, first, (slot) => {
+      session.set(trainAt(session.adv, slot));
+      scene.showPrompts();
+    }));
     return;
   }
   if (first?.kind === 'levelUp') {
@@ -127,6 +136,30 @@ function dwellingCard(adv: Adventure, p: Extract<Adventure['prompts'][number], {
     buttons: [
       ...(can ? [{ label: `Hire ${can}`, kind: 'crown' as const, onClick: () => next('hire') }] : []),
       { label: 'Leave', kind: can ? 'plain' as const : 'crown' as const, onClick: () => next() },
+    ],
+  };
+}
+
+/** How many companies a training card offers at once (the strongest lines'), so its buttons fit a phone. */
+const TRAIN_CHOICES = 4;
+
+/** A training site: a button for each company it can train (how many, into what, the price), and Leave. */
+function trainCard(adv: Adventure, p: Extract<Adventure['prompts'][number], { kind: 'train' }>, pick: (slot?: number) => void): CardSpec {
+  const o = adv.objects.find((x) => x.id === p.id)!;
+  const from = trainsFrom(o);
+  const offers = trainOffers(o, adv.hero.army, adv.purse).slice(0, TRAIN_CHOICES);
+  const once = o.kind === 'sanctum' ? 'half a week’s growth of a line' : 'a week’s growth of a line';
+  return {
+    title: trainingName(o),
+    body: `${RARITY_NAMES[from]} troops train here to ${RARITY_NAMES[(from + 1) as Rarity]}: up to ${once}, once a week. Pick a company.`,
+    buttons: [
+      ...offers.map((t) => ({
+        label: `Train ${t.count} ${creature(t.from).plural}`,
+        note: `into ${creature(t.to).plural} · ${briefAmount(t.cost)}`,
+        kind: 'crown' as const,
+        onClick: () => pick(t.slot),
+      })),
+      { label: 'Leave', kind: 'plain' as const, onClick: () => pick() },
     ],
   };
 }

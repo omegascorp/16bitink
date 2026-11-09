@@ -225,5 +225,5 @@ export const drawTitle: MenuDrawer = (ctx, seed) => {
   ctx.clip();
   bloomAt(ctx, pt(CX - HALF, CY - HALF_H), 300, LIGHT, 0.35);
   ctx.restore();
-  lettering(ctx, 'INKHEROES');
+  lettering(ctx, 'InkHeroes');
 };

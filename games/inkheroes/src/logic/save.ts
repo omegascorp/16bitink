@@ -395,14 +395,19 @@ export function buildable(raw: readonly BuildingId[], start: readonly BuildingId
   return [...kept];
 }
 
+/** Objects a save made before the map had them takes in fresh: monsters, and the training sites rarity brought (Nov 2026). */
+const JOINS_FRESH: readonly MapObject['kind'][] = ['monster', 'arena', 'sanctum'];
+/** Sites that keep the week they were last used. */
+const WEEKLY: readonly MapObject['kind'][] = ['windmill', 'stables', 'lair', 'arena', 'sanctum'];
+
 /** The map's objects with what play changed (owner, gone, count, week) read from the save. */
 function parseObjects(raw: readonly unknown[], def: MapDef): MapObject[] | null {
   const byId = new Map(raw.filter(isObj).map((o) => [o.id, o]));
   const out: MapObject[] = [];
   for (const base of def.objects) {
     const s = byId.get(base.id);
-    // A monster the map gained after this save was made joins it fresh; anything else missing means a bad save.
-    if (!s && base.kind === 'monster') {
+    // A monster (or a training site) the map gained after this save was made joins it fresh; anything else missing means a bad save.
+    if (!s && JOINS_FRESH.includes(base.kind)) {
       out.push(base);
       continue;
     }
@@ -415,7 +420,7 @@ function parseObjects(raw: readonly unknown[], def: MapDef): MapObject[] | null 
     const ownable = base.kind === 'mine' || base.kind === 'town' || base.kind === 'dwelling';
     const owner = ownable && (s.owner === 'player' || s.owner === 'neutral' || s.owner === 'rival') ? s.owner : base.owner;
     const count = base.kind === 'monster' && isInt(s.count, 1, MAX_MONSTER) ? s.count : base.count;
-    const week = (base.kind === 'windmill' || base.kind === 'stables' || base.kind === 'lair') && isInt(s.week, 1) ? s.week : undefined;
+    const week = WEEKLY.includes(base.kind) && isInt(s.week, 1) ? s.week : undefined;
     out.push({ ...base, ...(owner ? { owner } : {}), ...(count !== undefined ? { count } : {}), ...(week !== undefined ? { week } : {}), ...siteState(base, s), ...(s.gone === true ? { gone: true } : {}) });
   }
   return [...out, ...grownObjects(raw, def)];
@@ -478,6 +483,10 @@ function parsePrompt(raw: unknown, objects: readonly MapObject[], def: MapDef): 
     // Its piece, for a chest that holds one (the roll's own, as it was dealt).
     const item = chestHoldsPiece(def, chest) && isItemId(raw.item) ? { item: raw.item } : {};
     return { kind: 'chest', id: chest.id, gold, xp: CHEST_XP[gold] ?? Math.floor(gold / 2), ...item };
+  }
+  if (raw.kind === 'train' && typeof raw.id === 'string') {
+    const site = objects.find((o) => o.id === raw.id && (o.kind === 'arena' || o.kind === 'sanctum') && !o.gone);
+    return site ? { kind: 'train', id: site.id } : null;
   }
   if (raw.kind === 'dwelling' && typeof raw.id === 'string') {
     const home = objects.find((o) => o.id === raw.id && o.kind === 'dwelling' && !o.gone);

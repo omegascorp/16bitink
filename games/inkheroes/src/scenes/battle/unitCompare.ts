@@ -1,5 +1,6 @@
 import type { StatName } from '../../art/pixel/ui';
 import { creature, lineOf, lineUnits, tierOf, type CreatureId } from '../../logic/creatures';
+import { rankOf, type Rarity } from '../../logic/rarity';
 import { describeAmount } from '../../logic/resources';
 import { newTraits, traitList } from './unitCard';
 
@@ -8,6 +9,11 @@ import { newTraits, traitList } from './unitCard';
 /** A unit's levels in order, base first, up to and including `id`: what the Compare panel shows (nothing for a base unit). */
 export function lineUpTo(id: CreatureId): CreatureId[] {
   return lineUnits(lineOf(id)).slice(0, tierOf(id));
+}
+
+/** How many columns side by side fit `screen` at the narrowest a column may be (a phone: four; wider: all five ranks). */
+export function columnsThatFit(screen: { w: number }): number {
+  return Math.max(2, Math.floor((screen.w - 8 - PAD * 2 + GAP) / (MIN_COL_W + GAP)));
 }
 
 /** Whether a unit has an earlier level to compare with. */
@@ -38,6 +44,8 @@ export interface CompareColumn {
   readonly traits: readonly CompareTrait[];
   /** The unit that was tapped (framed in gold). */
   readonly tapped: boolean;
+  /** Its rank (its name is drawn in the rank's colour); null for a unit with none. */
+  readonly rank: Rarity | null;
 }
 
 const damageText = (id: CreatureId): string => {
@@ -60,9 +68,13 @@ function cellsOf(id: CreatureId, prev: CreatureId | null, withShots: boolean): C
   return rows;
 }
 
-/** The columns of `id`'s line from level 1 up to `id`, with what rose and what is new marked. Empty for a base unit. */
-export function compareColumns(id: CreatureId): CompareColumn[] {
-  const line = lineUpTo(id);
+/**
+ * The columns of `id`'s line from level 1 up to `id`, with what rose and
+ * what is new marked; at most `max` of them, the tapped one and those just
+ * below it (a narrow screen drops the lowest). Empty for a base unit.
+ */
+export function compareColumns(id: CreatureId, max = Infinity): CompareColumn[] {
+  const line = lineUpTo(id).slice(-Math.max(2, max));
   if (line.length < 2) return [];
   const withShots = line.some((u) => !!creature(u).shots);
   return line.map((u, i) => {
@@ -79,6 +91,7 @@ export function compareColumns(id: CreatureId): CompareColumn[] {
       cost: describeAmount(c.cost),
       traits: traitList(u).map((text) => ({ text, isNew: fresh.has(text) })),
       tapped: u === id,
+      rank: rankOf(u),
     };
   });
 }
@@ -89,6 +102,8 @@ export const ROW_H = 16;
 export const LINE_H = 15;
 export const BTN_H = 30;
 const MAX_COL_W = 150;
+/** The narrowest a column may be, its text still readable. */
+const MIN_COL_W = 60;
 const FIGURE_MIN_COL = 100;
 const MAX_PIC = 112;
 export const FACE_PIC = 32;
@@ -138,7 +153,7 @@ export interface CompareLayout {
 /** One column's width on `screen` for `n` columns (the view measures its text with it). */
 export function columnWidth(screen: { w: number }, n: number): number {
   const room = screen.w - 8 - PAD * 2 - GAP * (n - 1);
-  return Math.max(60, Math.min(MAX_COL_W, Math.floor(room / n)));
+  return Math.max(MIN_COL_W, Math.min(MAX_COL_W, Math.floor(room / n)));
 }
 
 /** The text width inside a column. */

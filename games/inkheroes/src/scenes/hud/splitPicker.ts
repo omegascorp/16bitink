@@ -2,6 +2,7 @@ import type Phaser from 'phaser';
 import { creature, type CreatureId } from '../../logic/creatures';
 import { faceOf, PX_TEX, unitArt } from '../battle/pixelAssets';
 import { drawPortrait } from '../battle/pixelFrames';
+import { rimOfUnit } from '../battle/rankLook';
 import { PixelButton, PixelFrame, PixelImage, TextLabel } from '../battle/pixelUi';
 import { splitCount } from './armySlots';
 
@@ -53,7 +54,7 @@ export class SplitPicker {
     frame.img.setInteractive();
     const cr = creature(id);
     const title = new TextLabel(scene, { kind: 'title', anchor: { x: 0.5, y: 0 } }).setText(`Split ${cr.plural}`).setPosition(x + Math.floor(w / 2), y + PANEL.pad);
-    const face = drawPortrait(faceOf(scene, PX_TEX.unit(id, 'idle'), unitArt(id), FACE_SLOT - 4), 'bronze', false, false, FACE_SLOT);
+    const face = drawPortrait(faceOf(scene, PX_TEX.unit(id, 'idle'), unitArt(id), FACE_SLOT - 4), rimOfUnit(id), false, false, FACE_SLOT);
     const faceY = y + PANEL.pad + 19;
     const leftX = x + PANEL.pad + 26;
     const rightX = x + w - PANEL.pad - 26 - FACE_SLOT;

@@ -5,6 +5,8 @@ import { drawPortrait, EDGE, FACE, RIMS, SLOT, SLOT_GAP, type RimName } from './
 import { PixelBuffer } from './pixelRaster';
 import type { Pixels } from './pixelScenery';
 import { putBuffer } from './pixelUi';
+import { RANK_RIM } from './rankLook';
+import { rankOf, type Rarity } from '../../logic/rarity';
 
 /** The active unit's marker under its portrait: a small gold arrow, this tall. */
 const MARKER_H = 4;
@@ -25,10 +27,29 @@ function drawMarker(): PixelBuffer {
   return b;
 }
 
+/** The rank gem's size from its middle (a diamond), and where its middle sits from the portrait's top-right corner. */
+const GEM_R = 2;
+const GEM_AT = 5;
+
+/** A small diamond in the rank's colour, outlined, in the portrait's top-right corner: the side keeps the rim, the gem tells the rank. */
+function drawRankGem(b: PixelBuffer, rank: Rarity): void {
+  const rim = RIMS[RANK_RIM[rank]];
+  const cx = b.w - GEM_AT;
+  const cy = GEM_AT - 1;
+  for (let dy = -GEM_R - 1; dy <= GEM_R + 1; dy++) {
+    for (let dx = -GEM_R - 1; dx <= GEM_R + 1; dx++) {
+      const d = Math.abs(dx) + Math.abs(dy);
+      if (d > GEM_R + 1) continue;
+      // Lit from the top left, as the rims are.
+      b.put(cx + dx, cy + dy, d === GEM_R + 1 ? EDGE : dx + dy < 0 ? rim.light : dx + dy > 0 ? rim.dark : rim.mid);
+    }
+  }
+}
+
 /**
  * The units still to act this round, left to right, as faces: the next one
  * first, ringed in gold with an arrow under it, the rest in their side's
- * colour. Portraits are kept per creature, side and look, so redrawing the
+ * colour, a small gem in the corner telling its rank. Portraits are kept per creature, side, look and rank, so redrawing the
  * row each turn only moves images.
  */
 export class TurnOrder {
@@ -73,7 +94,8 @@ export class TurnOrder {
 
   private portrait(s: Stack, active: boolean): string {
     const rim: RimName = active ? 'gold' : s.side === this.me ? 'player' : 'enemy';
-    const id = `${s.creature}|${s.side}|${rim}|${s.waited ? 1 : 0}`;
+    const rank = rankOf(s.creature);
+    const id = `${s.creature}|${s.side}|${rim}|${s.waited ? 1 : 0}|${rank ?? 0}`;
     let key = this.keys.get(id);
     if (!key) {
       let face = this.faces.get(s.creature);
@@ -81,7 +103,9 @@ export class TurnOrder {
         face = faceCrop(this.scene, s.creature);
         this.faces.set(s.creature, face);
       }
-      key = putBuffer(this.scene, drawPortrait(face, rim, s.side === 1, !!s.waited));
+      const b = drawPortrait(face, rim, s.side === 1, !!s.waited);
+      if (rank) drawRankGem(b, rank);
+      key = putBuffer(this.scene, b);
       this.keys.set(id, key);
     }
     return key;

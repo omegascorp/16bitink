@@ -3,6 +3,7 @@ import { ARMY_SLOTS, type Army } from '../../logic/army';
 import { badgeTexture, faceOf, PX_TEX, unitArt } from '../battle/pixelAssets';
 import { drawPortrait, drawSocket, SLOT, SLOT_GAP, type RimName } from '../battle/pixelFrames';
 import { putBuffer } from '../battle/pixelUi';
+import { rimOfUnit } from '../battle/rankLook';
 
 /** A portrait's frame round the cut, UI pixels. */
 const FRAME = 4;
@@ -10,7 +11,7 @@ const FRAME = 4;
 /**
  * An army's slots (seven, or the tower places) as portraits in frames, each with its count (the
  * town's garrison and visitor, the hero's sheet), `slot` pixels across. A
- * slot can be lit (picked). Portraits are cut once per creature and rim and
+ * slot can be lit (picked); a face is framed in its rank's colour. Portraits are cut once per creature and rim and
  * kept. Set `onPress` to hear a press on a slot (ArmyDrag does).
  */
 export class ArmyRow {
@@ -54,12 +55,12 @@ export class ArmyRow {
     return key;
   }
 
-  /** Shows `army` (null: dim empty slots), the `lit` slot in gold; slots from `open` on are dim, not there yet. */
+  /** Shows `army` (null: dim empty slots), the `lit` slot in gold, each face in its rank's colour; slots from `open` on are dim, not there yet. */
   set(army: Army | null, lit: number | null = null, open: number = Infinity): void {
     this.slots.forEach((s, i) => {
       const slot = army?.[i] ?? null;
       const rim: RimName = i === lit ? 'gold' : army && i < open ? 'bronze' : 'dim';
-      s.img.setTexture(slot ? this.face(slot.creature, rim) : this.empty(rim));
+      s.img.setTexture(slot ? this.face(slot.creature, rim === 'bronze' ? rimOfUnit(slot.creature) : rim) : this.empty(rim));
       s.badge.setVisible(!!slot);
       if (slot) s.badge.setTexture(badgeTexture(this.scene, 0, slot.count));
     });

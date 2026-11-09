@@ -63,6 +63,8 @@ export class LoadingScene extends Phaser.Scene {
 export interface LoadingCover {
   /** The art is in: the bar moves on to laying the scene out, named `text`; resolves once that has been drawn. */
   laying(text: string): Promise<void>;
+  /** How far laying the scene out has got (0..1): the rest of the bar. */
+  layingProgress(f: number): void;
   /** The scene is ready: the screen goes. */
   close(): void;
 }
@@ -71,7 +73,7 @@ export interface LoadingCover {
 export function coverWhileLoading(scene: Phaser.Scene, text: string): LoadingCover {
   const plugin = scene.scene;
   // A scene run on its own (the battle sandbox) has no loading screen: it just loads.
-  if (!plugin.get('Loading')) return { laying: () => Promise.resolve(), close: () => undefined };
+  if (!plugin.get('Loading')) return { laying: () => Promise.resolve(), layingProgress: () => undefined, close: () => undefined };
   plugin.launch('Loading', { text });
   plugin.bringToTop('Loading');
   const cover = (): LoadingScene | null => {
@@ -91,6 +93,7 @@ export function coverWhileLoading(scene: Phaser.Scene, text: string): LoadingCov
       // Two frames: one for the bar to be drawn, one before the heavy layout starts.
       return new Promise((resolve) => scene.game.events.once(Phaser.Core.Events.POST_RENDER, () => scene.game.events.once(Phaser.Core.Events.POST_RENDER, () => resolve())));
     },
+    layingProgress: (f) => cover()?.setProgress(ART_SHARE + Math.min(1, Math.max(0, f)) * (1 - ART_SHARE)),
     close: () => {
       stopListening();
       cover()?.setProgress(1);

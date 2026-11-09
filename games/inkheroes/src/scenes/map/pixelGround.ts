@@ -93,7 +93,10 @@ export function groundSize(g: Grid): { w: number; h: number } {
  * nudged by a wandering warp so borders meander. The border carries on the
  * edge tiles.
  */
-function terrainField(spec: GroundSpec, w: number, h: number): Uint8Array {
+/** Rows painted between pauses in groundSteps. */
+const STEP_ROWS = 24;
+
+function* terrainField(spec: GroundSpec, w: number, h: number): Generator<number, Uint8Array> {
   const { grid: g, seed } = spec;
   const out = new Uint8Array(w * h);
   const off = GROUND_BORDER * MAP_TILE;
@@ -101,6 +104,7 @@ function terrainField(spec: GroundSpec, w: number, h: number): Uint8Array {
   const at = (tx: number, ty: number): number => codes[Math.min(g.w - 1, Math.max(0, tx)) + Math.min(g.h - 1, Math.max(0, ty)) * g.w]!;
   const score = new Float32Array(TERRAINS.length);
   for (let y = 0; y < h; y++) {
+    if (y % STEP_ROWS === 0) yield y / h;
     for (let x = 0; x < w; x++) {
       const wx = signed(seed + 1, x, y, WARP.broadScale) * WARP.broad + signed(seed + 3, x, y, WARP.fineScale) * WARP.fine;
       const wy = signed(seed + 2, x, y, WARP.broadScale) * WARP.broad + signed(seed + 4, x, y, WARP.fineScale) * WARP.fine;
@@ -274,17 +278,37 @@ function roadDistance(g: Grid, seed: number, w: number, h: number): Float32Array
 
 /** The whole map's ground, RGBA, groundSize(grid) big. */
 export function composeGround(spec: GroundSpec): Pixels {
+  const steps = groundSteps(spec);
+  for (;;) {
+    const r = steps.next();
+    if (r.done) return r.value;
+  }
+}
+
+/**
+ * composeGround in slices: it pauses every few rows with how far it has got
+ * (0..1), so a loading screen can draw a frame between slices instead of
+ * the whole page freezing while a big map's ground is painted (user, Nov 9).
+ */
+export function* groundSteps(spec: GroundSpec): Generator<number, Pixels> {
   const { grid: g, seed } = spec;
   const { w, h } = groundSize(g);
-  const field = terrainField(spec, w, h);
+  const terrain = terrainField(spec, w, h);
+  let step = terrain.next();
+  for (; !step.done; step = terrain.next()) yield step.value * 0.35;
+  const field = step.value;
   const toLand = distanceInside((i) => field[i] === WATER, w, h);
+  yield 0.4;
   const toWater = distanceInside((i) => field[i] !== WATER, w, h);
+  yield 0.45;
   const roads = roadDistance(g, seed, w, h);
+  yield 0.5;
   const data = new Uint8ClampedArray(w * h * 4);
   const swatchFor = TERRAINS.map((t) => spec.swatches[t] ?? null);
   const rankOf = TERRAINS.map((t) => RANK[t]);
   const dirt = spec.swatches.dirt ?? null;
   for (let y = 0; y < h; y++) {
+    if (y % STEP_ROWS === 0) yield 0.5 + (y / h) * 0.5;
     for (let x = 0; x < w; x++) {
       const i = y * w + x;
       const t = field[i]!;

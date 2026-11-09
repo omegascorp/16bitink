@@ -262,6 +262,40 @@
     36
    ]
   },
+  "spearman4": {
+   "name": "Myrmidon",
+   "src": "pixel/src/spearman4.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a myrmidon in polished bronze and gold with a purple-and-black crested Corinthian helmet, an embossed cuirass with amethysts, a Tyrian purple cloak and a gold-rimmed shield with a gold lambda, with a spear",
+   "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    38,
+    36
+   ]
+  },
+  "spearman5": {
+   "name": "Champion of Ares",
+   "src": "pixel/src/spearman5.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a champion of Ares in god-forged gold armour with a fiery orange-and-red crest, a molten orange-rimmed gold shield with a spearhead emblem, an ember-orange spear tip and a cloak of orange-gold flames",
+   "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    37,
+    36
+   ]
+  },
   "bowman2": {
    "name": "Achaean Slinger",
    "src": "pixel/src/bowman2.png",
@@ -301,6 +335,48 @@
    ],
    "face": [
     40,
+    41
+   ]
+  },
+  "bowman4": {
+   "name": "Stormslinger",
+   "src": "pixel/src/bowman4.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a stormslinger in a purple-crested gilded helmet, a gold-trimmed bronze breastplate and greaves and a Tyrian purple cloak, swinging a leather sling with a violet lightning stone",
+   "attack": "slinging attack: whirls the sling overhead twice and releases the stone forward to the right with a snap of the arm, then recovers; feet stay in place",
+   "strike": 5,
+   "shot": [
+    70,
+    48
+   ],
+   "face": [
+    40,
+    41
+   ]
+  },
+  "bowman5": {
+   "name": "Slinger of Zeus",
+   "src": "pixel/src/bowman5.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a slinger of Zeus in polished gold armour, a gold helmet with small eagle wings and an orange-and-white crest and a bright orange cloak, swinging a leather sling crackling with orange-gold lightning",
+   "attack": "slinging attack: whirls the sling overhead twice and releases the stone forward to the right with a snap of the arm, then recovers; feet stay in place",
+   "strike": 5,
+   "shot": [
+    72,
+    48
+   ],
+   "face": [
+    42,
     41
    ]
   },
@@ -360,6 +436,62 @@
     62
    ]
   },
+  "griffin4": {
+   "name": "Royal Griffin",
+   "src": "pixel/src/griffin4.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "flies": true,
+   "subject": "a royal golden griffin with a small gold crown and a purple plume, engraved gold plate with amethysts and a Tyrian purple saddle cloth with gold tassels",
+   "walk": "flying in place loop: big slow wing beats, body bobs up and down a little, legs tucked, ends back at the starting pose",
+   "attack": "pounce attack: rears up, beats its wings once and lunges forward to the right with beak and talons, then settles back to the starting pose",
+   "strike": 3,
+   "walkFrom": {
+    "pose": "attack",
+    "frames": [
+     0,
+     1,
+     2,
+     1
+    ]
+   },
+   "face": [
+    88,
+    62
+   ]
+  },
+  "griffin5": {
+   "name": "Griffin of Apollo",
+   "src": "pixel/src/griffin5.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "flies": true,
+   "subject": "a griffin of Apollo with radiant gold feathers and wing tips burning with orange sun fire, a blazing crown of sun rays and an orange saddle cloth with a gold sun",
+   "walk": "flying in place loop: big slow wing beats, body bobs up and down a little, legs tucked, ends back at the starting pose",
+   "attack": "pounce attack: rears up, beats its wings once and lunges forward to the right with beak and talons, then settles back to the starting pose",
+   "strike": 3,
+   "walkFrom": {
+    "pose": "attack",
+    "frames": [
+     0,
+     1,
+     2,
+     1
+    ]
+   },
+   "face": [
+    89,
+    62
+   ]
+  },
   "swordsman2": {
    "name": "Minotaur Guard",
    "src": "pixel/src/swordsman2.png",
@@ -391,6 +523,40 @@
    "strike": 3,
    "face": [
     63,
+    40
+   ]
+  },
+  "swordsman4": {
+   "name": "Minotaur Champion",
+   "src": "pixel/src/swordsman4.png",
+   "canvas": [
+    112,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a minotaur champion in heavy ornate gold and bronze plate with amethysts, gold-capped horns, a purple crest, a Tyrian purple gold-trimmed cloak and a gold-edged labrys",
+   "attack": "axe chop attack: raises the double axe high over the horns and brings it down hard in front to the right, then lifts it back to the starting pose; hooves stay in place",
+   "strike": 3,
+   "face": [
+    64,
+    40
+   ]
+  },
+  "swordsman5": {
+   "name": "Minotaur King",
+   "src": "pixel/src/swordsman5.png",
+   "canvas": [
+    112,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a minotaur king with a jewelled gold crown between gilded horns, massive ornate gold plate, a deep orange cloak with a molten gold border and a gold labrys with glowing orange runes",
+   "attack": "axe chop attack: raises the double axe high over the horns and brings it down hard in front to the right, then lifts it back to the starting pose; hooves stay in place",
+   "strike": 3,
+   "face": [
+    66,
     40
    ]
   },
@@ -436,6 +602,48 @@
     41
    ]
   },
+  "monk4": {
+   "name": "Centaur Warlord",
+   "src": "pixel/src/monk4.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a white-bearded centaur warlord in a purple-plumed gilded helmet, a gold cuirass with a purple sash, gold barding and a Tyrian purple saddle cloth, with a golden bow",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, the bow snaps forward, then reaches for a new arrow and returns to the starting pose; hooves stay in place",
+   "strike": 3,
+   "shot": [
+    96,
+    50
+   ],
+   "face": [
+    65,
+    41
+   ]
+  },
+  "monk5": {
+   "name": "Heir of Chiron",
+   "src": "pixel/src/monk5.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "the heir of Chiron: a white-bearded centaur with an orange-plumed gold laurel crown, white and gold star-engraved armour, a white cloak, an orange saddle cloth of gold stars and an orange-gold glowing bow",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, the bow snaps forward, then reaches for a new arrow and returns to the starting pose; hooves stay in place",
+   "strike": 3,
+   "shot": [
+    97,
+    49
+   ],
+   "face": [
+    66,
+    40
+   ]
+  },
   "lancer2": {
    "name": "Royal Companion",
    "src": "pixel/src/lancer2.png",
@@ -472,6 +680,43 @@
     37
    ]
   },
+  "lancer4": {
+   "name": "Agema Guard",
+   "src": "pixel/src/lancer4.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "an agema guard on a white horse: rider in gold-trimmed silver scale armour, a white-plumed gilded helmet and a purple cloak, the horse in gold-trimmed scale barding with a gold face plate, with a long lance",
+   "walk": "galloping in place loop: the horse gallops with legs reaching and gathering, the rider rocks with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "lance charge attack: the horse surges forward, the rider drives the long lance hard to the right, then the horse settles back to the starting pose",
+   "strike": 2,
+   "face": [
+    60,
+    37
+   ]
+  },
+  "lancer5": {
+   "name": "Pegasus Rider",
+   "src": "pixel/src/lancer5.png",
+   "canvas": [
+    128,
+    128
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a pegasus rider: the white horse has great white feathered wings edged in orange-gold, rider in gold and white armour with an orange-plumed helmet and an orange cloak and saddle cloth, with a long lance",
+   "walk": "galloping in place loop: the horse gallops with legs reaching and gathering, the rider rocks with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "lance charge attack: the horse surges forward, the rider drives the long lance hard to the right, then the horse settles back to the starting pose",
+   "strike": 2,
+   "face": [
+    60,
+    53
+   ],
+   "flies": true
+  },
   "seraph2": {
    "name": "Elder Titan",
    "src": "pixel/src/seraph2.png",
@@ -505,6 +750,42 @@
    "strike": 4,
    "face": [
     66,
+    39
+   ]
+  },
+  "seraph4": {
+   "name": "Storm Titan",
+   "src": "pixel/src/seraph4.png",
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 8,
+   "dx": -8,
+   "subject": "a colossal storm titan in golden armour with violet runes, purple storm clouds on the shoulders, violet lightning on the armour and crown and a Tyrian purple cloak, holding a violet lightning bolt",
+   "walk": "slow heavy striding in place loop: huge legs lift and plant, cloak sways, stays in the same spot, ends back at the starting pose",
+   "attack": "lightning strike attack: raises the lightning bolt high, crackling brighter, then hurls it down and forward to the right with a flash, then returns to the starting pose; feet stay planted",
+   "strike": 4,
+   "face": [
+    65,
+    39
+   ]
+  },
+  "seraph5": {
+   "name": "Titan of Olympus",
+   "src": "pixel/src/seraph5.png",
+   "canvas": [
+    144,
+    136
+   ],
+   "foot": 8,
+   "dx": -8,
+   "subject": "the titan of Olympus in radiant gold armour wreathed in orange sun fire, a blazing crown of orange-gold rays, an orange and gold cloak, glowing clouds at the feet and a blazing orange-gold lightning bolt",
+   "walk": "slow heavy striding in place loop: huge legs lift and plant, cloak sways, stays in the same spot, ends back at the starting pose",
+   "attack": "lightning strike attack: raises the lightning bolt high, crackling brighter, then hurls it down and forward to the right with a flash, then returns to the starting pose; feet stay planted",
+   "strike": 4,
+   "face": [
+    63,
     39
    ]
   },
@@ -960,6 +1241,40 @@
     38
    ]
   },
+  "levy4": {
+   "name": "Guard of Pharaoh",
+   "src": "pixel/src/levy4.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a guard of Pharaoh in a gilded horned helmet with a sun disc, a gold scale corselet with amethysts, a purple-striped royal kilt and sash and a gold sun shield, with a spear",
+   "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    37,
+    38
+   ]
+  },
+  "levy5": {
+   "name": "Champion of Montu",
+   "src": "pixel/src/levy5.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a champion of Montu in a gold falcon helmet crowned with a blazing orange sun disc and orange-tipped plumes, gold armour with an orange sash and a gold falcon-wing shield, with an orange-burning spear",
+   "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    37,
+    38
+   ]
+  },
   "nubian2": {
    "name": "Medjay Archer",
    "src": "pixel/src/nubian2.png",
@@ -1002,6 +1317,48 @@
     51
    ]
   },
+  "nubian4": {
+   "name": "Royal Bowman",
+   "src": "pixel/src/nubian4.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a royal bowman with tall white and purple plumes, a gold scale corselet with amethysts, a Tyrian purple kilt and sash, drawing a gold-banded great bow",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; feet stay in place",
+   "strike": 4,
+   "face": [
+    35,
+    41
+   ],
+   "shot": [
+    68,
+    51
+   ]
+  },
+  "nubian5": {
+   "name": "Archer of Neith",
+   "src": "pixel/src/nubian5.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "the archer of Neith with towering orange-tipped white plumes, a gold diadem, gold scale armour, a bright orange cloak and a gilded great bow with an ember-glowing arrow",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; feet stay in place",
+   "strike": 4,
+   "face": [
+    36,
+    41
+   ],
+   "shot": [
+    69,
+    51
+   ]
+  },
   "jackal2": {
    "name": "Sentinel of Anubis",
    "src": "pixel/src/jackal2.png",
@@ -1033,6 +1390,40 @@
    "strike": 4,
    "face": [
     48,
+    45
+   ]
+  },
+  "jackal4": {
+   "name": "Champion of Anubis",
+   "src": "pixel/src/jackal4.png",
+   "canvas": [
+    112,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a champion of Anubis, a jackal-headed warrior in heavy gold plate with purple stripes, a jewelled collar and a purple-lined black cape, with a glowing spear and a khopesh",
+   "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    47,
+    45
+   ]
+  },
+  "jackal5": {
+   "name": "Chosen of Anubis",
+   "src": "pixel/src/jackal5.png",
+   "canvas": [
+    112,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "the chosen of Anubis in obsidian-black and gold armour with glowing orange eyes, a black cloak lined with ember orange, an orange fire-tipped spear and a venom-dripping khopesh",
+   "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    49,
     45
    ]
   },
@@ -1072,6 +1463,42 @@
    ],
    "walk": "galloping in place loop: the horses gallop with legs reaching and gathering, the car rocks on its wheels, stays in the same spot, ends back at the starting pose"
   },
+  "chariot4": {
+   "name": "Pharaoh's Chariot",
+   "src": "pixel/src/chariot4.png",
+   "canvas": [
+    144,
+    112
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a pharaoh's chariot with purple panels and amethysts, a crowned spear-and-shield warrior with a purple shield and two horses in Tyrian purple barding with purple plumes",
+   "attack": "charge attack: the horses surge forward at a gallop, the warrior in the car thrusts the long spear hard forward to the right, then the chariot settles back to the starting pose",
+   "strike": 2,
+   "face": [
+    30,
+    23
+   ],
+   "walk": "galloping in place loop: the horses gallop with legs reaching and gathering, the car rocks on its wheels, stays in the same spot, ends back at the starting pose"
+  },
+  "chariot5": {
+   "name": "Chariot of the Sun",
+   "src": "pixel/src/chariot5.png",
+   "canvas": [
+    144,
+    112
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a chariot of the sun in blazing gold with orange sun-disc emblems and wheels, a falcon-crowned warrior with an orange sun shield and two white horses in gold and orange barding with orange plumes",
+   "attack": "charge attack: the horses surge forward at a gallop, the warrior in the car thrusts the long spear hard forward to the right, then the chariot settles back to the starting pose",
+   "strike": 2,
+   "face": [
+    30,
+    23
+   ],
+   "walk": "galloping in place loop: the horses gallop with legs reaching and gathering, the car rocks on its wheels, stays in the same spot, ends back at the starting pose"
+  },
   "mummy2": {
    "name": "Royal Mummy",
    "src": "pixel/src/mummy2.png",
@@ -1104,6 +1531,40 @@
    "face": [
     48,
     24
+   ]
+  },
+  "mummy4": {
+   "name": "Undying Pharaoh",
+   "src": "pixel/src/mummy4.png",
+   "canvas": [
+    112,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "an undying pharaoh mummy with a gold death mask with glowing violet eyes, a purple-striped nemes, a gold collar with amethysts and a Tyrian purple cape, with crook and flail",
+   "attack": "royal strike attack: raises the crook and flail and brings them down forward to the right, then lifts them back to the starting pose; feet stay in place",
+   "strike": 3,
+   "face": [
+    51,
+    24
+   ]
+  },
+  "mummy5": {
+   "name": "Avatar of Osiris",
+   "src": "pixel/src/mummy5.png",
+   "canvas": [
+    112,
+    120
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "the avatar of Osiris: a pharaoh mummy with a white and gold atef crown over the nemes, glowing orange eyes, orange-gold hieroglyph bands and an ember-orange cape, with crook and flail",
+   "attack": "royal strike attack: raises the crook and flail and brings them down forward to the right, then lifts them back to the starting pose; feet stay in place",
+   "strike": 3,
+   "face": [
+    53,
+    32
    ]
   },
   "sphinx2": {
@@ -1142,6 +1603,42 @@
    ],
    "walk": "prowling in place loop: four legs stride in rhythm, head held high, tail swings, stays in the same spot, ends back at the starting pose"
   },
+  "sphinx4": {
+   "name": "Sun Sphinx",
+   "src": "pixel/src/sphinx4.png",
+   "canvas": [
+    144,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a sun sphinx in polished gold armour with amethyst inlays, a purple and gold nemes with a sun disc, a Tyrian purple caparison and purple leg bands",
+   "attack": "pounce attack: crouches, lunges forward to the right with a roar and a swipe of the paw, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    90,
+    42
+   ],
+   "walk": "prowling in place loop: four legs stride in rhythm, head held high, tail swings, stays in the same spot, ends back at the starting pose"
+  },
+  "sphinx5": {
+   "name": "Sphinx of Giza",
+   "src": "pixel/src/sphinx5.png",
+   "canvas": [
+    144,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "the sphinx of Giza, monumental, a massive gold and carved sandstone body with hieroglyphs, an orange and gold striped nemes with a blazing orange sun disc, orange carnelian inlays and leg bands",
+   "attack": "pounce attack: crouches, lunges forward to the right with a roar and a swipe of the paw, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    89,
+    42
+   ],
+   "walk": "prowling in place loop: four legs stride in rhythm, head held high, tail swings, stays in the same spot, ends back at the starting pose"
+  },
   "bennu2": {
    "name": "Golden Bennu",
    "src": "pixel/src/bennu2.png",
@@ -1175,6 +1672,44 @@
    "strike": 3,
    "face": [
     88,
+    51
+   ],
+   "flies": true,
+   "walk": "flying in place loop: big slow wing beats, body bobs up and down a little, legs tucked, ends back at the starting pose"
+  },
+  "bennu4": {
+   "name": "Bennu of Heliopolis",
+   "src": "pixel/src/bennu4.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a bennu of Heliopolis, white with purple wing tips and a purple and gold head, a blazing rayed sun disc above its head and a long white-gold flame tail, flying",
+   "attack": "dive attack: beats its wings once, lunges forward to the right with beak and talons, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    90,
+    51
+   ],
+   "flies": true,
+   "walk": "flying in place loop: big slow wing beats, body bobs up and down a little, legs tucked, ends back at the starting pose"
+  },
+  "bennu5": {
+   "name": "Eternal Bennu",
+   "src": "pixel/src/bennu5.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "the eternal bennu, its plumage living white-gold fire edged with orange flame, a long orange-gold flame tail and a blazing orange sun disc above its head, flying",
+   "attack": "dive attack: beats its wings once, lunges forward to the right with beak and talons, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    92,
     51
    ],
    "flies": true,

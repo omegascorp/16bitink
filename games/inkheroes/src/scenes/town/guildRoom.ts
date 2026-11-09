@@ -4,7 +4,7 @@ import { itemQuality } from '../../logic/items';
 import { guildSpells, type Town } from '../../logic/town';
 import { SPELLS, type SpellId } from '../../logic/spells';
 import { INK, PixelButton, UI_TEX } from '../battle/pixelUi';
-import { QUALITY_RIM } from '../hud/gearPanel';
+import { QUALITY_RIM, qualityInk } from '../battle/rankLook';
 import { bookStand, spellFacts, spellNote } from './guildData';
 import { guildLayout, type GuildCell, type GuildLayout } from './guildLayout';
 import { roomIn, TownRoom } from './townRoom';
@@ -82,7 +82,7 @@ export class GuildRoom extends TownRoom {
       const top = y + (roomy ? 24 : 5);
       this.socket(mid - Math.floor(size / 2), top, size, rim, UI_TEX.item(stand.item), 1);
       let at = top + size + 2;
-      at += this.label(stand.name, mid, at, { kind: 'title', wrap: w - 12, anchor: { x: 0.5, y: 0 } }).height;
+      at += this.label(stand.name, mid, at, { kind: 'title', wrap: w - 12, anchor: { x: 0.5, y: 0 }, ink: qualityInk(stand.item) }).height;
       at += this.label(stand.says, mid, at + 1, { wrap: w - 12, anchor: { x: 0.5, y: 0 }, ink: INK.dim }).height + 1;
       for (const line of lines) at += this.label(line.text, mid, at + 1, { wrap: w - 12, anchor: { x: 0.5, y: 0 }, ink: line.ink }).height + 1;
       buy?.setPosition(x + 8, y + h - BUY_H - 8);
@@ -91,7 +91,7 @@ export class GuildRoom extends TownRoom {
       const tx = x + 6 + size + 8;
       const wrap = w - (tx - x) - (buy ? BUY_W + 12 : 8);
       let at = y + 6;
-      at += this.label(stand.name, tx, at, { kind: 'title', wrap, align: 'left', anchor: { x: 0, y: 0 } }).height;
+      at += this.label(stand.name, tx, at, { kind: 'title', wrap, align: 'left', anchor: { x: 0, y: 0 }, ink: qualityInk(stand.item) }).height;
       at += this.label(stand.says, tx, at + 1, { wrap, align: 'left', anchor: { x: 0, y: 0 }, ink: INK.dim }).height + 1;
       for (const line of lines) at += this.label(line.text, tx, at + 1, { wrap, align: 'left', anchor: { x: 0, y: 0 }, ink: line.ink }).height + 1;
       buy?.setPosition(x + w - BUY_W - 6, y + Math.floor((h - BUY_H) / 2));

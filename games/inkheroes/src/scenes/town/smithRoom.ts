@@ -3,7 +3,7 @@ import type { Adventure } from '../../logic/adventure';
 import { itemQuality, type SoldMachine } from '../../logic/items';
 import { buildingIn, type Town } from '../../logic/town';
 import { INK, PixelButton, UI_TEX } from '../battle/pixelUi';
-import { QUALITY_RIM } from '../hud/gearPanel';
+import { QUALITY_RIM, qualityInk } from '../battle/rankLook';
 import { wareLayout, type GuildCell, type GuildLayout } from './guildLayout';
 import { firstWare, heroMachine, wareOf, type Ware } from './smithData';
 import { roomIn, TownRoom } from './townRoom';
@@ -55,7 +55,7 @@ export class SmithRoom extends TownRoom {
   private detail(l: GuildLayout, w: Ware): void {
     const { x, y, w: width, h } = l.detail;
     this.plate(x, y, width, h);
-    const name = this.label(w.name, x + 6, y + 4, { kind: 'title', align: 'left', anchor: { x: 0, y: 0 } });
+    const name = this.label(w.name, x + 6, y + 4, { kind: 'title', align: 'left', anchor: { x: 0, y: 0 }, ink: qualityInk(w.item) });
     this.label(w.grade, x + 6 + name.width + 10, y + 4, { align: 'left', anchor: { x: 0, y: 0 }, ink: INK.dim });
     this.label(w.says, x + 6, y + 4 + LINE, { wrap: width - 12, align: 'left', anchor: { x: 0, y: 0 } });
     this.label(w.note, x + 6, y + 4 + LINE * 2, { wrap: width - 12, align: 'left', anchor: { x: 0, y: 0 }, ink: w.owned ? INK.good : INK.dim });

@@ -137,8 +137,8 @@ function worth(adv: Adventure, def: MapDef, o: MapObject, edge: number, bossEdge
   if (o.kind === 'monster' && lairOfGroup(o.id)) return false;
   if (o.kind === 'monster') return monsterStrength(o) * (o.id === def.goal.target ? bossEdge : edge) <= ours;
   if (o.kind === 'mine') return o.owner !== 'player';
-  // A lair is a door, never visited: only its groups are fought.
-  if (o.kind === 'windmill' || o.kind === 'stables' || o.kind === 'item' || o.kind === 'lair') return false;
+  // A lair is a door, never visited: only its groups are fought. Training sites aren't part of the plan either.
+  if (o.kind === 'windmill' || o.kind === 'stables' || o.kind === 'item' || o.kind === 'lair' || o.kind === 'arena' || o.kind === 'sanctum') return false;
   if (['mercCamp', 'watchtower', 'standingStone', 'shrine', 'spellbook'].includes(o.kind)) return !adv.hero.visited.includes(o.id);
   return true;
 }

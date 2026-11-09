@@ -113,9 +113,7 @@ function blit(out: Pixels, area: Area, atlas: Pixels, r: Rect, x: number, y: num
   }
 }
 
-const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5] as const;
-
-/** The two sky colours a row dithers between and how far it is from the first to the second. */
+/** The two sky colours a row lies between and how far it is from the first to the second. */
 function skyRow(stops: readonly (readonly [number, readonly [number, number, number]])[], above: number): {
   a: readonly [number, number, number]; b: readonly [number, number, number]; t: number;
 } {
@@ -129,7 +127,11 @@ function skyRow(stops: readonly (readonly [number, readonly [number, number, num
   return { a: last, b: last, t: 0 };
 }
 
-/** The sky above the horizon (an ordered dither between its colour stops), bare ground below;
+/** A row's sky colour: its two stops blended, so each row is a small step from the next (user: a smooth sky). */
+const blend = (row: { a: readonly [number, number, number]; b: readonly [number, number, number]; t: number }): readonly [number, number, number] =>
+  [0, 1, 2].map((k) => Math.round(row.a[k]! + (row.b[k]! - row.a[k]!) * row.t)) as unknown as readonly [number, number, number];
+
+/** The sky above the horizon (a smooth blend between its colour stops, one colour a row), bare ground below;
  * with `sky` false the sky rows stay clear (the sky and clouds are drawn behind). */
 function paintBase(out: Pixels, area: Area, art: SceneryArt, sky = true): void {
   const stops = art.sky.map(([h, c]) => [h, hexRgb(c)] as const);
@@ -137,10 +139,8 @@ function paintBase(out: Pixels, area: Area, art: SceneryArt, sky = true): void {
   for (let j = 0; j < out.h; j++) {
     const y = area.y + j;
     if (!sky && y < H) continue;
-    const row = y >= H ? { a: ground, b: ground, t: 0 } : skyRow(stops, H - y);
+    const c = y >= H ? ground : blend(skyRow(stops, H - y));
     for (let i = 0, d = j * out.w * 4; i < out.w; i++, d += 4) {
-      const x = area.x + i;
-      const c = BAYER[((y & 3) << 2) | (x & 3)]! / 16 < row.t ? row.b : row.a;
       out.data[d] = c[0];
       out.data[d + 1] = c[1];
       out.data[d + 2] = c[2];

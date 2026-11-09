@@ -59,9 +59,9 @@ export interface CreatureDef {
   readonly wide?: boolean;
   /** How many hexes it fills in a row on the battlefield: its head and those behind it (1 unless set; `wide` means 2). */
   readonly hexes?: 1 | 2 | 3;
-  /** An upgrade: the line's base unit, and which of its three levels this is (2 or 3; a base unit is 1). */
+  /** An upgrade: the line's base unit, and which of its five levels (its rank) this is (2 to 5; a base unit is 1). Towns raise a line to 3; 4 and 5 are trained at map sites. */
   readonly line?: CreatureId;
-  readonly tier?: 2 | 3;
+  readonly tier?: 2 | 3 | 4 | 5;
   /** A war machine bought at the Blacksmith: how its faction deals with walls. It never moves, acts by itself, and can't hold the field alone. */
   readonly machine?: 'catapult' | 'ramp';
   /** A catapult's stones a round, and the chances each misses or lands a double blow. */
@@ -96,6 +96,21 @@ export const CREATURES = {
   lancer3: def({ id: 'lancer3', name: 'Cataphract', plural: 'Cataphracts', faction: 'crown', level: 6, attack: 18, defense: 18, minDmg: 22, maxDmg: 28, hp: 120, speed: 10, growth: 2, cost: { gold: 1500 }, charge: true, wide: true, shieldWall: true, line: 'lancer', tier: 3 }),
   seraph2: def({ id: 'seraph2', name: 'Elder Titan', plural: 'Elder Titans', faction: 'crown', level: 7, attack: 22, defense: 22, minDmg: 50, maxDmg: 55, hp: 240, speed: 14, growth: 1, cost: { gold: 3600, gems: 2 }, flies: true, morale: 1, line: 'seraph', tier: 2 }),
   seraph3: def({ id: 'seraph3', name: 'Titan Lord', plural: 'Titan Lords', faction: 'crown', level: 7, attack: 26, defense: 24, minDmg: 55, maxDmg: 60, hp: 280, speed: 16, growth: 1, cost: { gold: 4400, gems: 3 }, flies: true, morale: 1, cleave: true, line: 'seraph', tier: 3 }),
+  // Rarity (docs/inkheroes-design.md, "Rarity: five ranks"): each line's Epic (4, an Arena of Heroes) and Legendary (5, the Forge of Hephaestus) ranks, the line's last step taken twice more.
+  spearman4: def({ id: 'spearman4', name: 'Myrmidon', plural: 'Myrmidons', faction: 'crown', level: 1, attack: 8, defense: 10, minDmg: 3, maxDmg: 5, hp: 18, speed: 6, growth: 14, cost: { gold: 130 }, retaliations: 2, line: 'spearman', tier: 4 }),
+  spearman5: def({ id: 'spearman5', name: 'Champion of Ares', plural: 'Champions of Ares', faction: 'crown', level: 1, attack: 9, defense: 12, minDmg: 4, maxDmg: 6, hp: 21, speed: 7, growth: 14, cost: { gold: 170 }, retaliations: 3, shieldWall: true, line: 'spearman', tier: 5 }),
+  bowman4: def({ id: 'bowman4', name: 'Stormslinger', plural: 'Stormslingers', faction: 'crown', level: 2, attack: 10, defense: 6, minDmg: 4, maxDmg: 5, hp: 14, speed: 7, growth: 9, cost: { gold: 205 }, shots: 20, noRangePenalty: true, line: 'bowman', tier: 4 }),
+  bowman5: def({ id: 'bowman5', name: 'Slinger of Zeus', plural: 'Slingers of Zeus', faction: 'crown', level: 2, attack: 12, defense: 7, minDmg: 5, maxDmg: 6, hp: 16, speed: 8, growth: 9, cost: { gold: 265 }, shots: 30, noRangePenalty: true, noMeleePenalty: true, line: 'bowman', tier: 5 }),
+  griffin4: def({ id: 'griffin4', name: 'Royal Griffin', plural: 'Royal Griffins', faction: 'crown', level: 3, attack: 11, defense: 11, minDmg: 5, maxDmg: 8, hp: 35, speed: 11, growth: 7, cost: { gold: 365 }, flies: true, retaliations: 4, wide: true, line: 'griffin', tier: 4 }),
+  griffin5: def({ id: 'griffin5', name: 'Griffin of Apollo', plural: 'Griffins of Apollo', faction: 'crown', level: 3, attack: 12, defense: 12, minDmg: 6, maxDmg: 9, hp: 40, speed: 12, growth: 7, cost: { gold: 465 }, flies: true, retaliations: 6, morale: 1, wide: true, line: 'griffin', tier: 5 }),
+  swordsman4: def({ id: 'swordsman4', name: 'Minotaur Champion', plural: 'Minotaur Champions', faction: 'crown', level: 4, attack: 16, defense: 15, minDmg: 8, maxDmg: 12, hp: 50, speed: 7, growth: 4, cost: { gold: 535 }, noRetaliation: true, line: 'swordsman', tier: 4 }),
+  swordsman5: def({ id: 'swordsman5', name: 'Minotaur King', plural: 'Minotaur Kings', faction: 'crown', level: 4, attack: 18, defense: 16, minDmg: 9, maxDmg: 13, hp: 55, speed: 8, growth: 4, cost: { gold: 675 }, noRetaliation: true, cleave: true, line: 'swordsman', tier: 5 }),
+  monk4: def({ id: 'monk4', name: 'Centaur Warlord', plural: 'Centaur Warlords', faction: 'crown', level: 5, attack: 16, defense: 11, minDmg: 12, maxDmg: 14, hp: 40, speed: 8, growth: 3, cost: { gold: 625 }, shots: 20, wide: true, morale: 1, line: 'monk', tier: 4 }),
+  monk5: def({ id: 'monk5', name: 'Heir of Chiron', plural: 'Heirs of Chiron', faction: 'crown', level: 5, attack: 18, defense: 12, minDmg: 13, maxDmg: 15, hp: 45, speed: 9, growth: 3, cost: { gold: 765 }, shots: 20, wide: true, morale: 1, noMeleePenalty: true, line: 'monk', tier: 5 }),
+  lancer4: def({ id: 'lancer4', name: 'Agema Guard', plural: 'Agema Guards', faction: 'crown', level: 6, attack: 20, defense: 20, minDmg: 24, maxDmg: 31, hp: 140, speed: 11, growth: 2, cost: { gold: 1950, gems: 1 }, charge: true, wide: true, shieldWall: true, line: 'lancer', tier: 4 }),
+  lancer5: def({ id: 'lancer5', name: 'Pegasus Rider', plural: 'Pegasus Riders', faction: 'crown', level: 6, attack: 22, defense: 22, minDmg: 26, maxDmg: 34, hp: 160, speed: 12, growth: 2, cost: { gold: 2550, gems: 2 }, charge: true, wide: true, shieldWall: true, flies: true, line: 'lancer', tier: 5 }),
+  seraph4: def({ id: 'seraph4', name: 'Storm Titan', plural: 'Storm Titans', faction: 'crown', level: 7, attack: 30, defense: 26, minDmg: 60, maxDmg: 65, hp: 320, speed: 17, growth: 1, cost: { gold: 5600, gems: 4 }, flies: true, morale: 1, cleave: true, line: 'seraph', tier: 4 }),
+  seraph5: def({ id: 'seraph5', name: 'Titan of Olympus', plural: 'Titans of Olympus', faction: 'crown', level: 7, attack: 34, defense: 28, minDmg: 65, maxDmg: 70, hp: 360, speed: 18, growth: 1, cost: { gold: 7200, gems: 5 }, flies: true, morale: 1, cleave: true, regen: 20, line: 'seraph', tier: 5 }),
   goblin: def({ id: 'goblin', name: 'Satyr', plural: 'Satyrs', faction: 'neutral', level: 1, attack: 4, defense: 2, minDmg: 1, maxDmg: 2, hp: 5, speed: 5, growth: 15, cost: { gold: 40 } }),
   skeleton: def({ id: 'skeleton', name: 'Spartoi', plural: 'Spartoi', faction: 'neutral', level: 1, attack: 5, defense: 4, minDmg: 1, maxDmg: 3, hp: 6, speed: 4, growth: 12, cost: { gold: 60 }, undead: true }),
   wolf: def({ id: 'wolf', name: 'Wolf', plural: 'Wolves', faction: 'neutral', level: 2, attack: 6, defense: 3, minDmg: 2, maxDmg: 4, hp: 10, speed: 7, growth: 8, cost: { gold: 100 }, wide: true }),
@@ -136,6 +151,21 @@ export const CREATURES = {
   sphinx3: def({ id: 'sphinx3', name: 'Great Sphinx', plural: 'Great Sphinxes', faction: 'kemet', level: 6, attack: 18, defense: 19, minDmg: 20, maxDmg: 28, hp: 130, speed: 8, growth: 2, cost: { gold: 1500 }, wide: true, guardian: true, petrify: 0.2, line: 'sphinx', tier: 3 }),
   bennu2: def({ id: 'bennu2', name: 'Golden Bennu', plural: 'Golden Bennu', faction: 'kemet', level: 7, attack: 22, defense: 20, minDmg: 45, maxDmg: 55, hp: 210, speed: 13, growth: 1, cost: { gold: 3600, gems: 2 }, flies: true, rebirth: 'half', line: 'bennu', tier: 2 }),
   bennu3: def({ id: 'bennu3', name: 'Bennu of Ra', plural: 'Bennu of Ra', faction: 'kemet', level: 7, attack: 25, defense: 22, minDmg: 50, maxDmg: 60, hp: 250, speed: 15, growth: 1, cost: { gold: 4400, gems: 3 }, flies: true, rebirth: 'all', line: 'bennu', tier: 3 }),
+  // Egypt's Epic (4, an Arena of Heroes) and Legendary (5, the Temple of Ra) ranks, as the Greeks'.
+  levy4: def({ id: 'levy4', name: 'Guard of Pharaoh', plural: 'Guards of Pharaoh', faction: 'kemet', level: 1, attack: 8, defense: 11, minDmg: 3, maxDmg: 5, hp: 18, speed: 6, growth: 14, cost: { gold: 130 }, shieldWall: true, line: 'levy', tier: 4 }),
+  levy5: def({ id: 'levy5', name: 'Champion of Montu', plural: 'Champions of Montu', faction: 'kemet', level: 1, attack: 9, defense: 14, minDmg: 4, maxDmg: 6, hp: 21, speed: 7, growth: 14, cost: { gold: 170 }, shieldWall: true, retaliations: 2, line: 'levy', tier: 5 }),
+  nubian4: def({ id: 'nubian4', name: 'Royal Bowman', plural: 'Royal Bowmen', faction: 'kemet', level: 2, attack: 9, defense: 6, minDmg: 4, maxDmg: 5, hp: 14, speed: 7, growth: 9, cost: { gold: 230 }, shots: 20, noRangePenalty: true, line: 'nubian', tier: 4 }),
+  nubian5: def({ id: 'nubian5', name: 'Archer of Neith', plural: 'Archers of Neith', faction: 'kemet', level: 2, attack: 10, defense: 7, minDmg: 5, maxDmg: 6, hp: 16, speed: 8, growth: 9, cost: { gold: 310 }, shots: 20, noRangePenalty: true, noMeleePenalty: true, line: 'nubian', tier: 5 }),
+  jackal4: def({ id: 'jackal4', name: 'Champion of Anubis', plural: 'Champions of Anubis', faction: 'kemet', level: 3, attack: 12, defense: 9, minDmg: 5, maxDmg: 9, hp: 31, speed: 9, growth: 7, cost: { gold: 365 }, noRetaliation: true, line: 'jackal', tier: 4 }),
+  jackal5: def({ id: 'jackal5', name: 'Chosen of Anubis', plural: 'Chosen of Anubis', faction: 'kemet', level: 3, attack: 13, defense: 10, minDmg: 6, maxDmg: 10, hp: 34, speed: 10, growth: 7, cost: { gold: 465 }, noRetaliation: true, poison: 0.1, line: 'jackal', tier: 5 }),
+  chariot4: def({ id: 'chariot4', name: 'Pharaoh’s Chariot', plural: 'Pharaoh’s Chariots', faction: 'kemet', level: 4, attack: 16, defense: 13, minDmg: 8, maxDmg: 12, hp: 50, speed: 11, growth: 4, cost: { gold: 535 }, charge: true, hexes: 3, cleave: true, line: 'chariot', tier: 4 }),
+  chariot5: def({ id: 'chariot5', name: 'Chariot of the Sun', plural: 'Chariots of the Sun', faction: 'kemet', level: 4, attack: 18, defense: 14, minDmg: 9, maxDmg: 13, hp: 55, speed: 12, growth: 4, cost: { gold: 675 }, charge: true, hexes: 3, cleave: true, noRetaliation: true, line: 'chariot', tier: 5 }),
+  mummy4: def({ id: 'mummy4', name: 'Undying Pharaoh', plural: 'Undying Pharaohs', faction: 'kemet', level: 5, attack: 16, defense: 14, minDmg: 11, maxDmg: 15, hp: 55, speed: 6, growth: 3, cost: { gold: 625 }, undead: true, curse: 0.5, regen: 10, line: 'mummy', tier: 4 }),
+  mummy5: def({ id: 'mummy5', name: 'Avatar of Osiris', plural: 'Avatars of Osiris', faction: 'kemet', level: 5, attack: 18, defense: 15, minDmg: 12, maxDmg: 16, hp: 60, speed: 7, growth: 3, cost: { gold: 765 }, undead: true, curse: 0.5, regen: 10, rebirth: 'half', line: 'mummy', tier: 5 }),
+  sphinx4: def({ id: 'sphinx4', name: 'Sun Sphinx', plural: 'Sun Sphinxes', faction: 'kemet', level: 6, attack: 20, defense: 21, minDmg: 22, maxDmg: 31, hp: 150, speed: 9, growth: 2, cost: { gold: 1950, gems: 1 }, wide: true, guardian: true, petrify: 0.2, line: 'sphinx', tier: 4 }),
+  sphinx5: def({ id: 'sphinx5', name: 'Sphinx of Giza', plural: 'Sphinxes of Giza', faction: 'kemet', level: 6, attack: 22, defense: 23, minDmg: 24, maxDmg: 34, hp: 170, speed: 10, growth: 2, cost: { gold: 2550, gems: 2 }, wide: true, guardian: true, petrify: 0.2, cleave: true, line: 'sphinx', tier: 5 }),
+  bennu4: def({ id: 'bennu4', name: 'Bennu of Heliopolis', plural: 'Bennu of Heliopolis', faction: 'kemet', level: 7, attack: 28, defense: 24, minDmg: 55, maxDmg: 65, hp: 290, speed: 16, growth: 1, cost: { gold: 5600, gems: 4 }, flies: true, rebirth: 'all', line: 'bennu', tier: 4 }),
+  bennu5: def({ id: 'bennu5', name: 'Eternal Bennu', plural: 'Eternal Bennu', faction: 'kemet', level: 7, attack: 31, defense: 26, minDmg: 60, maxDmg: 70, hp: 330, speed: 17, growth: 1, cost: { gold: 7200, gems: 5 }, flies: true, rebirth: 'all', regen: 30, line: 'bennu', tier: 5 }),
   // Egypt's lands bring their own neutrals (chapter 2). Growth and cost set their strength for the rival, as the Greeks' neutrals'.
   hyena: def({ id: 'hyena', name: 'Hyena', plural: 'Hyenas', faction: 'neutral', level: 1, attack: 4, defense: 3, minDmg: 1, maxDmg: 3, hp: 7, speed: 6, growth: 14, cost: { gold: 50 } }),
   raider: def({ id: 'raider', name: 'Sand Raider', plural: 'Sand Raiders', faction: 'neutral', level: 2, attack: 7, defense: 3, minDmg: 2, maxDmg: 4, hp: 10, speed: 6, growth: 8, cost: { gold: 110 }, shots: 8 }),
@@ -157,12 +187,16 @@ export type CreatureId =
   | 'spearman' | 'bowman' | 'griffin' | 'swordsman' | 'monk' | 'lancer' | 'seraph'
   | 'spearman2' | 'spearman3' | 'bowman2' | 'bowman3' | 'griffin2' | 'griffin3' | 'swordsman2' | 'swordsman3'
   | 'monk2' | 'monk3' | 'lancer2' | 'lancer3' | 'seraph2' | 'seraph3'
+  | 'spearman4' | 'spearman5' | 'bowman4' | 'bowman5' | 'griffin4' | 'griffin5' | 'swordsman4' | 'swordsman5'
+  | 'monk4' | 'monk5' | 'lancer4' | 'lancer5' | 'seraph4' | 'seraph5'
   | 'goblin' | 'skeleton' | 'wolf' | 'bandit' | 'ogre'
   | 'boar' | 'stymphalian' | 'hydra' | 'basilisk'
   | 'catapult' | 'catapult2' | 'catapult3' | 'ramp' | 'ramp2' | 'ramp3'
   | 'levy' | 'nubian' | 'jackal' | 'chariot' | 'mummy' | 'sphinx' | 'bennu'
   | 'levy2' | 'levy3' | 'nubian2' | 'nubian3' | 'jackal2' | 'jackal3' | 'chariot2' | 'chariot3'
   | 'mummy2' | 'mummy3' | 'sphinx2' | 'sphinx3' | 'bennu2' | 'bennu3'
+  | 'levy4' | 'levy5' | 'nubian4' | 'nubian5' | 'jackal4' | 'jackal5' | 'chariot4' | 'chariot5'
+  | 'mummy4' | 'mummy5' | 'sphinx4' | 'sphinx5' | 'bennu4' | 'bennu5'
   | 'hyena' | 'raider' | 'scorpion' | 'crocodile' | 'petsuchos' | 'cobra' | 'lion' | 'apep' | 'gigas' | 'ammit';
 export const CREATURE_IDS = Object.keys(CREATURES) as CreatureId[];
 
@@ -179,8 +213,8 @@ export const isCreatureId = (v: unknown): v is CreatureId => typeof v === 'strin
 
 /** The base unit of `id`'s line (itself for a base unit). */
 export const lineOf = (id: CreatureId): CreatureId => creature(id).line ?? id;
-/** Which of its line's three levels `id` is: 1 (base), 2 or 3. */
-export const tierOf = (id: CreatureId): 1 | 2 | 3 => creature(id).tier ?? 1;
+/** Which of its line's five levels `id` is: 1 (base) to 5 (Legendary). */
+export const tierOf = (id: CreatureId): 1 | 2 | 3 | 4 | 5 => creature(id).tier ?? 1;
 /** A line's units, base first: [base] for a unit without upgrades. */
 export const lineUnits = (base: CreatureId): CreatureId[] =>
   [base, ...CREATURE_IDS.filter((c) => creature(c).line === base).sort((a, b) => tierOf(a) - tierOf(b))];

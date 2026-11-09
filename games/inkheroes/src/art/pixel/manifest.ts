@@ -46,42 +46,84 @@ import spearman2Attack from './units/spearman2-attack.png?url';
 import spearman3Idle from './units/spearman3-idle.png?url';
 import spearman3Walk from './units/spearman3-walk.png?url';
 import spearman3Attack from './units/spearman3-attack.png?url';
+import spearman4Idle from './units/spearman4-idle.png?url';
+import spearman4Walk from './units/spearman4-walk.png?url';
+import spearman4Attack from './units/spearman4-attack.png?url';
+import spearman5Idle from './units/spearman5-idle.png?url';
+import spearman5Walk from './units/spearman5-walk.png?url';
+import spearman5Attack from './units/spearman5-attack.png?url';
 import bowman2Idle from './units/bowman2-idle.png?url';
 import bowman2Walk from './units/bowman2-walk.png?url';
 import bowman2Attack from './units/bowman2-attack.png?url';
 import bowman3Idle from './units/bowman3-idle.png?url';
 import bowman3Walk from './units/bowman3-walk.png?url';
 import bowman3Attack from './units/bowman3-attack.png?url';
+import bowman4Idle from './units/bowman4-idle.png?url';
+import bowman4Walk from './units/bowman4-walk.png?url';
+import bowman4Attack from './units/bowman4-attack.png?url';
+import bowman5Idle from './units/bowman5-idle.png?url';
+import bowman5Walk from './units/bowman5-walk.png?url';
+import bowman5Attack from './units/bowman5-attack.png?url';
 import griffin2Idle from './units/griffin2-idle.png?url';
 import griffin2Walk from './units/griffin2-walk.png?url';
 import griffin2Attack from './units/griffin2-attack.png?url';
 import griffin3Idle from './units/griffin3-idle.png?url';
 import griffin3Walk from './units/griffin3-walk.png?url';
 import griffin3Attack from './units/griffin3-attack.png?url';
+import griffin4Idle from './units/griffin4-idle.png?url';
+import griffin4Walk from './units/griffin4-walk.png?url';
+import griffin4Attack from './units/griffin4-attack.png?url';
+import griffin5Idle from './units/griffin5-idle.png?url';
+import griffin5Walk from './units/griffin5-walk.png?url';
+import griffin5Attack from './units/griffin5-attack.png?url';
 import swordsman2Idle from './units/swordsman2-idle.png?url';
 import swordsman2Walk from './units/swordsman2-walk.png?url';
 import swordsman2Attack from './units/swordsman2-attack.png?url';
 import swordsman3Idle from './units/swordsman3-idle.png?url';
 import swordsman3Walk from './units/swordsman3-walk.png?url';
 import swordsman3Attack from './units/swordsman3-attack.png?url';
+import swordsman4Idle from './units/swordsman4-idle.png?url';
+import swordsman4Walk from './units/swordsman4-walk.png?url';
+import swordsman4Attack from './units/swordsman4-attack.png?url';
+import swordsman5Idle from './units/swordsman5-idle.png?url';
+import swordsman5Walk from './units/swordsman5-walk.png?url';
+import swordsman5Attack from './units/swordsman5-attack.png?url';
 import monk2Idle from './units/monk2-idle.png?url';
 import monk2Walk from './units/monk2-walk.png?url';
 import monk2Attack from './units/monk2-attack.png?url';
 import monk3Idle from './units/monk3-idle.png?url';
 import monk3Walk from './units/monk3-walk.png?url';
 import monk3Attack from './units/monk3-attack.png?url';
+import monk4Idle from './units/monk4-idle.png?url';
+import monk4Walk from './units/monk4-walk.png?url';
+import monk4Attack from './units/monk4-attack.png?url';
+import monk5Idle from './units/monk5-idle.png?url';
+import monk5Walk from './units/monk5-walk.png?url';
+import monk5Attack from './units/monk5-attack.png?url';
 import lancer2Idle from './units/lancer2-idle.png?url';
 import lancer2Walk from './units/lancer2-walk.png?url';
 import lancer2Attack from './units/lancer2-attack.png?url';
 import lancer3Idle from './units/lancer3-idle.png?url';
 import lancer3Walk from './units/lancer3-walk.png?url';
 import lancer3Attack from './units/lancer3-attack.png?url';
+import lancer4Idle from './units/lancer4-idle.png?url';
+import lancer4Walk from './units/lancer4-walk.png?url';
+import lancer4Attack from './units/lancer4-attack.png?url';
+import lancer5Idle from './units/lancer5-idle.png?url';
+import lancer5Walk from './units/lancer5-walk.png?url';
+import lancer5Attack from './units/lancer5-attack.png?url';
 import seraph2Idle from './units/seraph2-idle.png?url';
 import seraph2Walk from './units/seraph2-walk.png?url';
 import seraph2Attack from './units/seraph2-attack.png?url';
 import seraph3Idle from './units/seraph3-idle.png?url';
 import seraph3Walk from './units/seraph3-walk.png?url';
 import seraph3Attack from './units/seraph3-attack.png?url';
+import seraph4Idle from './units/seraph4-idle.png?url';
+import seraph4Walk from './units/seraph4-walk.png?url';
+import seraph4Attack from './units/seraph4-attack.png?url';
+import seraph5Idle from './units/seraph5-idle.png?url';
+import seraph5Walk from './units/seraph5-walk.png?url';
+import seraph5Attack from './units/seraph5-attack.png?url';
 import catapultIdle from './units/catapult-idle.png?url';
 import catapultWalk from './units/catapult-walk.png?url';
 import catapultAttack from './units/catapult-attack.png?url';
@@ -154,42 +196,84 @@ import levy2Attack from './units/levy2-attack.png?url';
 import levy3Idle from './units/levy3-idle.png?url';
 import levy3Walk from './units/levy3-walk.png?url';
 import levy3Attack from './units/levy3-attack.png?url';
+import levy4Idle from './units/levy4-idle.png?url';
+import levy4Walk from './units/levy4-walk.png?url';
+import levy4Attack from './units/levy4-attack.png?url';
+import levy5Idle from './units/levy5-idle.png?url';
+import levy5Walk from './units/levy5-walk.png?url';
+import levy5Attack from './units/levy5-attack.png?url';
 import nubian2Idle from './units/nubian2-idle.png?url';
 import nubian2Walk from './units/nubian2-walk.png?url';
 import nubian2Attack from './units/nubian2-attack.png?url';
 import nubian3Idle from './units/nubian3-idle.png?url';
 import nubian3Walk from './units/nubian3-walk.png?url';
 import nubian3Attack from './units/nubian3-attack.png?url';
+import nubian4Idle from './units/nubian4-idle.png?url';
+import nubian4Walk from './units/nubian4-walk.png?url';
+import nubian4Attack from './units/nubian4-attack.png?url';
+import nubian5Idle from './units/nubian5-idle.png?url';
+import nubian5Walk from './units/nubian5-walk.png?url';
+import nubian5Attack from './units/nubian5-attack.png?url';
 import jackal2Idle from './units/jackal2-idle.png?url';
 import jackal2Walk from './units/jackal2-walk.png?url';
 import jackal2Attack from './units/jackal2-attack.png?url';
 import jackal3Idle from './units/jackal3-idle.png?url';
 import jackal3Walk from './units/jackal3-walk.png?url';
 import jackal3Attack from './units/jackal3-attack.png?url';
+import jackal4Idle from './units/jackal4-idle.png?url';
+import jackal4Walk from './units/jackal4-walk.png?url';
+import jackal4Attack from './units/jackal4-attack.png?url';
+import jackal5Idle from './units/jackal5-idle.png?url';
+import jackal5Walk from './units/jackal5-walk.png?url';
+import jackal5Attack from './units/jackal5-attack.png?url';
 import chariot2Idle from './units/chariot2-idle.png?url';
 import chariot2Walk from './units/chariot2-walk.png?url';
 import chariot2Attack from './units/chariot2-attack.png?url';
 import chariot3Idle from './units/chariot3-idle.png?url';
 import chariot3Walk from './units/chariot3-walk.png?url';
 import chariot3Attack from './units/chariot3-attack.png?url';
+import chariot4Idle from './units/chariot4-idle.png?url';
+import chariot4Walk from './units/chariot4-walk.png?url';
+import chariot4Attack from './units/chariot4-attack.png?url';
+import chariot5Idle from './units/chariot5-idle.png?url';
+import chariot5Walk from './units/chariot5-walk.png?url';
+import chariot5Attack from './units/chariot5-attack.png?url';
 import mummy2Idle from './units/mummy2-idle.png?url';
 import mummy2Walk from './units/mummy2-walk.png?url';
 import mummy2Attack from './units/mummy2-attack.png?url';
 import mummy3Idle from './units/mummy3-idle.png?url';
 import mummy3Walk from './units/mummy3-walk.png?url';
 import mummy3Attack from './units/mummy3-attack.png?url';
+import mummy4Idle from './units/mummy4-idle.png?url';
+import mummy4Walk from './units/mummy4-walk.png?url';
+import mummy4Attack from './units/mummy4-attack.png?url';
+import mummy5Idle from './units/mummy5-idle.png?url';
+import mummy5Walk from './units/mummy5-walk.png?url';
+import mummy5Attack from './units/mummy5-attack.png?url';
 import sphinx2Idle from './units/sphinx2-idle.png?url';
 import sphinx2Walk from './units/sphinx2-walk.png?url';
 import sphinx2Attack from './units/sphinx2-attack.png?url';
 import sphinx3Idle from './units/sphinx3-idle.png?url';
 import sphinx3Walk from './units/sphinx3-walk.png?url';
 import sphinx3Attack from './units/sphinx3-attack.png?url';
+import sphinx4Idle from './units/sphinx4-idle.png?url';
+import sphinx4Walk from './units/sphinx4-walk.png?url';
+import sphinx4Attack from './units/sphinx4-attack.png?url';
+import sphinx5Idle from './units/sphinx5-idle.png?url';
+import sphinx5Walk from './units/sphinx5-walk.png?url';
+import sphinx5Attack from './units/sphinx5-attack.png?url';
 import bennu2Idle from './units/bennu2-idle.png?url';
 import bennu2Walk from './units/bennu2-walk.png?url';
 import bennu2Attack from './units/bennu2-attack.png?url';
 import bennu3Idle from './units/bennu3-idle.png?url';
 import bennu3Walk from './units/bennu3-walk.png?url';
 import bennu3Attack from './units/bennu3-attack.png?url';
+import bennu4Idle from './units/bennu4-idle.png?url';
+import bennu4Walk from './units/bennu4-walk.png?url';
+import bennu4Attack from './units/bennu4-attack.png?url';
+import bennu5Idle from './units/bennu5-idle.png?url';
+import bennu5Walk from './units/bennu5-walk.png?url';
+import bennu5Attack from './units/bennu5-attack.png?url';
 import gigasIdle from './units/gigas-idle.png?url';
 import gigasWalk from './units/gigas-walk.png?url';
 import gigasAttack from './units/gigas-attack.png?url';
@@ -381,6 +465,18 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     face: { x: 35, y: 36 },
     url: { idle: spearman3Idle, walk: spearman3Walk, attack: spearman3Attack },
   },
+  spearman4: {
+    name: "Myrmidon", w: 96, h: 96, footX: 28, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 38, y: 36 },
+    url: { idle: spearman4Idle, walk: spearman4Walk, attack: spearman4Attack },
+  },
+  spearman5: {
+    name: "Champion of Ares", w: 96, h: 96, footX: 27, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 37, y: 36 },
+    url: { idle: spearman5Idle, walk: spearman5Walk, attack: spearman5Attack },
+  },
   bowman2: {
     name: "Achaean Slinger", w: 96, h: 96, footX: 33, footY: 90,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 5,
@@ -394,6 +490,20 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     shotFrom: { x: 70, y: 48 },
     face: { x: 40, y: 41 },
     url: { idle: bowman3Idle, walk: bowman3Walk, attack: bowman3Attack },
+  },
+  bowman4: {
+    name: "Stormslinger", w: 96, h: 96, footX: 33, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 5,
+    shotFrom: { x: 70, y: 48 },
+    face: { x: 40, y: 41 },
+    url: { idle: bowman4Idle, walk: bowman4Walk, attack: bowman4Attack },
+  },
+  bowman5: {
+    name: "Slinger of Zeus", w: 96, h: 96, footX: 35, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 5,
+    shotFrom: { x: 72, y: 48 },
+    face: { x: 42, y: 41 },
+    url: { idle: bowman5Idle, walk: bowman5Walk, attack: bowman5Attack },
   },
   griffin2: {
     name: "War Griffin", w: 128, h: 112, footX: 52, footY: 106,
@@ -409,6 +519,20 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     face: { x: 88, y: 62 },
     url: { idle: griffin3Idle, walk: griffin3Walk, attack: griffin3Attack },
   },
+  griffin4: {
+    name: "Royal Griffin", w: 128, h: 112, footX: 52, footY: 106,
+    frames: { idle: 4, walk: 4, attack: 8 }, strike: 3,
+    flies: true,
+    face: { x: 88, y: 62 },
+    url: { idle: griffin4Idle, walk: griffin4Walk, attack: griffin4Attack },
+  },
+  griffin5: {
+    name: "Griffin of Apollo", w: 128, h: 112, footX: 53, footY: 106,
+    frames: { idle: 4, walk: 4, attack: 8 }, strike: 3,
+    flies: true,
+    face: { x: 89, y: 62 },
+    url: { idle: griffin5Idle, walk: griffin5Walk, attack: griffin5Attack },
+  },
   swordsman2: {
     name: "Minotaur Guard", w: 112, h: 112, footX: 53, footY: 106,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
@@ -420,6 +544,18 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
     face: { x: 63, y: 40 },
     url: { idle: swordsman3Idle, walk: swordsman3Walk, attack: swordsman3Attack },
+  },
+  swordsman4: {
+    name: "Minotaur Champion", w: 112, h: 112, footX: 49, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 64, y: 40 },
+    url: { idle: swordsman4Idle, walk: swordsman4Walk, attack: swordsman4Attack },
+  },
+  swordsman5: {
+    name: "Minotaur King", w: 112, h: 112, footX: 45, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 66, y: 40 },
+    url: { idle: swordsman5Idle, walk: swordsman5Walk, attack: swordsman5Attack },
   },
   monk2: {
     name: "Centaur Marksman", w: 128, h: 112, footX: 50, footY: 106,
@@ -435,6 +571,20 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     face: { x: 65, y: 41 },
     url: { idle: monk3Idle, walk: monk3Walk, attack: monk3Attack },
   },
+  monk4: {
+    name: "Centaur Warlord", w: 128, h: 112, footX: 50, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    shotFrom: { x: 96, y: 50 },
+    face: { x: 65, y: 41 },
+    url: { idle: monk4Idle, walk: monk4Walk, attack: monk4Attack },
+  },
+  monk5: {
+    name: "Heir of Chiron", w: 128, h: 112, footX: 52, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    shotFrom: { x: 97, y: 49 },
+    face: { x: 66, y: 40 },
+    url: { idle: monk5Idle, walk: monk5Walk, attack: monk5Attack },
+  },
   lancer2: {
     name: "Royal Companion", w: 128, h: 112, footX: 58, footY: 106,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 2,
@@ -447,6 +597,19 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     face: { x: 60, y: 37 },
     url: { idle: lancer3Idle, walk: lancer3Walk, attack: lancer3Attack },
   },
+  lancer4: {
+    name: "Agema Guard", w: 128, h: 112, footX: 61, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 2,
+    face: { x: 60, y: 37 },
+    url: { idle: lancer4Idle, walk: lancer4Walk, attack: lancer4Attack },
+  },
+  lancer5: {
+    name: "Pegasus Rider", w: 128, h: 128, footX: 54, footY: 122,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 2,
+    flies: true,
+    face: { x: 60, y: 53 },
+    url: { idle: lancer5Idle, walk: lancer5Walk, attack: lancer5Attack },
+  },
   seraph2: {
     name: "Elder Titan", w: 144, h: 136, footX: 58, footY: 128,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
@@ -458,6 +621,18 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
     face: { x: 66, y: 39 },
     url: { idle: seraph3Idle, walk: seraph3Walk, attack: seraph3Attack },
+  },
+  seraph4: {
+    name: "Storm Titan", w: 144, h: 136, footX: 64, footY: 128,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 65, y: 39 },
+    url: { idle: seraph4Idle, walk: seraph4Walk, attack: seraph4Attack },
+  },
+  seraph5: {
+    name: "Titan of Olympus", w: 144, h: 136, footX: 61, footY: 128,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 63, y: 39 },
+    url: { idle: seraph5Idle, walk: seraph5Walk, attack: seraph5Attack },
   },
   catapult: {
     name: "Catapult", w: 96, h: 96, footX: 44, footY: 90,
@@ -611,6 +786,18 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     face: { x: 37, y: 38 },
     url: { idle: levy3Idle, walk: levy3Walk, attack: levy3Attack },
   },
+  levy4: {
+    name: "Guard of Pharaoh", w: 96, h: 96, footX: 42, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 37, y: 38 },
+    url: { idle: levy4Idle, walk: levy4Walk, attack: levy4Attack },
+  },
+  levy5: {
+    name: "Champion of Montu", w: 96, h: 96, footX: 42, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 37, y: 38 },
+    url: { idle: levy5Idle, walk: levy5Walk, attack: levy5Attack },
+  },
   nubian2: {
     name: "Medjay Archer", w: 96, h: 96, footX: 34, footY: 90,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 5,
@@ -625,6 +812,20 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     face: { x: 35, y: 41 },
     url: { idle: nubian3Idle, walk: nubian3Walk, attack: nubian3Attack },
   },
+  nubian4: {
+    name: "Royal Bowman", w: 96, h: 96, footX: 35, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    shotFrom: { x: 68, y: 51 },
+    face: { x: 35, y: 41 },
+    url: { idle: nubian4Idle, walk: nubian4Walk, attack: nubian4Attack },
+  },
+  nubian5: {
+    name: "Archer of Neith", w: 96, h: 96, footX: 31, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    shotFrom: { x: 69, y: 51 },
+    face: { x: 36, y: 41 },
+    url: { idle: nubian5Idle, walk: nubian5Walk, attack: nubian5Attack },
+  },
   jackal2: {
     name: "Sentinel of Anubis", w: 112, h: 112, footX: 51, footY: 106,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
@@ -636,6 +837,18 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
     face: { x: 48, y: 45 },
     url: { idle: jackal3Idle, walk: jackal3Walk, attack: jackal3Attack },
+  },
+  jackal4: {
+    name: "Champion of Anubis", w: 112, h: 112, footX: 45, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 47, y: 45 },
+    url: { idle: jackal4Idle, walk: jackal4Walk, attack: jackal4Attack },
+  },
+  jackal5: {
+    name: "Chosen of Anubis", w: 112, h: 112, footX: 44, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 49, y: 45 },
+    url: { idle: jackal5Idle, walk: jackal5Walk, attack: jackal5Attack },
   },
   chariot2: {
     name: "Royal Chariot", w: 144, h: 112, footX: 48, footY: 106,
@@ -649,6 +862,18 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     face: { x: 26, y: 23 },
     url: { idle: chariot3Idle, walk: chariot3Walk, attack: chariot3Attack },
   },
+  chariot4: {
+    name: "Pharaoh's Chariot", w: 144, h: 112, footX: 52, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 2,
+    face: { x: 30, y: 23 },
+    url: { idle: chariot4Idle, walk: chariot4Walk, attack: chariot4Attack },
+  },
+  chariot5: {
+    name: "Chariot of the Sun", w: 144, h: 112, footX: 59, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 2,
+    face: { x: 30, y: 23 },
+    url: { idle: chariot5Idle, walk: chariot5Walk, attack: chariot5Attack },
+  },
   mummy2: {
     name: "Royal Mummy", w: 112, h: 112, footX: 35, footY: 106,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
@@ -661,6 +886,18 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     face: { x: 48, y: 24 },
     url: { idle: mummy3Idle, walk: mummy3Walk, attack: mummy3Attack },
   },
+  mummy4: {
+    name: "Undying Pharaoh", w: 112, h: 112, footX: 44, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 51, y: 24 },
+    url: { idle: mummy4Idle, walk: mummy4Walk, attack: mummy4Attack },
+  },
+  mummy5: {
+    name: "Avatar of Osiris", w: 112, h: 120, footX: 46, footY: 114,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 53, y: 32 },
+    url: { idle: mummy5Idle, walk: mummy5Walk, attack: mummy5Attack },
+  },
   sphinx2: {
     name: "Guardian Sphinx", w: 144, h: 112, footX: 63, footY: 106,
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
@@ -672,6 +909,18 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
     face: { x: 91, y: 42 },
     url: { idle: sphinx3Idle, walk: sphinx3Walk, attack: sphinx3Attack },
+  },
+  sphinx4: {
+    name: "Sun Sphinx", w: 144, h: 112, footX: 63, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 90, y: 42 },
+    url: { idle: sphinx4Idle, walk: sphinx4Walk, attack: sphinx4Attack },
+  },
+  sphinx5: {
+    name: "Sphinx of Giza", w: 144, h: 112, footX: 63, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 89, y: 42 },
+    url: { idle: sphinx5Idle, walk: sphinx5Walk, attack: sphinx5Attack },
   },
   bennu2: {
     name: "Golden Bennu", w: 128, h: 112, footX: 46, footY: 106,
@@ -686,6 +935,20 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     flies: true,
     face: { x: 88, y: 51 },
     url: { idle: bennu3Idle, walk: bennu3Walk, attack: bennu3Attack },
+  },
+  bennu4: {
+    name: "Bennu of Heliopolis", w: 128, h: 112, footX: 37, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    flies: true,
+    face: { x: 90, y: 51 },
+    url: { idle: bennu4Idle, walk: bennu4Walk, attack: bennu4Attack },
+  },
+  bennu5: {
+    name: "Eternal Bennu", w: 128, h: 112, footX: 39, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    flies: true,
+    face: { x: 92, y: 51 },
+    url: { idle: bennu5Idle, walk: bennu5Walk, attack: bennu5Attack },
   },
   gigas: {
     name: "Gigas", w: 160, h: 168, footX: 66, footY: 162,

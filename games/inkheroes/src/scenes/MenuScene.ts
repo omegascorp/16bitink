@@ -112,7 +112,7 @@ export class MenuScene extends Phaser.Scene {
     this.layer = this.add.layer().setDepth(1);
     const ui = this.add.container(0, 0).setDepth(2);
     // The wordmark: as big as the screen's width allows.
-    const mask = renderPixelText({ lines: ['INKHEROES'] }, { ink: [255, 255, 255, 255] });
+    const mask = renderPixelText({ lines: ['InkHeroes'] }, { ink: [255, 255, 255, 255] });
     const scale = Math.max(2, Math.min(5, Math.floor((w - 24) / mask.w)));
     const markH = mask.h * scale + 7;
     const head = markH + 2 + 15 + 12;

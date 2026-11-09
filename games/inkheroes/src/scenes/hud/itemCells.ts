@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { itemQuality, type ItemId } from '../../logic/items';
 import { drawSocket } from '../battle/pixelFrames';
 import { putBuffer, UI_TEX } from '../battle/pixelUi';
-import { QUALITY_RIM } from './gearPanel';
+import { QUALITY_RIM } from '../battle/rankLook';
 import { ITEM_CELL, ITEM_STEP, itemCellsSize } from './itemGrid';
 
 export { ITEM_CELL, itemCols } from './itemGrid';

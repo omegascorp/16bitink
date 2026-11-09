@@ -6,15 +6,15 @@ import { canCompare, compareColumns, compareLayout, columnWidth, lineUpTo, textW
 const bases = CREATURE_IDS.filter((id) => !creature(id).line && !creature(id).machine && creature(id).faction !== 'neutral' && lineUnits(id).length > 1);
 
 describe('line of a unit', () => {
-  it('every Greek and Egyptian line has three levels, in order', () => {
+  it('every Greek and Egyptian line has five levels, in order', () => {
     const greek = bases.filter((b) => creature(b).faction === 'crown');
     const egypt = bases.filter((b) => creature(b).faction === 'kemet');
     expect(greek.length).toBeGreaterThanOrEqual(7);
     expect(egypt.length).toBeGreaterThanOrEqual(7);
     for (const b of [...greek, ...egypt]) {
       const line = lineUnits(b);
-      expect(line).toHaveLength(3);
-      expect(line.map(tierOf)).toEqual([1, 2, 3]);
+      expect(line).toHaveLength(5);
+      expect(line.map(tierOf)).toEqual([1, 2, 3, 4, 5]);
       expect(line.every((u) => lineOf(u) === b)).toBe(true);
     }
     expect(Object.keys(FACTIONS)).toContain('kemet');
@@ -28,6 +28,7 @@ describe('line of a unit', () => {
     expect(canCompare('levy2')).toBe(true);
     expect(compareColumns('spearman')).toEqual([]);
   });
+
 });
 
 describe('compareColumns', () => {

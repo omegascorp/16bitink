@@ -235,5 +235,10 @@ export const OTHRYS_LAND: MapDef = {
     { id: 'highland-pile-gold', kind: 'pile', x: 40, y: 57, resource: 'gold', amount: 2000 },
     { id: 'lykosoura-ore-pit', kind: 'mine', x: 38, y: 63, resource: 'ore', owner: 'rival' },
     { id: 'highland-pile-crystal', kind: 'pile', x: 48, y: 57, resource: 'crystal', amount: 5 },
+    // Rarity: an Arena of Heroes on the plain by the ford road, and the chapter's legendary site, the Forge of Hephaestus, high on the mountain east of the Titans' forge.
+    { id: 'othrys-arena', kind: 'arena', x: 18, y: 36 },
+    { id: 'othrys-arena-hydras', kind: 'monster', x: 19, y: 37, creature: 'hydra', count: 14 },
+    { id: 'hephaestus-forge', kind: 'sanctum', x: 43, y: 29, look: 'hephaestusForge' },
+    { id: 'hephaestus-gigantes', kind: 'monster', x: 44, y: 30, creature: 'gigas', count: 6 },
   ],
 };

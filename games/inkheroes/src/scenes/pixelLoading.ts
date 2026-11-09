@@ -22,6 +22,8 @@ const GOLD: Rgba = [240, 196, 84, 255];
 const GOLD_LIT: Rgba = [255, 236, 160, 255];
 /** How far above the bar the rider's feet are. */
 const RIDE_ABOVE = 3;
+/** The loading screen's clouds drift faster than the battle's, so a short wait still shows them moving (user, Nov 9). */
+const CLOUD_DRIFT = 16;
 
 /** Queues the loading screen's own art (the grass scenery, the hero's ride); resolves once it is in. */
 export function loadLoadingArt(scene: Phaser.Scene): Promise<void> {
@@ -63,8 +65,8 @@ export class PixelLoading {
   constructor(private readonly scene: Phaser.Scene, size: { w: number; h: number }, text: string, drift = 0) {
     const { w, h } = size;
     const horizon = Math.floor(h * HORIZON_AT);
-    this.country = new DriftingScenery(scene, { atlas: texturePixels(scene, PX_TEX.scenery(TERRAIN)), art: townScenery(), seed: SEED, area: { x: 0, y: HORIZON_Y - horizon, w, h }, at: { x: 0, y: 0 }, depth: 0, drift });
-    const mask = renderPixelText({ lines: ['INKHEROES'] }, { ink: [255, 255, 255, 255] });
+    this.country = new DriftingScenery(scene, { atlas: texturePixels(scene, PX_TEX.scenery(TERRAIN)), art: townScenery(), seed: SEED, area: { x: 0, y: HORIZON_Y - horizon, w, h }, at: { x: 0, y: 0 }, depth: 0, drift, speed: CLOUD_DRIFT });
+    const mask = renderPixelText({ lines: ['InkHeroes'] }, { ink: [255, 255, 255, 255] });
     const scale = Math.max(2, Math.min(5, Math.floor((w - 24) / mask.w)));
     const mark = new PixelImage(scene, drawWordmark(mask, scale), { x: 0.5, y: 0.5 }).setPosition(Math.floor(w / 2), Math.floor(h * MARK_AT));
     mark.img.setDepth(2);

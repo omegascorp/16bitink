@@ -44,6 +44,8 @@ const NEW_SITES: Readonly<Record<string, SiteArt>> = {
   learningStone: 'standingStone', cyclopsCave: 'mine-ore', griffinCliff: 'watchtower', titanForge: 'shrine', keep: 'mercCamp',
   // The Delta's, each borrowing the nearest of Othrys's: a marsh for a cave, rocks for a cave, the Benben's house for the forge, a tomb for the keep.
   crocodileMarsh: 'cyclopsCave', lionRocks: 'cyclopsCave', benbenHouse: 'titanForge', mastaba: 'keep',
+  // The training sites (rarity): the Arena borrows the keep's ruin; the legendary sites, each chapter's forge or the Benben's house.
+  arena: 'keep', hephaestusForge: 'titanForge', raTemple: 'benbenHouse',
 };
 
 /** The art a map object is drawn with (monsters, towns and gear on the ground are drawn apart): a SiteArt, or a new site's key. */
@@ -53,6 +55,7 @@ export function siteArtOf(o: MapObject): string | null {
   if (o.kind === 'dwelling') return o.look ?? 'cyclopsCave';
   if (o.kind === 'bank') return o.look ?? 'keep';
   if (o.kind === 'lair') return o.look ?? 'den';
+  if (o.kind === 'sanctum') return o.look ?? 'hephaestusForge';
   return o.kind;
 }
 
@@ -82,6 +85,7 @@ export function loadMapArt(scene: Phaser.Scene, creatures: readonly string[], wo
   if (world) {
     for (const [t, url] of Object.entries(MAP_GROUND)) if (url) image(MAP_TEX.ground(t), url);
     for (const [art, s] of Object.entries(MAP_SITES) as [SiteArt, MapSprite][]) image(MAP_TEX.site(art), s.url);
+    // The signs on our towns (the cursors' own pictures).
     for (const [kind, list] of Object.entries(MAP_COVER) as [MapCover, readonly MapSprite[]][]) list.forEach((s, i) => image(MAP_TEX.cover(kind, i), s.url));
     image(MAP_TEX.kemetTown, KEMET_TOWN.url);
     for (const [look, s] of Object.entries(TOWN_LOOKS)) image(MAP_TEX.townLook(look), s.url);

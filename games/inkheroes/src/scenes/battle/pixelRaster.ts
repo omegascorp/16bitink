@@ -111,12 +111,14 @@ export function badgeSize(n: number): { w: number; h: number } {
   return { w: digits * (GLYPH.w + 1) - 1 + BADGE_PAD * 2 + 2, h: GLYPH.h + BADGE_PAD * 2 + 2 };
 }
 
-/** A troop count drawn as compose.py's draw_badge does: a dark 1px outline, the side's colour, a light top line, 5 × 7 digits. */
-export function drawBadge(n: number, colours: BadgeColours): PixelBuffer {
+/** A troop count drawn as compose.py's draw_badge does: a dark 1px outline, the side's colour, a light top line (a ranked unit's: a ring of its rank's colour), 5 × 7 digits. */
+export function drawBadge(n: number, colours: BadgeColours, rank?: Rgba): PixelBuffer {
   const { w, h } = badgeSize(n);
   const b = new PixelBuffer(w, h);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) b.put(x, y, BADGE_EDGE);
   for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) b.put(x, y, y === 1 ? colours.top : colours.fill);
+  // A ranked unit's badge: a 1px ring of its rank's colour just inside the outline, the side's fill within.
+  if (rank) for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) if (x === 1 || y === 1 || x === w - 2 || y === h - 2) b.put(x, y, rank);
   [...String(n)].forEach((ch, c) => {
     const bits = FONT5[ch];
     if (!bits) return;

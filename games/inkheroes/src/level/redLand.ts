@@ -147,5 +147,8 @@ export const RED_LAND_LAND: MapDef = {
     { id: 'red-pile-sulfur', kind: 'pile', x: 9, y: 29, resource: 'sulfur', amount: 4 },
     { id: 'red-pile-crystal', kind: 'pile', x: 37, y: 3, resource: 'crystal', amount: 4 },
     { id: 'red-pile-gems', kind: 'pile', x: 16, y: 2, resource: 'gems', amount: 4 },
+    // Rarity: an Arena of Heroes in the sands east of the wadi road (Rare troops train to Epic, once a week).
+    { id: 'red-arena', kind: 'arena', x: 26, y: 12 },
+    { id: 'red-arena-lions', kind: 'monster', x: 27, y: 13, creature: 'lion', count: 16 },
   ],
 };

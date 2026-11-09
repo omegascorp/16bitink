@@ -3,18 +3,25 @@ import { getSound } from '../../host';
 import type { Hero } from '../../logic/hero';
 import { moveSlot, splitSlot } from '../../logic/army';
 import { cardButtonLook, drawRule, SLOT } from '../battle/pixelFrames';
+import { PX_TEX } from '../battle/pixelAssets';
+import { armyUnitInfo } from '../battle/unitCard';
+import { canCompare } from '../battle/unitCompare';
+import { UnitCompareView } from '../battle/unitCompareView';
+import { UnitInfoCard, type InfoButton, type PictureScenery } from '../battle/unitInfoCard';
 import type { CardView } from '../battle/pixelBuildCard';
-import { INK, PixelButton, PixelFrame, PixelImage, TextLabel, UI_TEX } from '../battle/pixelUi';
+import { INK, PixelButton, PixelFrame, PixelImage, TextLabel, texturePixels, UI_TEX } from '../battle/pixelUi';
 import type { CardSpec } from '../CardScene';
 import { ArmyDrag } from './armyDrag';
 import { ArmyRow } from './armyRow';
 import { armyRowW, fitSlot, HERO_SLOT } from './armySlots';
 import { gearLayout } from './gearLayout';
-import { drawGear, type GearHost, type GearPick } from './gearPanel';
+import { drawGear, pickedItem, type GearHost, type GearPick } from './gearPanel';
+import { ItemCard } from './itemCard';
 import { heroSheet, type HeroSheet, type SheetRow } from './heroSheetData';
 import { SKILL_ICON, skillGrid } from './skillGrid';
 import { specialtyIcon } from './specialtyIcon';
 import { SplitPicker } from './splitPicker';
+import { townScenery } from '../town/pixelTownView';
 
 /** A column's width at its widest, the padding, and the spaces between parts, UI pixels. */
 const COL_W = 230;
@@ -74,6 +81,8 @@ export class PixelHeroSheet implements CardView {
   /** The army's slot picked, to move or split. */
   private company: number | null = null;
   private splitter: SplitPicker | null = null;
+  /** A company's card, its earlier levels, or a piece's card, open over the sheet. */
+  private unitView: { close(): void } | null = null;
 
   constructor(private readonly scene: Phaser.Scene, parent: Phaser.GameObjects.Container, private readonly spec: CardSpec, private readonly source: SheetSource, private readonly screen: { w: number; h: number }, private readonly onClose: () => void, quiet = false) {
     if (!quiet) getSound(scene)?.play('card');
@@ -115,6 +124,7 @@ export class PixelHeroSheet implements CardView {
         pick: (p) => {
           this.pick = p;
           this.draw();
+          if (pickedItem(this.source.hero(), p)) this.itemCard(p);
         },
         change: (next) => {
           this.source.change(next);
@@ -216,17 +226,21 @@ export class PixelHeroSheet implements CardView {
       this.owned.push(btn);
       this.body.add(btn.root);
     }
-    const hint = picked ? 'Tap a slot to move them' : 'Drag a company, or tap it, to move it';
+    const hint = picked ? 'Tap it again for its card, or a slot to move it' : 'Drag a company, or tap it, to move it';
     this.label({ align: 'left', anchor: { x: 0, y: 0 }, ink: INK.dim, wrap: w - (canSplit ? ARMY_FOOT.split + 4 : 0) }, hint, x, y + 4);
     return y + ARMY_FOOT.h;
   }
 
-  /** The first tap picks a company, the second moves it there; a tap on the same one lets go. */
+  /** The first tap picks a company, the second moves it there; a second tap on the same one opens its card, as in town. */
   private tapCompany(i: number): void {
     const from = this.company;
     if (from === null) this.company = this.source.hero().army[i] ? i : null;
-    else if (from === i) this.company = null;
-    else {
+    else if (from === i) {
+      this.company = null;
+      this.draw();
+      this.unitCard(i);
+      return;
+    } else {
       this.moveCompany(from, i);
       return;
     }
@@ -242,6 +256,63 @@ export class PixelHeroSheet implements CardView {
       this.source.change({ ...hero, army: r.src });
     }
     this.draw();
+  }
+
+  /**
+   * The company's card, as in town, with Compare but no Upgrade: troops
+   * are raised in a town that has built the higher level, or at a training
+   * site (src/logic/training.ts), not from the sheet.
+   */
+  private unitCard(i: number): void {
+    const company = this.source.hero().army[i];
+    if (!company || this.unitView || this.closed) return;
+    const layer = this.overlay();
+    const buttons: InfoButton[] = canCompare(company.creature) ? [{ label: 'Compare', note: 'with its earlier levels', onClick: () => this.compare(i) }] : [];
+    this.unitView = new UnitInfoCard(this.scene, layer, armyUnitInfo(company.creature, company.count), this.picScenery(i), this.screen, () => this.closeUnit(layer), buttons);
+  }
+
+  /** The company's level beside its earlier ones, as in town; closing it returns to its card. */
+  private compare(i: number): void {
+    const company = this.source.hero().army[i];
+    if (!company || this.unitView || this.closed) return;
+    const layer = this.overlay();
+    this.unitView = new UnitCompareView(this.scene, layer, company.creature, this.picScenery(i), this.screen, () => {
+      this.closeUnit(layer);
+      this.unitCard(i);
+    });
+  }
+
+  /** A piece's card over the sheet: its set and, from the bag, how it compares with what's worn; Wear or Take off. */
+  private itemCard(place: GearPick): void {
+    if (this.unitView || this.closed) return;
+    const layer = this.overlay();
+    this.unitView = new ItemCard(this.scene, layer, this.source.hero(), place, this.screen, (next) => {
+      this.source.change(next);
+      if (!this.closed) this.draw();
+    }, () => {
+      this.closeUnit(layer);
+      if (this.closed) return;
+      this.pick = null;
+      this.draw();
+    });
+  }
+
+  /** A layer over the sheet for a unit's or a piece's card. */
+  private overlay(): Phaser.GameObjects.Container {
+    const layer = this.scene.add.container(0, 0);
+    this.root.add(layer);
+    return layer;
+  }
+
+  private closeUnit(layer: Phaser.GameObjects.Container): void {
+    layer.destroy();
+    this.unitView = null;
+  }
+
+  /** The grass the town's cards stand their units in (none if it isn't loaded). */
+  private picScenery(i: number): PictureScenery | null {
+    const key = PX_TEX.scenery('grass');
+    return this.scene.textures.exists(key) ? { atlas: texturePixels(this.scene, key), art: townScenery(), seed: i + 3 } : null;
   }
 
   private openSplit(): void {
@@ -360,6 +431,7 @@ export class PixelHeroSheet implements CardView {
   dispose(): void {
     if (this.closed) return;
     this.closed = true;
+    this.unitView?.close();
     this.closeSplit();
     this.clear();
     this.root.destroy();

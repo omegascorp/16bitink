@@ -1,14 +1,15 @@
 import Phaser from 'phaser';
 import { getSound } from '../../host';
-import type { CreatureId } from '../../logic/creatures';
+import { creature, lineOf, type CreatureId } from '../../logic/creatures';
 import { faceOf, PX_TEX, unitArt } from './pixelAssets';
-import { drawPicture, drawRule, inkBox, pictureOffset } from './pixelFrames';
+import { drawPicture, drawRule, inkBox, pictureOffset, RIMS } from './pixelFrames';
 import { PixelBuffer } from './pixelRaster';
 import { wrapLines } from './pixelFont';
 import { HORIZON_Y, composeScenery } from './pixelScenery';
 import { INK, PixelButton, PixelFrame, PixelImage, putBuffer, TextLabel, texturePixels, UI_TEX } from './pixelUi';
 import type { PictureScenery } from './unitInfoCard';
-import { BTN_H, FACE_PIC, GAP, PAD, PIC_RIM, ROW_H, compareColumns, compareLayout, columnWidth, textWidth, type CompareColumn, type CompareText } from './unitCompare';
+import { BTN_H, FACE_PIC, GAP, PAD, PIC_RIM, ROW_H, compareColumns, compareLayout, columnsThatFit, columnWidth, textWidth, type CompareColumn, type CompareText } from './unitCompare';
+import { RANK_RIM, rankTint } from './rankLook';
 
 const FRAME_MS = 170;
 const GOLD = INK.title;
@@ -55,12 +56,12 @@ export class UnitCompareView {
 
   constructor(private readonly scene: Phaser.Scene, parent: Phaser.GameObjects.Container, tapped: CreatureId, scenery: PictureScenery | null, screen: { w: number; h: number }, private readonly onClose: () => void) {
     getSound(scene)?.play('card');
-    const cols = compareColumns(tapped);
+    const cols = compareColumns(tapped, columnsThatFit(screen));
     const n = cols.length;
     const lay = compareLayout(screen, n, measureText(cols, columnWidth(screen, n)), cols[0]!.cells.length);
     const shade = scene.add.rectangle(0, 0, screen.w, screen.h, 0x0a0604, 0.55).setOrigin(0).setInteractive();
     const panel = new PixelFrame(scene, lay.w, lay.h, { rim: 'bronze', thick: 2, fill: [34, 24, 17, 246], studs: true }).setPosition(lay.left, lay.top);
-    const title = new TextLabel(scene, { kind: 'title', anchor: { x: 0.5, y: 0 } }).setText(`Compare ${cols[0]!.name} levels`);
+    const title = new TextLabel(scene, { kind: 'title', anchor: { x: 0.5, y: 0 } }).setText(`Compare ${creature(lineOf(tapped)).name} levels`);
     title.setPosition(lay.left + Math.floor(lay.w / 2), lay.top + PAD);
     const rule = new PixelImage(scene, drawRule(Math.min(lay.w - PAD * 2, title.width + 40)), { x: 0.5, y: 0 }).setPosition(lay.left + Math.floor(lay.w / 2), lay.top + PAD + 15 + 3);
     const parts: Phaser.GameObjects.GameObject[] = [shade, panel.img, title.img, rule.img];
@@ -87,12 +88,13 @@ export class UnitCompareView {
     const mid = x + Math.floor(lay.colW / 2);
     // The tapped column sits in a gold frame, the others in a dim well.
     const bodyTop = top + lay.picY - 3;
-    const well = new PixelFrame(scene, lay.colW, lay.closeY - lay.picY + 3 - GAP, { rim: c.tapped ? 'gold' : 'dim', thick: c.tapped ? 2 : 1, fill: [22, 15, 10, 255] }).setPosition(x, bodyTop);
+    const well = new PixelFrame(scene, lay.colW, lay.closeY - lay.picY + 3 - GAP, { rim: c.tapped ? 'gold' : 'dim', thick: c.tapped ? 2 : 1, fill: rankTint(c.rank, [22, 15, 10, 255]) }).setPosition(x, bodyTop);
     parts.push(well.img);
     this.owned.push(well);
     // The picture: its idle animation in the town's scene, or just the face on a narrow screen.
     const px = x + Math.floor((lay.colW - lay.pic - PIC_RIM * 2) / 2);
-    const picFrame = new PixelFrame(scene, lay.pic + PIC_RIM * 2, lay.pic + PIC_RIM * 2, { rim: c.tapped ? 'gold' : 'bronze', fill: null }).setPosition(px, top + lay.picY);
+    // The picture in its rank's colour (the tapped column's gold is on its well).
+    const picFrame = new PixelFrame(scene, lay.pic + PIC_RIM * 2, lay.pic + PIC_RIM * 2, { rim: c.rank ? RANK_RIM[c.rank] : 'bronze', fill: null }).setPosition(px, top + lay.picY);
     const frames = this.pictureFrames(c.id, lay.pic, lay.mode, scenery);
     const pic = scene.add.image(px + PIC_RIM, top + lay.picY + PIC_RIM, frames[0]!).setOrigin(0);
     parts.push(pic, picFrame.img);
@@ -101,7 +103,8 @@ export class UnitCompareView {
       let f = 0;
       this.timers.push(scene.time.addEvent({ delay: FRAME_MS, loop: true, callback: () => pic.setTexture(frames[(f = (f + 1) % frames.length)]!) }));
     }
-    this.label(parts, c.name, mid, top + lay.nameY, { kind: 'title', wrap: lay.textW, anchor: { x: 0.5, y: 0 } });
+    // The name in its rank's colour, the level under it.
+    this.label(parts, c.name, mid, top + lay.nameY, { kind: 'title', wrap: lay.textW, anchor: { x: 0.5, y: 0 }, ...(c.rank ? { ink: RIMS[RANK_RIM[c.rank]].light } : {}) });
     this.label(parts, `Level ${c.level}`, mid, top + lay.levelY, { ink: INK.dim, anchor: { x: 0.5, y: 0 } });
     c.cells.forEach((cell, i) => {
       const ry = top + lay.rowsY + i * ROW_H;

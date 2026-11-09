@@ -14,7 +14,7 @@ import { drawOgre } from './ogre';
 import type { CreatureDrawer } from './types';
 
 /** War machines, the pixel-only neutrals and Egypt (pixel art only, still to come) have no painted drawing. */
-type BaseId = Exclude<CreatureId, `${string}2` | `${string}3` | 'catapult' | 'boar' | 'stymphalian' | 'hydra' | 'basilisk'
+type BaseId = Exclude<CreatureId, `${string}2` | `${string}3` | `${string}4` | `${string}5` | 'catapult' | 'boar' | 'stymphalian' | 'hydra' | 'basilisk'
   | 'levy' | 'nubian' | 'jackal' | 'chariot' | 'mummy' | 'sphinx' | 'bennu' | 'hyena' | 'raider' | 'scorpion' | 'crocodile' | 'petsuchos' | 'cobra' | 'lion' | 'apep' | 'gigas' | 'ammit' | 'ramp'>;
 
 /** Every base creature's drawing (see types.ts for the contract); an upgrade is drawn as its line's base. */

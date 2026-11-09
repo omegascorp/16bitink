@@ -6,6 +6,9 @@ import { drawFrame, drawPicture, drawRule, inkBox, pictureOffset } from './pixel
 import { HORIZON_Y, composeScenery, type Pixels } from './pixelScenery';
 import { PixelButton, PixelFrame, PixelImage, putBuffer, TextLabel, texturePixels, UI_TEX, INK } from './pixelUi';
 import type { UnitInfo } from './unitCard';
+import { rankTint, rimOfUnit } from './rankLook';
+import { rankOf } from '../../logic/rarity';
+import type { CreatureId } from '../../logic/creatures';
 
 /** The battle's terrain parts, for the scene behind the unit. */
 export interface PictureScenery {
@@ -55,7 +58,7 @@ export class UnitInfoCard {
     const inner = PIC + 4 + GAP + COL_W;
     const w = inner + PAD * 2;
     const shade = scene.add.rectangle(0, 0, screen.w, screen.h, 0x0a0604, 0.55).setOrigin(0).setInteractive();
-    const title = new TextLabel(scene, { kind: 'title', wrap: inner, anchor: { x: 0.5, y: 0 } }).setText(info.name);
+    const title = new TextLabel(scene, { kind: 'title', wrap: inner, anchor: { x: 0.5, y: 0 }, ...(info.nameInk ? { ink: info.nameInk } : {}) }).setText(info.name);
     const rule = new PixelImage(scene, drawRule(Math.min(inner, title.width + 40)), { x: 0.5, y: 0 });
     const notes = new TextLabel(scene, { wrap: inner - 10, anchor: { x: 0.5, y: 0 } }).setText(info.notes.length ? info.notes.join(' · ') : 'No special abilities');
     const notesH = notes.height + 8;
@@ -74,10 +77,12 @@ export class UnitInfoCard {
     const x0 = left + PAD;
     const parts: Phaser.GameObjects.GameObject[] = [shade, panel.img, title.img, rule.img];
     // The picture: a framed scene with the unit's idle animation and its count.
-    const picFrame = new PixelFrame(scene, PIC + 4, PIC + 4, { rim: 'bronze', fill: null }).setPosition(x0, y);
+    // Framed in its rank's colour, its count ringed in it too.
+    const rank = rankOf(info.creature as CreatureId);
+    const picFrame = new PixelFrame(scene, PIC + 4, PIC + 4, { rim: rimOfUnit(info.creature as CreatureId), thick: 2, fill: null }).setPosition(x0, y);
     const frames = this.pictureFrames(info, scenery);
     const pic = scene.add.image(x0 + 2, y + 2, frames[0]!).setOrigin(0);
-    const badge = scene.add.image(0, 0, badgeTexture(scene, info.side, info.count)).setOrigin(1, 1);
+    const badge = scene.add.image(0, 0, badgeTexture(scene, info.side, info.count, rank)).setOrigin(1, 1);
     badge.setPosition(x0 + 2 + PIC - 2, y + 2 + PIC - 2);
     parts.push(pic, picFrame.img, badge);
     if (frames.length > 1) {
@@ -86,7 +91,7 @@ export class UnitInfoCard {
     }
     // The stats: a dark well, a row each (icon, name, value), thin lines between.
     const colX = x0 + PIC + 4 + GAP;
-    const well = drawFrame(COL_W, info.rows.length * ROW_H + 4, { rim: 'dim', fill: [22, 15, 10, 255] });
+    const well = drawFrame(COL_W, info.rows.length * ROW_H + 4, { rim: 'dim', fill: rankTint(rank, [22, 15, 10, 255]) });
     for (let i = 1; i < info.rows.length; i++) for (let x = 2; x < COL_W - 2; x++) well.put(x, 2 + i * ROW_H - 1, [62, 46, 30, 255]);
     const wellImg = new PixelImage(scene, well).setPosition(colX, y);
     parts.push(wellImg.img);
