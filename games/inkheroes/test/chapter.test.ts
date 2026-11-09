@@ -162,7 +162,9 @@ describe('the chapter as one land', () => {
     expect(townById(next, 'korax-town')!.owner).toBe('rival');
     expect(next.rival?.hero?.name).toBe('Kassander');
     expect(isSeen(next, BLACK_BANNER, townById(next, 'eudora-town')!.x, townById(next, 'eudora-town')!.y)).toBe(false);
-    expect(parseAdventure(JSON.parse(JSON.stringify(next)), BLACK_BANNER)).toEqual(next);
+    // Lair groups sit where they came out, a parse lists them after the map's objects: compare by id.
+    const byId = <T extends { objects: readonly { id: string }[] }>(a: T): T => ({ ...a, objects: [...a.objects].sort((x, y) => (x.id < y.id ? -1 : 1)) });
+    expect(byId(parseAdventure(JSON.parse(JSON.stringify(next)), BLACK_BANNER)!)).toEqual(byId(next));
   });
 
   it('opens Eudora to the hero without a fight, and its garrison joins', () => {

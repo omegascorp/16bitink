@@ -1,3 +1,4 @@
+import { lairOfGroup } from '../src/logic/loot';
 import type { MapDef } from '../src/level/types';
 import {
   afterBattle, answerPrompt, battleSides, buyMachine, cantBuyMachine, dayOfWeek, endDay, heroTown, heroVisiting, liveObjects, monsterArmy, planPath, playerTowns, rivalAt, rivalHero, startAdventure, stepHero, withTown, type Adventure,
@@ -132,9 +133,12 @@ function townStrength(adv: Adventure, id: string): number {
 /** Whether `o` is worth riding to now. */
 function worth(adv: Adventure, def: MapDef, o: MapObject, edge: number, bossEdge: number): boolean {
   const ours = armyStrength(adv.hero.army);
+  // A lair's weekly group is farming, not part of the plan: the bot fights it only when it stands in the way.
+  if (o.kind === 'monster' && lairOfGroup(o.id)) return false;
   if (o.kind === 'monster') return monsterStrength(o) * (o.id === def.goal.target ? bossEdge : edge) <= ours;
   if (o.kind === 'mine') return o.owner !== 'player';
-  if (o.kind === 'windmill' || o.kind === 'stables' || o.kind === 'item') return false;
+  // A lair is a door, never visited: only its groups are fought.
+  if (o.kind === 'windmill' || o.kind === 'stables' || o.kind === 'item' || o.kind === 'lair') return false;
   if (['mercCamp', 'watchtower', 'standingStone', 'shrine', 'spellbook'].includes(o.kind)) return !adv.hero.visited.includes(o.id);
   return true;
 }

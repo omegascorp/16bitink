@@ -170,13 +170,15 @@ describe('a piece the bag has no room for', () => {
     expect(liveObjects(loadAdventure(s, mapById)!.current).find((o) => o.id === lying.id)).toMatchObject({ kind: 'item', item: 'linenHood' });
   });
 
-  it('blocks its tile like any site: the hero stops beside it and picks it up', () => {
+  it('never blocks its tile: the hero rides onto it and picks it up (src/logic/lying.ts)', () => {
     const a = won({ ...startAdventure(THORNWOOD), prompts: [], hero: { ...startAdventure(THORNWOOD).hero, gear: { helm: 'bronzeHelm' as const }, bag: full(4) } }, 'meadow-satyrs');
     const o = a.objects.find((x) => x.id === 'meadow-satyrs')!;
     const roomy = { ...a, hero: { ...a.hero, bag: [], x: o.x - 1, y: o.y, mp: 9999 } };
     const r = stepHero(roomy, THORNWOOD, { x: o.x, y: o.y, cost: 100, straight: 100, day: 0 });
-    expect(r.adv.hero.x).toBe(o.x - 1);
+    expect(r.adv.hero.x).toBe(o.x);
+    expect(r.stop).toBe(false);
     expect(r.adv.hero.gear?.helm === 'linenHood' || r.adv.hero.bag?.includes('linenHood')).toBe(true);
+    expect(liveObjects(r.adv).some((x) => x.id === o.id)).toBe(false);
   });
 });
 

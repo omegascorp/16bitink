@@ -5,6 +5,10 @@ import type { MapDef } from '../level/types';
 import { gridOf, guardAt, heroInGarrison, holdOff, heroTown, isSeen, objectCovering, otherHeroAt, planPath, rivalHeroes, stepHero, wallsToStorm, type Adventure } from '../logic/adventure';
 import { splitRides } from './map/rivalRides';
 import { rivalHeroAt } from '../logic/mapIntent';
+import { wearsWords } from '../logic/sets';
+import { lairWords } from '../logic/lairs';
+import { isLying, roomFor } from '../logic/lying';
+import { itemDef } from '../logic/items';
 import { besideEachOther, selectHero } from '../logic/heroes';
 import type { Army } from '../logic/army';
 import { creature, sizeWord, type CreatureId } from '../logic/creatures';
@@ -253,7 +257,10 @@ export class MapScene extends Phaser.Scene {
     const g = gridOf(def);
     if (x < 0 || y < 0 || x >= g.w || y >= g.h || !isSeen(adv, def, x, y)) return '';
     const met = rivalHeroAt(adv, x, y);
-    if (met && !adv.towns.some((t) => t.x === x && t.y === y)) return `${met.name}, the rival's hero, leading ${armyWords(met.army)}`;
+    if (met && !adv.towns.some((t) => t.x === x && t.y === y)) {
+      const worn = wearsWords(met);
+      return `${met.name}, the rival's hero, leading ${armyWords(met.army)}${worn ? `, ${worn}` : ''}`;
+    }
     const friend = otherHeroAt(adv, x, y);
     if (friend) return `${friend.name}, leading ${armyWords(friend.army)}: ${besideEachOther(adv.hero, friend) ? 'tap to meet and trade companies' : 'tap to pick'}`;
     const town = adv.towns.find((t) => Math.abs(x - t.x) <= 1 && (y === t.y || y === t.y - 1));
@@ -283,6 +290,9 @@ export class MapScene extends Phaser.Scene {
     }
     if (o.kind === 'learningStone') return `Learning Stone: +${LEARNING_XP} experience${o.visitedBy?.includes(adv.hero.id) ? ' (read)' : ''}`;
     if (o.kind === 'bank') return o.looted ? `${bankName(o)} (empty)` : bankName(o);
+    if (o.kind === 'lair') return lairWords(o);
+    // A piece lying on the ground: ridden over, taken in passing when there is room (src/logic/lying.ts).
+    if (isLying(o)) return `${itemDef(o.item!).name} on the ground: ${roomFor(adv.hero, o.item!) ? 'ride over it to take it' : 'no room in the bag, but the way is open'}`;
     return SITE_NAMES[o.kind];
   }
 

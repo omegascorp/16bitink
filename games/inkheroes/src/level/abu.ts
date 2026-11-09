@@ -75,6 +75,9 @@ export const ABU_LAND: MapDef = {
   off: lockedIn(TWO_LANDS_UNLOCKS, 2),
   seed: 5113,
   objects: [
+    // Tombs: a new group each week, in the half toward Abu.
+    { id: 'abu-tomb', kind: 'lair', x: 9, y: 20, creature: 'scorpion', count: 8, look: 'tomb' },
+    { id: 'sand-tomb', kind: 'lair', x: 8, y: 28, creature: 'cobra', count: 14, look: 'tomb' },
     // Mines: a palm grove's sawmill and a quarry's ore pit on the west bank, a gold mine in the eastern desert.
     { id: 'abu-sawmill', kind: 'mine', x: 8, y: 15, resource: 'wood', owner: 'neutral' },
     { id: 'abu-quarry', kind: 'mine', x: 5, y: 7, resource: 'ore', owner: 'neutral' },

@@ -69,6 +69,7 @@ export function createBattle(attacker: BattleSide, defender: BattleSide, seed: n
         id: stacks.length, side: s as Side, creature: slot!.creature, count: slot!.count, startCount: slot!.count, topHp: c.hp,
         hex, shots: c.shots ?? 0, retaliationsLeft: c.retaliations ?? 1, slot: i,
         acted: false, waited: false, defending: false, moraleUsed: false, effects: [],
+        ...(side.hero?.speed ? { pace: side.hero.speed } : {}),
       });
     });
     if (!walls) return;

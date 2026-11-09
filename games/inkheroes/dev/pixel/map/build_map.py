@@ -52,6 +52,8 @@ SITES = {
     **{k: (f'iso/{k}.png', None) for k in ('learningStone', 'cyclopsCave', 'griffinCliff', 'titanForge', 'keep')},
     # Part 8 (the Delta): edit_image_pixen from the Othrys cave / the shrine / the standing stone.
     **{k: (f'iso/{k}.png', None) for k in ('crocodileMarsh', 'lionRocks', 'benbenHouse', 'mastaba')},
+    # Lairs: edit_image_pixen from cyclopsCave / mastaba, then once more from the pick (an earth mound with a stone-arched mouth; a sand dune over a tomb).
+    **{k: (f'iso/{k}.png', None) for k in ('den', 'tomb')},
     'chest': ('sites/chest.png', None),
     'campfire': ('sites/campfire.png', None),
     **{f'pile-{r}': (f'sites/pile-{r}.png', None) for r in ('gold', 'wood', 'ore', 'mercury', 'sulfur', 'crystal', 'gems')},

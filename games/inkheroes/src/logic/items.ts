@@ -1,5 +1,7 @@
 import { creature, type MachineId } from './creatures';
 import type { Hero } from './hero';
+import { CROWN_ITEMS, CROWN_SETS } from './itemCatalog/crown';
+import { KEMET_ITEMS, KEMET_SETS } from './itemCatalog/kemet';
 
 /** What a hero wears: armor (always part of a set), and the pieces that never are. */
 export const SLOTS = ['helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots', 'weapon', 'shield', 'amulet', 'ring1', 'ring2', 'book', 'machine'] as const;
@@ -33,10 +35,11 @@ export const bagRoom = (h: Pick<Hero, 'pack' | 'bag'>): boolean => (h.bag?.lengt
 export const QUALITIES = ['gray', 'green', 'blue', 'purple', 'gold'] as const;
 export type Quality = (typeof QUALITIES)[number];
 export const QUALITY_NAMES: Readonly<Record<Quality, string>> = { gray: 'Common', green: 'Uncommon', blue: 'Rare', purple: 'Epic', gold: 'Legendary' };
-export type GearStat = 'attack' | 'defense' | 'power' | 'knowledge' | 'morale' | 'luck' | 'sight' | 'travel';
+/** `speed`: +n speed to every company in battle; `gold`: n gold a day. */
+export type GearStat = 'attack' | 'defense' | 'power' | 'knowledge' | 'morale' | 'luck' | 'sight' | 'travel' | 'speed' | 'gold';
 
 export const GEAR_STAT_NAMES: Readonly<Record<GearStat, string>> = {
-  attack: 'Attack', defense: 'Defense', power: 'Spell Power', knowledge: 'Knowledge', morale: 'Morale', luck: 'Luck', sight: 'Sight', travel: 'tile a day',
+  attack: 'Attack', defense: 'Defense', power: 'Spell Power', knowledge: 'Knowledge', morale: 'Morale', luck: 'Luck', sight: 'Sight', travel: 'tile a day', speed: 'Speed to every company', gold: 'gold a day',
 };
 
 export interface ItemDef {
@@ -48,38 +51,65 @@ export interface ItemDef {
   readonly gives: Readonly<Partial<Record<GearStat, number>>>;
   /** A war machine: the unit that stands on the field for it. */
   readonly machine?: MachineId;
+  /** The faction whose random drops it is found in (`src/logic/itemCatalog/`); hand-placed pieces leave it out. */
+  readonly faction?: 'crown' | 'kemet';
 }
 
-export const SET_NAMES: Readonly<Record<string, string>> = { bronze: 'Bronze set', linen: 'Linen set', faience: 'Faience set', scale: 'Scale set' };
+/** A set of six armor pieces, one per armor slot, all of one grade (`src/logic/itemCatalog/`). */
+export interface SetDef {
+  readonly id: string;
+  readonly name: string;
+  readonly quality: Quality;
+  readonly faction: 'crown' | 'kemet';
+  /** Who it suits: the fighter (Attack, Defense, Morale) or the mystic (Spell Power, Knowledge, Luck). */
+  readonly role: 'fighter' | 'mystic';
+  /** What wearing 2, 4 and 6 of its pieces adds (each on top of the last); gray sets give none. */
+  readonly bonus?: Readonly<Partial<Record<2 | 4 | 6, Readonly<Partial<Record<GearStat, number>>>>>>;
+}
+
+/** The random-drop sets, every faction's. */
+export const CATALOG_SETS: readonly SetDef[] = [...CROWN_SETS, ...KEMET_SETS];
+
+/** The gray sets' names, for a catalog without their SetDefs. */
+const GRAY_SET_NAMES: Readonly<Record<string, string>> = { bronze: 'Bronze set', linen: 'Linen set', faience: 'Faience set', scale: 'Scale set' };
+const setWords = (name: string): string => (/\bset$/i.test(name) ? name : `${name} set`);
+/** Every set's name ("Bronze set"): the catalog's, and the gray ones'. */
+export const SET_NAMES: Readonly<Record<string, string>> = { ...GRAY_SET_NAMES, ...Object.fromEntries(CATALOG_SETS.map((s) => [s.id, setWords(s.name)])) };
+/** Set `id`'s definition, if the catalog has one. */
+export const setDef = (id: string): SetDef | undefined => CATALOG_SETS.find((s) => s.id === id);
+/** How many pieces wear a set bonus, smallest first. */
+export const SET_TIERS = [2, 4, 6] as const;
 
 /** Every piece. Numbers in docs/inkheroes-design.md. */
 export const ITEMS = {
-  bronzeHelm: { name: 'Bronze Helm', slot: 'helm', quality: 'gray', set: 'bronze', gives: { defense: 1 } },
-  bronzeCuirass: { name: 'Bronze Cuirass', slot: 'cuirass', quality: 'gray', set: 'bronze', gives: { defense: 1 } },
-  bronzeBracers: { name: 'Bronze Bracers', slot: 'bracers', quality: 'gray', set: 'bronze', gives: { attack: 1 } },
-  warBelt: { name: 'War Belt', slot: 'belt', quality: 'gray', set: 'bronze', gives: { morale: 1 } },
-  bronzeGreaves: { name: 'Bronze Greaves', slot: 'greaves', quality: 'gray', set: 'bronze', gives: { defense: 1 } },
-  warSandals: { name: 'War Sandals', slot: 'boots', quality: 'gray', set: 'bronze', gives: { attack: 1 } },
-  linenHood: { name: 'Linen Hood', slot: 'helm', quality: 'gray', set: 'linen', gives: { knowledge: 1 } },
-  linenChiton: { name: 'Linen Chiton', slot: 'cuirass', quality: 'gray', set: 'linen', gives: { power: 1 } },
-  linenArmbands: { name: 'Linen Armbands', slot: 'bracers', quality: 'gray', set: 'linen', gives: { power: 1 } },
-  cordSash: { name: 'Cord Sash', slot: 'belt', quality: 'gray', set: 'linen', gives: { luck: 1 } },
-  linenLeggings: { name: 'Linen Leggings', slot: 'greaves', quality: 'gray', set: 'linen', gives: { knowledge: 1 } },
-  templeSandals: { name: 'Temple Sandals', slot: 'boots', quality: 'gray', set: 'linen', gives: { knowledge: 1 } },
+  ...CROWN_ITEMS,
+  ...KEMET_ITEMS,
+  bronzeHelm: { name: 'Bronze Helm', slot: 'helm', quality: 'gray', set: 'bronze', faction: 'crown', gives: { defense: 1 } },
+  bronzeCuirass: { name: 'Bronze Cuirass', slot: 'cuirass', quality: 'gray', set: 'bronze', faction: 'crown', gives: { defense: 1 } },
+  bronzeBracers: { name: 'Bronze Bracers', slot: 'bracers', quality: 'gray', set: 'bronze', faction: 'crown', gives: { attack: 1 } },
+  warBelt: { name: 'War Belt', slot: 'belt', quality: 'gray', set: 'bronze', faction: 'crown', gives: { morale: 1 } },
+  bronzeGreaves: { name: 'Bronze Greaves', slot: 'greaves', quality: 'gray', set: 'bronze', faction: 'crown', gives: { defense: 1 } },
+  warSandals: { name: 'War Sandals', slot: 'boots', quality: 'gray', set: 'bronze', faction: 'crown', gives: { attack: 1 } },
+  linenHood: { name: 'Linen Hood', slot: 'helm', quality: 'gray', set: 'linen', faction: 'crown', gives: { knowledge: 1 } },
+  linenChiton: { name: 'Linen Chiton', slot: 'cuirass', quality: 'gray', set: 'linen', faction: 'crown', gives: { power: 1 } },
+  linenArmbands: { name: 'Linen Armbands', slot: 'bracers', quality: 'gray', set: 'linen', faction: 'crown', gives: { power: 1 } },
+  cordSash: { name: 'Cord Sash', slot: 'belt', quality: 'gray', set: 'linen', faction: 'crown', gives: { luck: 1 } },
+  linenLeggings: { name: 'Linen Leggings', slot: 'greaves', quality: 'gray', set: 'linen', faction: 'crown', gives: { knowledge: 1 } },
+  templeSandals: { name: 'Temple Sandals', slot: 'boots', quality: 'gray', set: 'linen', faction: 'crown', gives: { knowledge: 1 } },
   // Egypt's mystic set (chapter 2, part 4): Neferet's, as the Linen set is Ianthe's.
-  faienceDiadem: { name: 'Faience Diadem', slot: 'helm', quality: 'gray', set: 'faience', gives: { knowledge: 1 } },
-  faienceCollar: { name: 'Faience Collar', slot: 'cuirass', quality: 'gray', set: 'faience', gives: { power: 1 } },
-  faienceBangles: { name: 'Faience Bangles', slot: 'bracers', quality: 'gray', set: 'faience', gives: { power: 1 } },
-  scarabGirdle: { name: 'Scarab Girdle', slot: 'belt', quality: 'gray', set: 'faience', gives: { luck: 1 } },
-  faienceAnklets: { name: 'Faience Anklets', slot: 'greaves', quality: 'gray', set: 'faience', gives: { knowledge: 1 } },
-  reedSandals: { name: 'Reed Sandals', slot: 'boots', quality: 'gray', set: 'faience', gives: { knowledge: 1 } },
+  faienceDiadem: { name: 'Faience Diadem', slot: 'helm', quality: 'gray', set: 'faience', faction: 'kemet', gives: { knowledge: 1 } },
+  faienceCollar: { name: 'Faience Collar', slot: 'cuirass', quality: 'gray', set: 'faience', faction: 'kemet', gives: { power: 1 } },
+  faienceBangles: { name: 'Faience Bangles', slot: 'bracers', quality: 'gray', set: 'faience', faction: 'kemet', gives: { power: 1 } },
+  scarabGirdle: { name: 'Scarab Girdle', slot: 'belt', quality: 'gray', set: 'faience', faction: 'kemet', gives: { luck: 1 } },
+  faienceAnklets: { name: 'Faience Anklets', slot: 'greaves', quality: 'gray', set: 'faience', faction: 'kemet', gives: { knowledge: 1 } },
+  reedSandals: { name: 'Reed Sandals', slot: 'boots', quality: 'gray', set: 'faience', faction: 'kemet', gives: { knowledge: 1 } },
   // Egypt's fighter's set (Abu): Paser's, as the Bronze set is Rowan's.
-  scaleHelm: { name: 'Scale Helm', slot: 'helm', quality: 'gray', set: 'scale', gives: { defense: 1 } },
-  scaleCoat: { name: 'Scale Coat', slot: 'cuirass', quality: 'gray', set: 'scale', gives: { defense: 1 } },
-  scaleBracers: { name: 'Scale Bracers', slot: 'bracers', quality: 'gray', set: 'scale', gives: { attack: 1 } },
-  captainsSash: { name: 'Captain’s Sash', slot: 'belt', quality: 'gray', set: 'scale', gives: { morale: 1 } },
-  scaleGreaves: { name: 'Scale Greaves', slot: 'greaves', quality: 'gray', set: 'scale', gives: { defense: 1 } },
-  chariotSandals: { name: 'Chariot Sandals', slot: 'boots', quality: 'gray', set: 'scale', gives: { attack: 1 } },
+  scaleHelm: { name: 'Scale Helm', slot: 'helm', quality: 'gray', set: 'scale', faction: 'kemet', gives: { defense: 1 } },
+  scaleCoat: { name: 'Scale Coat', slot: 'cuirass', quality: 'gray', set: 'scale', faction: 'kemet', gives: { defense: 1 } },
+  scaleBracers: { name: 'Scale Bracers', slot: 'bracers', quality: 'gray', set: 'scale', faction: 'kemet', gives: { attack: 1 } },
+  captainsSash: { name: 'Captain’s Sash', slot: 'belt', quality: 'gray', set: 'scale', faction: 'kemet', gives: { morale: 1 } },
+  scaleGreaves: { name: 'Scale Greaves', slot: 'greaves', quality: 'gray', set: 'scale', faction: 'kemet', gives: { defense: 1 } },
+  chariotSandals: { name: 'Chariot Sandals', slot: 'boots', quality: 'gray', set: 'scale', faction: 'kemet', gives: { attack: 1 } },
   noviceSpellbook: { name: 'Novice’s Spellbook', slot: 'book', quality: 'gray', gives: { knowledge: 1 } },
   // Egypt's spellbook: the same grade as the Greeks' first.
   novicePapyrus: { name: 'Novice’s Papyrus', slot: 'book', quality: 'gray', gives: { knowledge: 1 } },
@@ -134,21 +164,50 @@ export function machineOf(h: Pick<Hero, 'gear'>): MachineId | undefined {
   return id ? itemDef(id).machine : undefined;
 }
 
-/** Whether `h` already has `id` or a finer piece for its slot. */
+/** The slots piece `id` can be worn in: a ring on either hand, anything else its own. */
+export const slotsFor = (id: ItemId): readonly Slot[] => {
+  const { slot } = itemDef(id);
+  return slot === 'ring1' || slot === 'ring2' ? ['ring1', 'ring2'] : [slot];
+};
+/** Whether piece `id` can be worn in `slot`. */
+export const fitsSlot = (id: ItemId, slot: Slot): boolean => slotsFor(id).includes(slot);
+/** The first slot `h` could put `id` on in without taking anything off, if any. */
+export const freeSlotFor = (h: Pick<Hero, 'gear'>, id: ItemId): Slot | undefined => slotsFor(id).find((s) => !h.gear?.[s]);
+
+/** Whether `h` already has `id` or a finer piece for its slot (either hand, for a ring). */
 export function hasAsGood(h: Pick<Hero, 'gear' | 'bag'>, id: ItemId): boolean {
   const { slot, quality } = itemDef(id);
   const rank = (q: Quality): number => QUALITIES.indexOf(q);
-  return [h.gear?.[slot], ...(h.bag ?? [])].some((x) => !!x && itemDef(x).slot === slot && rank(itemDef(x).quality) >= rank(quality));
+  return [...slotsFor(id).map((s) => h.gear?.[s]), ...(h.bag ?? [])].some((x) => !!x && fitsSlot(x, slot) && rank(itemDef(x).quality) >= rank(quality));
 }
 
-/** What everything `h` wears adds up to. */
-export function gearBonus(h: Pick<Hero, 'gear'>): Partial<Record<GearStat, number>> {
-  const out: Partial<Record<GearStat, number>> = {};
+/** How many pieces of each set `h` wears. */
+export function setsWorn(h: Pick<Hero, 'gear'>): Readonly<Record<string, number>> {
+  const out: Record<string, number> = {};
   for (const id of Object.values(h.gear ?? {})) {
-    for (const [s, n] of Object.entries(itemDef(id).gives) as [GearStat, number][]) out[s] = (out[s] ?? 0) + n;
+    const { set } = itemDef(id);
+    if (set) out[set] = (out[set] ?? 0) + 1;
   }
   return out;
 }
+
+const addStats = (into: Partial<Record<GearStat, number>>, gives: Readonly<Partial<Record<GearStat, number>>>): void => {
+  for (const [s, n] of Object.entries(gives) as [GearStat, number][]) into[s] = (into[s] ?? 0) + n;
+};
+
+/** What everything `h` wears adds up to: each piece, and each set's bonus at 2, 4 and 6 pieces worn (a set the catalog has no SetDef for gives none). */
+export function gearBonus(h: Pick<Hero, 'gear'>): Partial<Record<GearStat, number>> {
+  const out: Partial<Record<GearStat, number>> = {};
+  for (const id of Object.values(h.gear ?? {})) addStats(out, itemDef(id).gives);
+  for (const [set, worn] of Object.entries(setsWorn(h))) {
+    const bonus = setDef(set)?.bonus;
+    for (const tier of SET_TIERS) if (bonus?.[tier] && worn >= tier) addStats(out, bonus[tier]);
+  }
+  return out;
+}
+
+/** Gold a day the side's heroes' gear brings. */
+export const gearGold = (heroes: readonly Pick<Hero, 'gear'>[]): number => heroes.reduce((n, h) => n + (gearBonus(h).gold ?? 0), 0);
 
 /** `h` with the four stats raised by what they wear. */
 export function withGear<H extends Pick<Hero, 'gear' | 'attack' | 'defense' | 'power' | 'knowledge'>>(h: H): H {
@@ -156,19 +215,19 @@ export function withGear<H extends Pick<Hero, 'gear' | 'attack' | 'defense' | 'p
   return { ...h, attack: h.attack + (b.attack ?? 0), defense: h.defense + (b.defense ?? 0), power: h.power + (b.power ?? 0), knowledge: h.knowledge + (b.knowledge ?? 0) };
 }
 
-/** A new piece: worn at once in an empty slot, else into the bag, else (the bag full) left behind. */
+/** A new piece: worn at once in an empty slot (a ring on either hand), else into the bag, else (the bag full) left behind. */
 export function gainItem(h: Hero, id: ItemId): { hero: Hero; worn: boolean; kept: boolean } {
-  const { slot } = itemDef(id);
-  if (!h.gear?.[slot]) return { hero: { ...h, gear: { ...h.gear, [slot]: id } }, worn: true, kept: true };
+  const slot = freeSlotFor(h, id);
+  if (slot) return { hero: { ...h, gear: { ...h.gear, [slot]: id } }, worn: true, kept: true };
   if (!bagRoom(h)) return { hero: h, worn: false, kept: false };
   return { hero: { ...h, bag: [...(h.bag ?? []), id] }, worn: false, kept: true };
 }
 
-/** The bag's piece `i` put on; what was in its slot goes to the bag. */
-export function wear(h: Hero, i: number): Hero {
+/** The bag's piece `i` put on (in `on`, else an empty slot it fits, else its own); what was in that slot goes to the bag. */
+export function wear(h: Hero, i: number, on?: Slot): Hero {
   const id = h.bag?.[i];
-  if (!id) return h;
-  const { slot } = itemDef(id);
+  if (!id || (on && !fitsSlot(id, on))) return h;
+  const slot = on ?? freeSlotFor(h, id) ?? slotsFor(id)[0]!;
   const was = h.gear?.[slot];
   return { ...h, gear: { ...h.gear, [slot]: id }, bag: [...h.bag!.filter((_, j) => j !== i), ...(was ? [was] : [])] };
 }

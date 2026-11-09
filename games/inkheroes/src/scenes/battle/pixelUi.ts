@@ -49,14 +49,7 @@ export const INK = {
 
 /** Pieces not drawn yet borrow a drawn one's icon (Egypt's art is still to come). */
 const SPELL_STAND_IN: Readonly<Partial<Record<SpellId, SpellId>>> = {};
-const ITEM_STAND_IN: Readonly<Partial<Record<ItemId, ItemId>>> = {
-  novicePapyrus: 'noviceSpellbook',
-  // The Faience set borrows the Linen set's pictures, piece for piece, until its own are drawn.
-  faienceDiadem: 'linenHood', faienceCollar: 'linenChiton', faienceBangles: 'linenArmbands', scarabGirdle: 'cordSash', faienceAnklets: 'linenLeggings', reedSandals: 'templeSandals',
-  // The Scale set borrows the Bronze set's, and the siege ramps the catapults' of the same grade.
-  scaleHelm: 'bronzeHelm', scaleCoat: 'bronzeCuirass', scaleBracers: 'bronzeBracers', captainsSash: 'warBelt', scaleGreaves: 'bronzeGreaves', chariotSandals: 'warSandals',
-  ramp: 'catapult', ramp2: 'catapult2', ramp3: 'catapult3',
-};
+const ITEM_STAND_IN: Readonly<Partial<Record<ItemId, ItemId>>> = {};
 
 /** Each id with its own picture, or its stand-in's. */
 function withStandIns<K extends string>(drawn: Readonly<Partial<Record<K, string>>>, standIn: Readonly<Partial<Record<K, K>>>): [K, string][] {

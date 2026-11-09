@@ -1,7 +1,8 @@
 import type Phaser from 'phaser';
 import { chapterEnd } from './chapterEnd';
 import { chapterById, isLoaded, nextMap, partsOf, type ChapterId } from '../level/maps';
-import { answerPrompt, playerTowns, type Adventure } from '../logic/adventure';
+import { answerPrompt, itemLine, playerTowns, type Adventure } from '../logic/adventure';
+import { itemDef } from '../logic/items';
 import { getHost, trackOffer } from '../host';
 import { partDays } from '../logic/chapter';
 import { PRIMARY_NAMES } from '../logic/hero';
@@ -37,6 +38,17 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
       return;
     }
     openCard(scene, { title: first.title, body: told ? first.brief! : first.text, picture: first.item ? UI_TEX.item(first.item) : undefined, report: first.report, buttons: [{ label: 'On we go', onClick: () => next() }] });
+    return;
+  }
+  if (first?.kind === 'chest' && first.item) {
+    // 1 chest in 4 holds a piece (src/logic/loot.ts): the piece, its grade and what it gives, and Take.
+    const def = itemDef(first.item);
+    openCard(scene, {
+      title: 'Treasure Chest',
+      body: `Under the lid lies the ${def.name}.\n${itemLine(first.item)}`,
+      picture: UI_TEX.item(first.item),
+      buttons: [{ label: 'Take', kind: 'crown', onClick: () => next('gold') }],
+    });
     return;
   }
   if (first?.kind === 'chest') {

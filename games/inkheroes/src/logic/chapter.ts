@@ -1,5 +1,6 @@
 import type { MapDef } from '../level/types';
-import { gridOf, heroFromDef, oldLordGone, openingPrompt, revealAround, type Adventure } from './adventure';
+import { gridOf, oldLordGone, openingPrompt, revealAround, rivalFromDef, type Adventure } from './adventure';
+import { lairsOut } from './lairs';
 import { armyOf } from './army';
 import { sightOf } from './hero';
 import { addTo, purse } from './resources';
@@ -35,7 +36,7 @@ export function rideOn(won: Adventure, from: MapDef, next: MapDef): Adventure {
       ...(spec.faction ? { faction: spec.faction } : {}),
     });
   });
-  const rival = newLord ? { hero: heroFromDef(next.rival!.hero), purse: purse(next.rival!.purse) } : adv.rival;
+  const rival = newLord ? { hero: rivalFromDef(next), purse: purse(next.rival!.purse) } : adv.rival;
   // Nothing the last part left waiting is fought in the next.
   const { rivalFight: _fight, ...rest } = adv;
   const opened: Adventure = {
@@ -55,7 +56,9 @@ export function rideOn(won: Adventure, from: MapDef, next: MapDef): Adventure {
   const fresh = towns.filter((t) => t.owner === 'player' && !adv.towns.some((o) => o.id === t.id));
   const seen = openLand(fresh.reduce((a, t) => revealAround(a, next, t.x, t.y, 5), revealAround(opened, next, adv.hero.x, adv.hero.y, sightOf(adv.hero))), next);
   // A rival who appears with the part has been at work at home too; a lord (`mind: 'lord'`) starts fair, with no head start.
-  return newLord && next.rival!.mind !== 'lord' ? headStart(seen, next) : seen;
+  const started = newLord && next.rival!.mind !== 'lord' ? headStart(seen, next) : seen;
+  // The part's lairs send out their first groups.
+  return lairsOut(started);
 }
 
 /** The land along the way the part opened, seen (seeing it again changes nothing). */

@@ -77,6 +77,8 @@ export interface MapDef {
     readonly mind?: 'lord';
     /** A lord: the most heroes he rides with, hired at his Taverns (3 when left out, src/logic/lord/turn.ts). */
     readonly heroes?: number;
+    /** What his heroes start wearing, by hero id (his own and those his Taverns hire), at no cost to his balance: their four stats are lowered by what it adds (src/logic/lord/kit.ts). */
+    readonly kit?: Readonly<Record<string, Gear>>;
   };
   readonly purse: Amount;
   /** What the Crown sends when the chapter rides on into this part (a part played straight on from the one before keeps its purse). */

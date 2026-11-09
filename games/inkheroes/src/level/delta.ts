@@ -129,6 +129,8 @@ export const DELTA_LAND: MapDef = {
     army: [{ creature: 'levy2', count: 406 }, { creature: 'nubian2', count: 221 }, { creature: 'jackal', count: 111 }, { creature: 'chariot', count: 56 }, { creature: 'mummy', count: 22 }],
   },
   rival: {
+    // Wears 2 blue, 2 green and 1 purple piece; his base stats are lowered by what they add (src/logic/lord/kit.ts).
+    kit: { apepi: { weapon: 'electrumKhopesh', shield: 'kushiteShield', helm: 'medjayHelm', amulet: 'ankhAmulet', cuirass: 'falconCuirass' } },
     mind: 'lord',
     hero: {
       id: 'apepi', name: 'Apepi', heroClass: 'knight', x: 66, y: 9, faction: 'kemet',
@@ -147,6 +149,9 @@ export const DELTA_LAND: MapDef = {
   off: lockedIn(TWO_LANDS_UNLOCKS, 4),
   seed: 8801,
   objects: [
+    // Tombs: a new group each week, in the east toward Avaris and Per-Bastet.
+    { id: 'iunu-tomb', kind: 'lair', x: 56, y: 14, creature: 'cobra', count: 65, look: 'tomb' },
+    { id: 'dune-tomb', kind: 'lair', x: 66, y: 17, creature: 'scorpion', count: 36, look: 'tomb' },
     // The marshes: the west strip over the ford, Per-Wadjet’s island between the branches, the gem pond by the shore.
     { id: 'crocodile-marsh', kind: 'dwelling', x: 4, y: 8, look: 'crocodileMarsh', creature: 'crocodile', growth: 4, stock: 4, owner: 'neutral' },
     { id: 'marsh-crocodiles', kind: 'monster', x: 5, y: 9, creature: 'crocodile', count: 30 },

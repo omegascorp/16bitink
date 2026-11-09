@@ -81,6 +81,8 @@ export const RED_LAND_LAND: MapDef = {
     army: [{ creature: 'levy', count: 60 }, { creature: 'nubian', count: 30 }, { creature: 'jackal', count: 16 }, { creature: 'chariot', count: 8 }],
   },
   rival: {
+    // Wears 3 green pieces; his base stats are lowered by what they add (src/logic/lord/kit.ts).
+    kit: { sethi: { weapon: 'nubianKhopesh', helm: 'medjayHelm', amulet: 'ankhAmulet' } },
     hero: {
       id: 'sethi', name: 'Sethi', heroClass: 'knight', x: 34, y: 16, faction: 'kemet',
       attack: 3, defense: 3, power: 1, knowledge: 1, skills: { offense: 1 }, spells: [],
@@ -102,6 +104,9 @@ export const RED_LAND_LAND: MapDef = {
   off: lockedIn(TWO_LANDS_UNLOCKS, 3),
   seed: 6121,
   objects: [
+    // Tombs: a new group each week, in the half toward Nubt.
+    { id: 'ridge-tomb', kind: 'lair', x: 24, y: 6, creature: 'lion', count: 9, look: 'tomb' },
+    { id: 'basin-tomb', kind: 'lair', x: 33, y: 24, creature: 'raider', count: 28, look: 'tomb' },
     // Mines: the gold mine up the north wadi, the gem field down the south one; Nubt's own beyond the ridge.
     { id: 'red-gold-mine', kind: 'mine', x: 12, y: 3, resource: 'gold', owner: 'neutral' },
     { id: 'red-gem-field', kind: 'mine', x: 12, y: 28, resource: 'gems', owner: 'neutral' },

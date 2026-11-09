@@ -2,7 +2,7 @@ import { ourHeroes, townById, withTown, type Adventure } from './adventure';
 import { BUILDINGS, type BuildingId } from './buildings';
 import { withHero } from './heroes';
 import { withinMana, type Hero } from './hero';
-import { BAGS, bagRoom, gainItem, itemDef, type ItemId, type Slot } from './items';
+import { BAGS, bagRoom, freeSlotFor, gainItem, type ItemId, type Slot } from './items';
 import { canAfford, pay, type Amount } from './resources';
 import { has, type Town } from './town';
 
@@ -45,7 +45,7 @@ export function takeFrom(h: Hero, from: ItemFrom): { hero: Hero; id: ItemId } | 
 }
 
 /** Whether hero `h` can take `id`: an empty slot to wear it in, or room in the bag. */
-const canTake = (h: Hero, id: ItemId): boolean => !h.gear?.[itemDef(id).slot] || bagRoom(h);
+const canTake = (h: Hero, id: ItemId): boolean => !!freeSlotFor(h, id) || bagRoom(h);
 
 /** The town and hero a Storehouse errand is about, or why it can't happen. */
 function atStore(adv: Adventure, townId: string, heroId: string): { town: Town; hero: Hero } | string {

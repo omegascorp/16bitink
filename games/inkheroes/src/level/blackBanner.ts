@@ -70,6 +70,8 @@ export const BLACK_BANNER_LAND: MapDef = {
     army: [{ creature: 'spearman', count: 70 }, { creature: 'bowman', count: 36 }, { creature: 'griffin', count: 18 }, { creature: 'swordsman', count: 9 }],
   },
   rival: {
+    // Wears 3 green pieces; his base stats are lowered by what they add (src/logic/lord/kit.ts).
+    kit: { kassander: { weapon: 'hopliteDory', helm: 'corinthianHelm', amulet: 'athenianOwlCharm' } },
     hero: {
       id: 'kassander', name: 'Kassander', heroClass: 'knight', x: 39, y: 8,
       attack: 5, defense: 5, power: 2, knowledge: 2, skills: { leadership: 1, archery: 1 }, spells: [],
@@ -85,6 +87,9 @@ export const BLACK_BANNER_LAND: MapDef = {
   off: lockedOn(3),
   seed: 3301,
   objects: [
+    // Lairs: a new group each week, in the half toward Korax.
+    { id: 'banner-den', kind: 'lair', x: 36, y: 16, creature: 'bandit', count: 55, look: 'den' },
+    { id: 'ridge-den', kind: 'lair', x: 45, y: 22, creature: 'basilisk', count: 22, look: 'den' },
     // West: Eudora's vale.
     { id: 'sawmill', kind: 'mine', x: 3, y: 21, resource: 'wood', owner: 'neutral' },
     { id: 'ore-pit', kind: 'mine', x: 10, y: 31, resource: 'ore', owner: 'neutral' },

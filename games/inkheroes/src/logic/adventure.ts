@@ -1,4 +1,8 @@
-import { bagRoom, gainItem, hasAsGood, hasSpellbook, itemDef, itemQuality, itemSays, machineOf, QUALITY_NAMES, SET_NAMES, wear, type ItemId, type SoldMachine } from './items';
+import { bagRoom, gainItem, gearGold, hasAsGood, hasSpellbook, itemDef, itemQuality, itemSays, machineOf, QUALITY_NAMES, SET_NAMES, wear, type ItemId, type SoldMachine } from './items';
+import { dropOf } from './loot';
+import { lairsOut } from './lairs';
+import { stripped, takeSpoils } from './spoils';
+import { kitOf, kitted } from './lord/kit';
 import type { HeroDef, MapDef } from '../level/types';
 import type { DayReport, GoldSource, TownRecruits } from './dayReport';
 import { ARMY_SLOTS, armyMorale, armyOf, emptyArmy, isEmptyArmy, moveAll, splitMonster, type Army, type ArmySlot } from './army';
@@ -16,6 +20,7 @@ import { skillValue, type SkillId } from './skills';
 import { BUILDING_IDS } from './buildings';
 import { cantBuild, dwellings, growthOf, has, income, manTowers, towersOf, undefended, weekly, type Town } from './town';
 import { visitSite } from './visits';
+import { isLying, pickUpInPassing } from './lying';
 import { specialtyOf } from './roster';
 import { specialtyGold } from './specialty';
 import type { LordMemory } from './lord/knowledge';
@@ -24,7 +29,8 @@ import { previousMap } from '../level/maps';
 import { CHAPTER1, lineText, LINES, narrated, STORM_WORDS, type LineId } from '../narration/lines';
 
 export type Prompt =
-  | { readonly kind: 'chest'; readonly id: string; readonly gold: number; readonly xp: number }
+  /** A chest: gold or experience, or (`item`: 1 chest in 4, src/logic/loot.ts) a piece to take. */
+  | { readonly kind: 'chest'; readonly id: string; readonly gold: number; readonly xp: number; readonly item?: ItemId }
   | { readonly kind: 'levelUp'; readonly offer: LevelUp }
   /** An outer dwelling of ours with creatures waiting: hire them, or leave them. `text`: news to show first (its flag just went up). */
   | { readonly kind: 'dwelling'; readonly id: string; readonly text?: string }
@@ -89,6 +95,8 @@ export interface RivalState {
   readonly fallen?: readonly { readonly hero: Hero; readonly day: number }[];
   /** The day a lord lost his last town: with none taken back in TOWNLESS_DAYS his banner falls (H3's rule, src/logic/lord/turn.ts). */
   readonly homeless?: number;
+  /** The player's side seen from the lord's chair (src/logic/lord/mirror.ts), never saved: beaten, their gear isn't taken (the rival never takes ours). */
+  readonly mirror?: true;
 }
 
 /**
@@ -133,6 +141,9 @@ export function heroFromDef(h: HeroDef): Hero {
   return { ...hero, mp: dailyMp(hero), ...(specialty ? { specialty } : {}) };
 }
 
+/** The map's rival lord's hero as the map places him, wearing his kit (src/logic/lord/kit.ts). */
+export const rivalFromDef = (def: MapDef): Hero => kitted(heroFromDef(def.rival!.hero), kitOf(def, def.rival!.hero.id));
+
 /** A message card that the narrator tells (line `id`): its title and words are the line's. */
 export const toldPrompt = (id: LineId): Prompt => ({ kind: 'message', title: LINES[id].title, ...narrated(id) });
 
@@ -159,9 +170,9 @@ export function startAdventure(def: MapDef): Adventure {
     mapId: def.id, day: 1, seed: def.seed, purse: purse(def.purse), hero,
     towns: [town, ...others].map(weekly), objects: def.objects, explored: '0'.repeat(g.w * g.h), status: 'playing',
     prompts: [openingPrompt(def)], lostStacks: 0,
-    ...(def.rival ? { rival: { hero: heroFromDef(def.rival.hero), purse: purse(def.rival.purse) } } : {}),
+    ...(def.rival ? { rival: { hero: rivalFromDef(def), purse: purse(def.rival.purse) } } : {}),
   };
-  return revealAround(revealAround(lordsBefore(adv, def), def, hero.x, hero.y, sightOf(hero)), def, t.x, t.y, 5);
+  return revealAround(revealAround(lordsBefore(lairsOut(adv), def), def, hero.x, hero.y, sightOf(hero)), def, t.x, t.y, 5);
 }
 
 /**
@@ -309,7 +320,8 @@ export function stormOf(adv: Adventure, town: Town): string | null {
 /**
  * What the pathfinder sees, for the player's hero or the rival's: walls and
  * footprints are solid, objects (and the other hero) are visited from beside
- * them, guard zones and gates end a path.
+ * them, guard zones and gates end a path. Gear lying on the ground is open
+ * ground: ridden over, and picked up in passing when there is room.
  */
 export function terrainView(adv: Adventure, def: MapDef, who: 'player' | 'rival' = 'player'): Terrainview {
   const g = gridOf(def);
@@ -318,6 +330,8 @@ export function terrainView(adv: Adventure, def: MapDef, who: 'player' | 'rival'
   const stopAt = new Set<number>();
   const visit = new Set<number>();
   for (const o of liveObjects(adv)) {
+    // Gear lying on the ground is ridden over, never in the way (src/logic/lying.ts).
+    if (isLying(o)) continue;
     visit.add(tileIndex(g, o.x, o.y));
     for (const t of objectFootprint(o).filter(inside)) solid.add(tileIndex(g, t.x, t.y));
     if (o.kind !== 'monster') continue;
@@ -396,10 +410,12 @@ export function stepHero(adv: Adventure, def: MapDef, step: PathStep, goal?: { x
   if (!canStep(step, adv.hero.mp)) return { adv, stop: true, notes: [] };
   // A town not ours: its garrison must be beaten from beside the gate (an empty one is just walked into).
   if (gate && gate.owner !== 'player' && !gate.ally && !undefended(gate)) return { adv, stop: true, battle: gate.id, notes: [] };
-  if (target) {
+  // A piece lying on the ground is ridden onto, not visited from beside (src/logic/lying.ts).
+  const lying = target && isLying(target) ? target : undefined;
+  if (target && !lying) {
     const guard = guardAt(adv, target.x, target.y);
     if (guard) return { adv, stop: true, battle: guard.id, then: target.id, notes: [] };
-    const r = visitSite({ ...adv, hero: { ...adv.hero, mp: Math.max(0, adv.hero.mp - step.cost) } }, target);
+    const r = visitSite({ ...adv, hero: { ...adv.hero, mp: Math.max(0, adv.hero.mp - step.cost) } }, target, def);
     return { adv: queueLevelUps(r.adv), stop: true, notes: r.notes };
   }
   const hero = { ...adv.hero, x: step.x, y: step.y, mp: Math.max(0, adv.hero.mp - step.cost) };
@@ -408,14 +424,16 @@ export function stepHero(adv: Adventure, def: MapDef, step: PathStep, goal?: { x
     if (gate.owner !== 'player') next = gate.ally ? joinTown(next, gate) : takeTown(next, gate.id);
     return { adv: checkGoal(enterTown(next), def), stop: true, town: true, notes: [] };
   }
-  // A guarded tile is fought for first (as H3).
+  // A guarded tile is fought for first (as H3); a piece lying on it is taken once the fight is won.
   const guard = guardAt(next, step.x, step.y);
   if (guard) {
-    const site = goal && objectAt(next, goal.x, goal.y);
+    const site = lying ?? (goal && objectAt(next, goal.x, goal.y));
     const beside = site && site.kind !== 'monster' && Math.abs(site.x - step.x) <= 1 && Math.abs(site.y - step.y) <= 1;
     return { adv: next, stop: true, battle: guard.id, ...(beside ? { then: site.id } : {}), notes: [] };
   }
-  return { adv: next, stop: false, notes: [] };
+  if (!lying) return { adv: next, stop: false, notes: [] };
+  const passed = pickUpInPassing(next, lying);
+  return { adv: passed.adv, stop: false, notes: passed.notes };
 }
 
 /** Town `id` is the player's now: its flag goes up, its gates open. */
@@ -486,9 +504,9 @@ export function incomeOf(adv: Adventure, owner: 'player' | 'rival'): Purse {
   return p;
 }
 
-/** Gold and resources the player gets each day: towns, mines and the hero's estates. */
+/** Gold and resources the player gets each day: towns, mines, the hero's estates, and gear that pays (src/logic/items.ts gearGold). */
 export function dailyIncome(adv: Adventure): Purse {
-  return addTo(incomeOf(adv, 'player'), { gold: skillValue(adv.hero.skills, 'estates') + specialtyGold(ourHeroes(adv)) });
+  return addTo(incomeOf(adv, 'player'), { gold: skillValue(adv.hero.skills, 'estates') + specialtyGold(ourHeroes(adv)) + gearGold(ourHeroes(adv)) });
 }
 
 /** Whether the hero has the movement for at least one more step today (to any open tile beside it). */
@@ -532,9 +550,11 @@ export function endDay(adv: Adventure, def?: MapDef): Adventure {
     : adv.objects;
   // The rival rests and is paid too (the rival's turn itself is rivalTurn's, after the night).
   const r = adv.rival;
-  const rival = r ? { ...r, hero: r.hero ? { ...r.hero, mp: dailyMp(r.hero) } : null, purse: addTo(addTo(r.purse, incomeOf(adv, 'rival')), { gold: specialtyGold(rivalHeroes(adv)) }), ...(r.others ? { others: r.others.map((h) => ({ ...h, mp: dailyMp(h) })) } : {}) } : undefined;
+  const rival = r ? { ...r, hero: r.hero ? { ...r.hero, mp: dailyMp(r.hero) } : null, purse: addTo(addTo(r.purse, incomeOf(adv, 'rival')), { gold: specialtyGold(rivalHeroes(adv)) + gearGold(rivalHeroes(adv)) }), ...(r.others ? { others: r.others.map((h) => ({ ...h, mp: dailyMp(h) })) } : {}) } : undefined;
   // A hero waiting in a town takes the Ankh its temple makes on Monday.
-  const next = takeAnkhs({ ...adv, day, hero, ...(others ? { others } : {}), towns, objects, purse: addTo(adv.purse, dailyIncome(adv)), ...(rival ? { rival } : {}) });
+  const paid = takeAnkhs({ ...adv, day, hero, ...(others ? { others } : {}), towns, objects, purse: addTo(adv.purse, dailyIncome(adv)), ...(rival ? { rival } : {}) });
+  // On Monday each lair with its group gone sends out a new one.
+  const next = newWeek ? lairsOut(paid) : paid;
   return { ...next, prompts: [...adv.prompts, { kind: 'message', title: calendar(day), text: stormNews(def, next), report: dayReport(adv, next) }] };
 }
 
@@ -557,6 +577,7 @@ export function dayReport(before: Adventure, after: Adventure): DayReport {
     { kind: 'mines', label: goldMines === 1 ? 'Gold mine' : `Gold mines ×${goldMines}`, gold: goldMines * MINE_OUTPUT.gold },
     { kind: 'estates', label: 'Estates', gold: estates },
     ...ourHeroes(before).filter((h) => specialtyGold([h]) > 0).map((h): GoldSource => ({ kind: 'estates', label: `${h.name}'s herds`, gold: specialtyGold([h]) })),
+    ...ourHeroes(before).filter((h) => gearGold([h]) > 0).map((h): GoldSource => ({ kind: 'estates', label: `${h.name}'s gear`, gold: gearGold([h]) })),
   ];
   const h = after.hero;
   const hero = { id: h.id, name: h.name, tiles: tilesOf(h.mp), horses: tilesOf(Math.max(0, h.mp - dailyMp(h))), mana: h.mana, maxMana: maxMana(h), gained: Math.max(0, h.mana - before.hero.mana) };
@@ -597,10 +618,10 @@ export function fledHome(adv: Adventure, foe: Hero): { adv: Adventure; town: Tow
   return { adv: { ...adv, rival: { ...adv.rival!, hero: { ...foe, x: town.x, y: town.y, mp: 0, army: armyOf([]) } } }, town };
 }
 
-/** The rival lord fled from the player: where to, and what it means. */
-function rivalFled(adv: Adventure, foe: Hero): Adventure {
+/** The rival lord fled from the player: where to, and what it means (he keeps all his gear). */
+function rivalFled(adv: Adventure, foe: Hero, def: MapDef, town?: Town): Adventure {
   const r = fledHome(adv, foe);
-  if (!r) return beatRival(adv, foe);
+  if (!r) return beatRival(adv, foe, def, town);
   const many = r.adv.towns.filter((t) => t.owner === 'rival').length > 1;
   const text = `${foe.name} has left the field and ridden hard for ${r.town.name}, leaving his army behind. He will hire another there. Take ${many ? 'his towns' : r.town.name}, and he will have nowhere left to run.`;
   // The line says "his town": told while he has just the one.
@@ -715,7 +736,7 @@ export function afterBattle(played: Adventure, def: MapDef, id: string, battle: 
   const hero = { ...fought, army: garrisoned ? adv.hero.army : army, xp: adv.hero.xp + xp, mana: battle.heroes[side]?.mana ?? adv.hero.mana, ...(ankhs ? { ankhs } : {}) };
   const objects = adv.objects.map((o) => (o.id === id ? { ...o, gone: true } : o));
   const beaten = adv.objects.find((o) => o.id === id && !o.gone);
-  let next: Adventure = claimDrop({ ...adv, hero, objects, lostStacks: adv.lostStacks + lost }, beaten);
+  let next: Adventure = claimDrop({ ...adv, hero, objects, lostStacks: adv.lostStacks + lost }, beaten, def);
   if (garrisoned) next = withTown(next, { ...garrisoned, garrison: army });
   // Holding a town of ours, its towers count their dead too.
   const home = side === 1 ? heroTown(next) : undefined;
@@ -723,14 +744,14 @@ export function afterBattle(played: Adventure, def: MapDef, id: string, battle: 
   const town = townById(next, id);
   // The rival lord beaten, in the field, at a town's gate or in his town: he rides no more.
   const foe = rivalHero(adv);
-  if (foe && (id === RIVAL || atGate || (town && rivalAt(adv, town.x, town.y)))) next = battle.fled !== undefined && battle.fled !== side ? rivalFled(next, foe) : beatRival(next, foe);
+  if (foe && (id === RIVAL || atGate || (town && rivalAt(adv, town.x, town.y)))) next = battle.fled !== undefined && battle.fled !== side ? rivalFled(next, foe, def) : beatRival(next, foe, def);
   // His gate won: now his walls, unless nobody is left to hold them.
   if (atGate && atGate.owner !== 'player') next = toHisWalls(next, atGate.id);
   // A town's garrison beaten: the town is taken and the hero rides in through its gate.
   if (town) next = enterTown(takeTown({ ...next, hero: { ...next.hero, x: town.x, y: town.y } }, id));
   // The site the hero was fighting for is theirs now, unless another monster still guards it.
   const site = then ? liveObjects(next).find((o) => o.id === then) : undefined;
-  if (site && site.kind !== 'monster' && !guardAt(next, site.x, site.y)) next = visitSite(next, site).adv;
+  if (site && site.kind !== 'monster' && !guardAt(next, site.x, site.y)) next = visitSite(next, site, def).adv;
   return checkGoal(queueLevelUps(next), def);
 }
 
@@ -748,12 +769,13 @@ function heroFell(adv: Adventure, def: MapDef): Adventure {
 }
 
 /**
- * What a beaten monster left, on the hero or in the bag, and the card that
- * shows it. With the bag full it lies on the ground where the monster stood,
- * to be picked up later.
+ * What a beaten monster left (its hand-placed piece, or the random roll's,
+ * src/logic/loot.ts), on the hero or in the bag, and the card that shows it.
+ * With the bag full it lies on the ground where the monster stood, to be
+ * picked up later.
  */
-function claimDrop(adv: Adventure, beaten: MapObject | undefined): Adventure {
-  const id = beaten?.drop;
+function claimDrop(adv: Adventure, beaten: MapObject | undefined, def: MapDef): Adventure {
+  const id = beaten && dropOf(def, beaten, ourHeroes(adv));
   if (!beaten || !id) return adv;
   const got = gainItem(adv.hero, id);
   const end = got.worn ? `${adv.hero.name} puts it on.` : got.kept ? 'It goes in the bag.' : 'The bag is full, so it lies here on the ground: make room and come back for it.';
@@ -771,8 +793,13 @@ export function itemLine(id: ItemId): string {
 /** Piece `id` lying where `o` stood (a beaten monster's place). */
 export const lyingItem = (o: Pick<MapObject, 'id' | 'x' | 'y'>, id: ItemId): MapObject => ({ id: o.id, kind: 'item', x: o.x, y: o.y, item: id });
 
-/** The rival lord is gone from the map; his towns still stand. */
-function beatRival(adv: Adventure, foe: Hero): Adventure {
+/**
+ * The rival lord is gone from the map; his towns still stand. The hero who
+ * beat him (or `town`'s store, held by its garrison alone) takes his gear
+ * (src/logic/spoils.ts), and a lord's hero is remembered without it.
+ */
+function beatRival(played: Adventure, foe: Hero, def: MapDef, town?: Town): Adventure {
+  const adv = takeSpoils(played, def, foe, { x: foe.x, y: foe.y }, town);
   const left = adv.towns.filter((t) => t.owner === 'rival').map((t) => t.name);
   const text = left.length ? `${foe.name} rides no more. ${left.join(' and ')} still stand${left.length === 1 ? 's' : ''} behind ${left.length === 1 ? 'its' : 'their'} walls.` : `${foe.name} rides no more.`;
   // The line says the banner is down for good: told once no town of his is left standing.
@@ -781,7 +808,7 @@ function beatRival(adv: Adventure, foe: Hero): Adventure {
   const r = adv.rival!;
   const [next, ...rest] = r.others ?? [];
   const lord = r.others !== undefined || r.explored !== undefined;
-  const fallen = lord ? { fallen: [...(r.fallen ?? []), { hero: { ...foe, army: armyOf([]) }, day: adv.day }] } : {};
+  const fallen = lord ? { fallen: [...(r.fallen ?? []), { hero: { ...stripped(foe), army: armyOf([]) }, day: adv.day }] } : {};
   return { ...adv, rival: { ...r, hero: next ?? null, ...(r.others ? { others: rest } : {}), ...fallen }, prompts: [...adv.prompts, card] };
 }
 
@@ -854,7 +881,9 @@ function afterDefence(played: Adventure, def: MapDef, townId: string, battle: Ba
   const back: Adventure = fought ? { ...adv, hero: { ...rest, mana: fought.mana, xp: rest.xp + xp, ...(ankhs ? { ankhs } : {}) } } : adv;
   if (battle.winner === side) {
     const held = withTown(back, { ...town, garrison: survivors(battle, side, town.garrison), towers: towerSurvivors(battle, side, towersOf(town)) });
-    return checkGoal(queueLevelUps(battle.fled === his ? rivalFled(held, foe) : beatRival(held, foe)), def);
+    // Held by its garrison alone, his gear goes to the town's store.
+    const store = lead ? undefined : townById(held, townId);
+    return checkGoal(queueLevelUps(battle.fled === his ? rivalFled(held, foe, def, store) : beatRival(held, foe, def, store)), def);
   }
   // The town falls: the rival rides in through its gate, over the hero who held it.
   const fallen = lead ? heroFell(back, def) : back;
@@ -921,6 +950,7 @@ export function answerPrompt(adv: Adventure, choice?: 'gold' | 'xp' | 'hire' | S
     return { ...base, purse: r.purse, hero: { ...adv.hero, army: r.army }, objects: adv.objects.map((x) => (x.id === o.id ? r.dwelling : x)) };
   }
   if (first.kind === 'chest') {
+    if (first.item) return takeChestPiece(base, first.id, first.item);
     const objects = adv.objects.map((o) => (o.id === first.id ? { ...o, gone: true } : o));
     if (choice === 'xp') return queueLevelUps({ ...base, objects, hero: { ...adv.hero, xp: adv.hero.xp + gainedXp(adv.hero, first.xp) } });
     return { ...base, objects, purse: addTo(adv.purse, { gold: first.gold }) };
@@ -930,4 +960,15 @@ export function answerPrompt(adv: Adventure, choice?: 'gold' | 'xp' | 'hire' | S
     return queueLevelUps({ ...base, hero: applyLevelUp(adv.hero, first.offer, skill) });
   }
   return base;
+}
+
+/** A chest's piece taken: worn or in the bag, or (the bag full) left lying where the chest stood. */
+function takeChestPiece(adv: Adventure, chestId: string, id: ItemId): Adventure {
+  const chest = adv.objects.find((o) => o.id === chestId);
+  if (!chest) return adv;
+  const got = gainItem(adv.hero, id);
+  const objects = adv.objects.map((o) => (o.id !== chestId ? o : got.kept ? { ...o, gone: true } : lyingItem(o, id)));
+  if (got.kept) return { ...adv, hero: got.hero, objects };
+  const full: Prompt = { kind: 'message', title: itemDef(id).name, text: `${itemLine(id)}\nThe bag is full, so it lies here on the ground: make room and come back for it.`, item: id };
+  return { ...adv, objects, prompts: [full, ...adv.prompts] };
 }

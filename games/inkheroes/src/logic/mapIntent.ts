@@ -2,6 +2,7 @@ import type { MapDef } from '../level/types';
 import { gridOf, guardAt, heroInGarrison, heroTown, isSeen, objectCovering, otherHeroAt, planPath, rivalAt, rivalHeroes, townAt, type Adventure } from './adventure';
 import type { Hero } from './hero';
 import { inGrid } from './map';
+import { isLying, roomFor } from './lying';
 import { townFootprint } from './objects';
 import { undefended, type Town } from './town';
 
@@ -38,7 +39,9 @@ export function intentAt(adv: Adventure, def: MapDef, x: number, y: number): Map
   const ty = o?.y ?? y;
   if (!planPath(adv, def, tx, ty)) return null;
   if (rivalAt(adv, tx, ty)) return 'attack';
-  if (o) return o.kind === 'monster' || guardAt(adv, o.x, o.y) ? 'attack' : 'visit';
+  if (o?.kind === 'monster' || (o && guardAt(adv, o.x, o.y))) return 'attack';
+  // A piece lying on the ground is ridden onto: taken with room in the bag, else just a ride over it (src/logic/lying.ts).
+  if (o) return isLying(o) && !roomFor(adv.hero, o.item!) ? 'move' : 'visit';
   const gate = townAt(adv, x, y);
   if (gate) return gate.owner !== 'player' && !gate.ally && !undefended(gate) ? 'attack' : 'visit';
   return guardAt(adv, x, y) ? 'attack' : 'move';
