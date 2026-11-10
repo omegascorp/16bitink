@@ -1,6 +1,6 @@
 import type { SfxId } from '../../../src/audio/recipes';
 import { clamp01, lerp, ramp, smooth, window01 } from '../short';
-import { lumpAt, taper } from '../sprites';
+import { taper } from '../sprites';
 
 /**
  * The beats of "Snake Catches Lizard, Eagle Catches Snake" (12 s, no voice).
@@ -94,34 +94,39 @@ export const HEAVES = [8.0, 9.2, 10.4, 11.4] as const;
 /** 0..1: how far the agama has gone down. */
 export const swallowed = (t: number): number => HEAVES.reduce((s, h) => s + ramp(t, h, h + 0.4), 0) / HEAVES.length;
 
-/** How far the agama's snout is in the mouth (px behind the snout tip): caught by the head, then drawn in. */
-export const inMouth = (t: number): number => (t < T_CATCH ? 0 : 44 + 34 * swallowed(t));
+/** How far the agama is in the mouth (px of it behind the snake's snout tip): its head seized at the strike, gulped in past the forelegs, then drawn in at each heave. */
+const M_BITE = 34;
+const M_GULP = 116;
+const M_END = 140;
+export const inMouth = (t: number): number =>
+  t < T_CATCH ? 0 : M_BITE + (M_GULP - M_BITE) * ramp(t, T_CATCH + 0.06, T_CATCH + 0.7) + (M_END - M_GULP) * swallowed(t);
 export const SNOUT_TIP = 21 * KS;
-const AGAMA_SNOUT = 22.5 * KB;
-
-export const lumpOf = (t: number): { readonly at: number; readonly size: number } => {
-  const p = swallowed(t);
-  return { at: lerp(0.35, 2.3, smooth(p * 1.1)) * W, size: t < T_CATCH + 0.1 ? 0 : (0.55 + 0.95 * p) * W * ramp(t, T_CATCH + 0.1, T_CATCH + 0.5) };
-};
 
 export interface Body {
   readonly spine: readonly Pt[];
   readonly widths: readonly number[];
 }
 
+/** The body: the agama is narrower than the snake's neck, so it makes no lump; the jaws (the head drawing) stretch round it instead. */
 export function bodyOf(core: Core): Body {
-  const lump = lumpOf(core.t);
   const spine: Pt[] = [];
   const widths: number[] = [];
   for (let d = 0; d <= BODY_LEN; d += 8) {
     spine.push(bodyPoint(core, d));
-    widths.push(W * taper(d / BODY_LEN, 0.62, 0.12) + lumpAt(d, lump.at, lump.size, W));
+    widths.push(W * taper(d / BODY_LEN, 0.62, 0.12));
   }
   return { spine, widths };
 }
 
-export type HeadPose = 'shut' | 'open' | 'strike';
-export const headPose = (t: number): HeadPose => (t >= T_CATCH ? 'open' : t >= T_CATCH - 0.14 ? 'strike' : 'shut');
+/**
+ * 'swallow' is the shut head stretched round the agama (mouth.ts): no open
+ * mouth shows round the prey. The jaws gape only early in the lunge, while the
+ * agama is still clear of them; they shut on it as they reach it.
+ */
+export type HeadPose = 'shut' | 'strike' | 'swallow';
+export const headPose = (t: number): HeadPose => (t >= T_CATCH - 0.06 ? 'swallow' : t >= T_CATCH - 0.15 ? 'strike' : 'shut');
+/** 0..1: how far the jaws have stretched round the agama. */
+export const gapeAt = (t: number): number => (t >= T_CATCH ? ramp(t, T_CATCH - 0.02, T_CATCH + 0.12) : 0);
 
 /** The tongue flicks while it stalks. */
 export const tongueOut = (t: number): boolean => t < T_CATCH - 0.3 && ((t - T_NEW) * 1.6) % 1 < 0.28;
@@ -131,29 +136,70 @@ export const tongueOut = (t: number): boolean => t < T_CATCH - 0.3 && ((t - T_NE
 export interface Agama extends Pt {
   readonly angle: number;
   readonly pose: 'idle' | 'bob' | 'run0' | 'run1';
+  /** Screen px per board px (KB, times the height scale when it is carried off). */
+  readonly scale: number;
+  /** Where its spine passes the snake's lips (board px from its snout), when in the mouth. */
+  readonly sMouth?: number;
 }
 
-function attached(core: Core, m: number): Agama {
-  const h = headOf(core);
-  const reach = SNOUT_TIP - m + AGAMA_SNOUT;
-  const wiggle = core.t >= T_CATCH ? 0.34 * Math.sin(core.t * 26) * (1 - ramp(core.t, T_CATCH + 0.2, 8.4)) + 0.05 * Math.sin(core.t * 9) : 0;
-  const struggling = core.t < 8.4;
-  return {
-    x: h.x + Math.cos(h.heading) * reach,
-    y: h.y + Math.sin(h.heading) * reach,
-    angle: h.heading + Math.PI + wiggle,
-    pose: struggling ? (Math.floor(core.t * 14) % 2 === 0 ? 'run0' : 'run1') : 'idle',
-  };
+/** A snake's head on screen: where, which way, and how much bigger than on the ground (1 there). */
+export interface HeadAt extends Pt {
+  readonly heading: number;
+  readonly scale: number;
 }
+
+/** The agama's own drawing (src/art/chapters/mountainsCrittersAgama.ts), board px: snout at x 22.5 facing +x, its full width along the spine and its pose's trunk swing. */
+const AGAMA = { snout: 22.5, len: 47 } as const;
+const AGAMA_WIDTH: readonly (readonly [number, number])[] = [
+  [0, 1.2], [1.5, 3.8], [4, 6.6], [6.4, 7.6], [8.4, 5.6], [10, 6.6], [14, 10.2], [19, 10], [22.5, 6.4], [25, 4.4], [31, 2.8], [39, 1.5], [47, 0.35],
+];
+const TRUNK: Readonly<Record<Agama['pose'], number>> = { idle: 0.6, bob: 0.3, run0: 2.3, run1: -2.3 };
+
+export function agamaWidth(s: number): number {
+  for (let i = 1; i < AGAMA_WIDTH.length; i++) {
+    const [s1, w1] = AGAMA_WIDTH[i]!;
+    const [s0, w0] = AGAMA_WIDTH[i - 1]!;
+    if (s <= s1) return w0 + (w1 - w0) * (1 - Math.cos((Math.PI * (s - s0)) / (s1 - s0))) * 0.5;
+  }
+  return AGAMA_WIDTH[AGAMA_WIDTH.length - 1]![1];
+}
+
+/** The agama's spine at s (s < 23, the trunk), in its drawing's board px. */
+export const agamaSpine = (pose: Agama['pose'], s: number): Pt => ({ x: AGAMA.snout - s, y: TRUNK[pose] * Math.sin((Math.PI * Math.min(s, 28)) / 28) });
+
+/** Where the lips close round the agama: head-drawing units ahead of the head's centre (the snout tip is at 21). */
+export const MOUTH_X = 18.5;
+/** The agama is hidden behind this line (head-drawing units): its front is in the mouth, under the head. */
+export const MOUTH_CUT = 16.5;
+
+/** The agama in the mouth of a head: its spine where the lips are, pointing in, `m` px of it inside, wriggling at first. */
+export function agamaInMouth(h: HeadAt, t: number, m: number): Agama {
+  const sc = h.scale;
+  const sMouth = (m - (SNOUT_TIP - MOUTH_X * KS)) / KB;
+  const struggling = t < 8.4;
+  const pose: Agama['pose'] = struggling ? (Math.floor(t * 14) % 2 === 0 ? 'run0' : 'run1') : 'idle';
+  const wiggle = t >= T_CATCH ? 0.22 * Math.sin(t * 26) * (1 - ramp(t, T_CATCH + 0.2, 8.4)) + 0.04 * Math.sin(t * 9) : 0;
+  // Its own trunk's slope at the lips, so its spine there lies along the snake's.
+  const slope = ((TRUNK[pose] * Math.PI) / 28) * Math.cos((Math.PI * Math.min(sMouth, 28)) / 28);
+  const angle = h.heading + Math.PI + wiggle + Math.atan(slope);
+  const mouth = { x: h.x + Math.cos(h.heading) * MOUTH_X * KS * sc, y: h.y + Math.sin(h.heading) * MOUTH_X * KS * sc };
+  const p = agamaSpine(pose, sMouth);
+  const [c, s] = [Math.cos(angle), Math.sin(angle)];
+  const k = KB * sc;
+  return { x: mouth.x - (c * p.x - s * p.y) * k, y: mouth.y - (s * p.x + c * p.y) * k, angle, pose, scale: k, sMouth };
+}
+
+const headAtCore = (core: Core): HeadAt => ({ ...headOf(core), scale: 1 });
 
 /** The agama on the ground, fixed in the world until the strike. */
-const CAUGHT = attached(coreAt(T_CATCH), inMouth(T_CATCH));
+const CAUGHT = agamaInMouth(headAtCore(coreAt(T_CATCH)), T_CATCH, inMouth(T_CATCH));
 const AGAMA_WORLD: Pt = { x: CAUGHT.x, y: CAUGHT.y - scrollAt(T_CATCH) };
 
+/** The agama (before T_NEW, the last hunt's, as it lies at frame 1: carry.ts lifts it with the snake). */
 export function agamaAt(t: number): Agama {
   const core = coreAt(t < T_NEW ? LOOP_S : t);
-  if (core.t >= T_CATCH) return attached(core, inMouth(core.t));
-  return { x: AGAMA_WORLD.x, y: AGAMA_WORLD.y + scrollAt(core.t), angle: CAUGHT.angle - 0.04 * Math.sin(core.t * 3), pose: Math.floor(core.t / 0.7) % 3 === 0 ? 'bob' : 'idle' };
+  if (core.t >= T_CATCH) return agamaInMouth(headAtCore(core), core.t, inMouth(core.t));
+  return { x: AGAMA_WORLD.x, y: AGAMA_WORLD.y + scrollAt(core.t), angle: CAUGHT.angle - 0.04 * Math.sin(core.t * 3), pose: Math.floor(core.t / 0.7) % 3 === 0 ? 'bob' : 'idle', scale: KB };
 }
 
 // ---------------------------------------------------------------- the eagle
@@ -162,8 +208,8 @@ export const DIR = (-50 * Math.PI) / 180;
 const [DX, DY] = [Math.cos(DIR), Math.sin(DIR)];
 const FOOT = 31 * 0.8 * KB;
 
-/** Where the talons close: the swollen neck, a little behind the head. */
-export const GRAB_D = 2.3 * W;
+/** Where the talons close: the neck, just behind the head (snake eagles seize a snake by the neck, out of reach of its fangs). */
+export const GRAB_D = 1.05 * W;
 export const grabPoint = (): Pt => bodyPoint(coreAt(LOOP_S), GRAB_D);
 const GRAB = grabPoint();
 /** The eagle's centre when its feet are on the grab. */
@@ -197,7 +243,8 @@ export function liftAt(t: number): Lift {
   const p = clamp01(t / 3.1);
   const e = 2800 * p ** 2.2;
   const rise = 1 - Math.exp(-t * 4.5);
-  const scale = 1 + 0.12 * rise + 0.5 * p * p;
+  // It climbs hard off the rock (nearer the camera: bigger), so the snake hanging under it reads as lower.
+  const scale = 1 + 0.26 * rise + 0.42 * p * p;
   return { dx: DX * e, dy: DY * e, scale, swing: 0.06 * Math.sin(t * 5) * ramp(t, 0, 0.6), alt: 1000 * (scale - 1) };
 }
 
@@ -253,7 +300,7 @@ export function ringAt(t: number): RingMark | null {
     const tau = ramp(t, T_LOCK, T_STILL);
     return { x: GRAB.x, y: GRAB.y, r: RING_R * (1.5 - 0.5 * tau), alpha: Math.min(1, 0.5 + 0.5 * tau) * flash(t), tau };
   }
-  if (t < 1.2) return { x: GRAB.x, y: GRAB.y, r: RING_R, alpha: (1 - smooth((t - 0.5) / 0.7)) * flash(t), tau: 1 };
+  if (t < 0.7) return { x: GRAB.x, y: GRAB.y, r: RING_R, alpha: (1 - smooth((t - 0.25) / 0.4)) * flash(t), tau: 1 };
   return null;
 }
 

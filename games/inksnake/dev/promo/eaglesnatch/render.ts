@@ -5,9 +5,12 @@ import { type Short, VIDEO } from '../short';
 import { boilAt, drawBody, drawBodyShadow, drawSprite, type Sprite } from '../sprites';
 import { renderEagleSnatchAudio } from './audio';
 import { bakeCast, type Cast } from './art';
+import { drawCarriedBody, drawCarriedShadow, drawFeet } from './body';
+import { carriedAt, type Carried } from './carry';
+import { drawAgamaInMouth, drawLips, drawStretchedHead } from './mouth';
 import {
-  agamaAt, alarmAt, bodyOf, CAPTIONS, captionAlpha, coreAt, CREDIT_TEXT, eagleAt, headOf, headPose, KB, KS, liftAt, LOOP_S, ringAt, SCORE_TEXT, scoreAt, scrollAt,
-  T_NEW, tongueOut, TILE_H, W, wrap, type Core, type Eagle, type Pt, type RingMark,
+  agamaAt, alarmAt, bodyOf, CAPTIONS, captionAlpha, coreAt, CREDIT_TEXT, eagleAt, gapeAt, headOf, headPose, KB, KS, LOOP_S, ringAt, SCORE_TEXT, scoreAt, scrollAt,
+  T_CATCH, T_NEW, tongueOut, TILE_H, W, wrap, type Agama, type Core, type Eagle, type HeadAt, type Pt, type RingMark,
 } from './story';
 
 /** Draws the "Snake Catches Lizard, Eagle Catches Snake" short (story.ts has the beats). */
@@ -37,20 +40,35 @@ function snakePose(core: Core): { spine: Pt[]; widths: number[]; along: number; 
   return { spine: [...b.spine], widths: [...b.widths], along: KS, offset: 0 };
 }
 
+/** A head, and its meal: the agama's hidden front, then its lips, then the stretched head over them. */
+function drawHead(ctx: CanvasRenderingContext2D, cast: Cast, h: HeadAt, t: number, boil: number, meal: Agama | null): void {
+  const pose = headPose(t);
+  if (meal && pose === 'swallow') {
+    drawAgamaInMouth(ctx, cast.agama[meal.pose], boil, meal, h);
+    drawLips(ctx, meal);
+  }
+  if (pose === 'swallow') drawStretchedHead(ctx, cast.head.shut, boil, h, gapeAt(t));
+  else drawSprite(ctx, cast.head[pose], boil, { x: h.x, y: h.y, rotation: h.heading, scale: KS * h.scale });
+}
+
+/** The new snake on the rock, and the agama: on the rock (under the snake) until the strike, then in its mouth. */
 function drawSnake(ctx: CanvasRenderingContext2D, cast: Cast, core: Core, boil: number): void {
-  const pose = snakePose(core);
-  drawBody(ctx, cast.strip, boil, pose);
-  const h = headOf(core);
+  const a = agamaAt(core.t);
+  const caught = core.t >= T_CATCH;
+  if (!caught) drawSprite(ctx, cast.agama[a.pose], boil, { x: a.x, y: a.y, rotation: a.angle, scale: a.scale });
+  drawBody(ctx, cast.strip, boil, snakePose(core));
+  const h: HeadAt = { ...headOf(core), scale: 1 };
   if (tongueOut(core.t)) {
     const tip = { x: h.x + Math.cos(h.heading) * 20.4 * KS, y: h.y + Math.sin(h.heading) * 20.4 * KS };
     drawSprite(ctx, cast.tongue, boil, { x: tip.x, y: tip.y, rotation: h.heading + 0.15 * Math.sin(core.t * 70), scale: KS });
   }
-  drawSprite(ctx, cast.head[headPose(core.t)], boil, { x: h.x, y: h.y, rotation: h.heading, scale: KS });
+  drawHead(ctx, cast, h, core.t, boil, caught ? a : null);
 }
 
-function drawAgama(ctx: CanvasRenderingContext2D, cast: Cast, t: number, boil: number): void {
-  const a = agamaAt(t);
-  drawSprite(ctx, cast.agama[a.pose], boil, { x: a.x, y: a.y, rotation: a.angle, scale: KB });
+/** The last hunt's snake, lifted in the eagle's feet (frame 1 is it on the rock). */
+function drawCarried(ctx: CanvasRenderingContext2D, cast: Cast, c: Carried, boil: number): void {
+  drawCarriedBody(ctx, cast.strip, boil, c);
+  drawHead(ctx, cast, c.head, LOOP_S, boil, c.agama);
 }
 
 /** A dark copy of a sprite, for the shadow it throws on the ground. */
@@ -70,7 +88,6 @@ function drawShadow(ctx: CanvasRenderingContext2D, scratch: CanvasRenderingConte
 
 function drawEagle(ctx: CanvasRenderingContext2D, cast: Cast, e: Eagle, boil: number): void {
   drawSprite(ctx, cast.eagle[e.pose], boil, { x: e.x, y: e.y, rotation: e.heading, scale: KB * e.scale, alpha: e.alpha });
-  if (e.feet) drawSprite(ctx, cast.feet, boil, { x: e.x, y: e.y, rotation: e.heading, scale: KB * e.scale, alpha: e.alpha });
 }
 
 /** The game's aim ring: dotted red, wide and faint as it aims, tight and strong at the blow; a cross inside once it is nearly on. */
@@ -140,36 +157,19 @@ function drawFrame(ctx: CanvasRenderingContext2D, cast: Cast, scratch: CanvasRen
   ctx.fillRect(0, 0, VIDEO.width, VIDEO.height);
   ctx.restore();
   const eagle = eagleAt(t);
-  const lift = lifting ? liftAt(t) : null;
-  const grab = bodyOf(core).spine[Math.round(2.3 * W / 8)]!;
-  // Shadows on the ground: the snake's, and the eagle's.
-  if (!(lift && lift.dx > 1500)) {
-    ctx.save();
-    if (lift) ctx.translate(lift.dx + SHADOW_DIR.x * lift.alt, lift.dy + SHADOW_DIR.y * lift.alt);
-    drawBodyShadow(ctx, snakePose(core), W, lift ? Math.max(0, 1 - lift.alt / 300) : 1);
-    ctx.restore();
-  }
+  const carried = lifting ? carriedAt(t) : null;
+  // Shadows on the rock: the snake's (softer and nearer it than the eagle's, as it hangs lower), then the eagle's.
+  if (carried) drawCarriedShadow(ctx, carried);
+  else drawBodyShadow(ctx, snakePose(core), W, 1);
   if (eagle) drawShadow(ctx, scratch, cast.eagle[eagle.pose], boil, eagle, 0.2 * eagle.alpha);
-  drawAgama0(ctx, cast, t, boil, lift, grab);
+  // The snake under the eagle, held in its feet; the eagle over all of it.
+  if (carried) drawCarried(ctx, cast, carried, boil);
+  else drawSnake(ctx, cast, core, boil);
+  if (carried && eagle) drawFeet(ctx, cast.grip, boil, carried, eagle.heading);
   const ring = ringAt(t);
   if (ring) drawRing(ctx, ring);
   if (eagle) drawEagle(ctx, cast, eagle, boil);
   drawWords(ctx, t);
-}
-
-/** The snake, its meal and (when lifted) the whole bundle carried off with the eagle. */
-function drawAgama0(ctx: CanvasRenderingContext2D, cast: Cast, t: number, boil: number, lift: ReturnType<typeof liftAt> | null, grab: Pt): void {
-  const core = coreAt(t < T_NEW ? LOOP_S : t);
-  ctx.save();
-  if (lift) {
-    ctx.translate(grab.x + lift.dx, grab.y + lift.dy);
-    ctx.rotate(lift.swing);
-    ctx.scale(lift.scale, lift.scale);
-    ctx.translate(-grab.x, -grab.y);
-  }
-  drawAgama(ctx, cast, t, boil);
-  drawSnake(ctx, cast, core, boil);
-  ctx.restore();
 }
 
 export function createEagleSnatch(ctx: CanvasRenderingContext2D): Short {

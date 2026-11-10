@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { boilAt } from '../dev/promo/sprites';
+import { carriedAt, IA, IB, offScreen } from '../dev/promo/eaglesnatch/carry';
 import {
-  agamaAt, bodyPoint, CAPTIONS, captionAlpha, coreAt, CREDIT_TEXT, eagleAt, GRAB_D, headOf, LOOP_S, ringAt, scrollAt, SOUNDS, T_CATCH, T_DIVE, T_LOCK, T_NEW, TILE_H, W, wrap,
+  agamaAt, bodyOf, bodyPoint, CAPTIONS, captionAlpha, coreAt, CREDIT_TEXT, eagleAt, GRAB_D, headOf, inMouth, KS, LOOP_S, MOUTH_CUT, ringAt, scrollAt, SOUNDS, T_CATCH, T_DIVE, T_LOCK, T_NEW,
+  TILE_H, W, wrap,
 } from '../dev/promo/eaglesnatch/story';
 
 const END = LOOP_S - 1e-6;
@@ -70,8 +72,8 @@ describe('promo short: snake catches lizard, eagle catches snake (no voice, InkS
     expect(e.feet).toBe(true);
     const h = head(t);
     const lizard = agamaAt(t);
-    // The lizard sticks out past the head, tail up the screen.
-    expect(h.y - lizard.y).toBeGreaterThan(80);
+    // The lizard's back half sticks out past the head, tail up the screen.
+    expect(h.y - lizard.y).toBeGreaterThan(60);
     expect(Math.abs(h.x - lizard.x)).toBeLessThan(120);
     expect(ringAt(t)!.alpha).toBeGreaterThan(0.5);
     expect(CAPTIONS.some((c) => captionAlpha(c, t) > 0.9)).toBe(true);
@@ -98,6 +100,50 @@ describe('promo short: snake catches lizard, eagle catches snake (no voice, InkS
     expect(Math.hypot(after.x - before.x, after.y - before.y)).toBeLessThan(40);
     // The new snake comes in from the bottom of the frame.
     expect(head(T_NEW).y).toBeGreaterThan(1500);
+  });
+
+  it('swallows for real: the agama goes in head first, its forelegs inside before the caption, less of it showing at each heave', () => {
+    // Head in at the strike, past the forelegs (shoulders at 11, toes back to 14 of its 47 board px) by "too busy eating to look up".
+    const caption = CAPTIONS.find((c) => c.text.startsWith('too busy'))!;
+    expect(agamaAt(T_CATCH + 0.01).sMouth!).toBeGreaterThan(2);
+    for (let t = caption.from; t < LOOP_S; t += FRAME) {
+      const s = agamaAt(t).sMouth!;
+      expect(s, `at ${t}`).toBeGreaterThan(15.5);
+      // Its hips (22) and hind legs stay out.
+      expect(s, `at ${t}`).toBeLessThan(21);
+    }
+    for (let t = T_CATCH; t + FRAME < LOOP_S; t += FRAME) expect(inMouth(t + FRAME), `at ${t}`).toBeGreaterThanOrEqual(inMouth(t));
+    // Its front is under the head: the snout lies behind the line it is hidden behind.
+    const t = 9;
+    const [h, a] = [headOf(core(t)), agamaAt(t)];
+    const snout = { x: a.x + Math.cos(a.angle) * 22.5 * a.scale, y: a.y + Math.sin(a.angle) * 22.5 * a.scale };
+    const along = ((snout.x - h.x) * Math.cos(h.heading) + (snout.y - h.y) * Math.sin(h.heading)) / KS;
+    expect(along).toBeLessThan(MOUTH_CUT);
+  });
+
+  it('carries the snake under the eagle, in its feet: frame 1 lies on the rock, the feet stay on its neck, the body hangs lower, all gone by the new snake', () => {
+    const ground = bodyOf(coreAt(LOOP_S)).spine;
+    const c0 = carriedAt(0);
+    ground.forEach((p, i) => {
+      expect(c0.spine[i]!.x).toBeCloseTo(p.x, 6);
+      expect(c0.spine[i]!.y).toBeCloseTo(p.y, 6);
+    });
+    expect(c0.head.heading).toBeCloseTo(headOf(coreAt(LOOP_S)).heading, 6);
+    // Gripped just behind the head.
+    expect(IA * 8).toBeLessThan(1.1 * W);
+    expect(IB).toBeGreaterThan(IA);
+    let prev = c0;
+    for (let t = FRAME; t < T_NEW; t += FRAME) {
+      const c = carriedAt(t);
+      c.spine.forEach((p, i) => expect(Math.hypot(p.x - prev.spine[i]!.x, p.y - prev.spine[i]!.y), `point ${i} at ${t}`).toBeLessThan(140));
+      if (c.feet && t > 0.75) {
+        // Each foot is on the neck.
+        for (const [f, i] of [[c.feet.a, IA], [c.feet.b, IB]] as const) expect(Math.hypot(f.at.x - c.spine[i]!.x, f.at.y - c.spine[i]!.y), `foot at ${t}`).toBeLessThan(c.widths[i]! / 2);
+      }
+      if (t > 0.6) for (let i = IB + 1; i < c.heights.length; i++) expect(c.heights[i]!, `point ${i} at ${t}`).toBeLessThanOrEqual(c.heights[IB]! + 1);
+      prev = c;
+    }
+    expect(offScreen(carriedAt(T_NEW - 0.12), 300)).toBe(true);
   });
 
   it('keeps every line of text inside the clear area, y 270..1250, and one at a time', () => {

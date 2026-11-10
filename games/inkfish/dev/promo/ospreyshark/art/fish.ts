@@ -1,14 +1,14 @@
 import { type Pt } from '../../../../src/art/pen';
 import { fillShape, inkLine, seeded, unitPx, within } from '../../pelican/art/ink';
-import { dab, smoothLoop, softLine, taper } from '../../seal/art/paint';
+import { dab, smoothLoop, softLine } from '../../seal/art/paint';
 
 /**
  * A generic silver fish (no species), painted to the bar of the great white:
  * a slim torpedo, a blue-green back washing down to bright silver flanks and
  * a white belly, a sheen band, rows of fine scales, a lateral line, a gill
  * cover, soft grey fins and a forked tail, and a big round eye with a gold
- * ring and a catchlight. `worry` widens the eye, lifts a worried brow and
- * opens the mouth; `wiggle` bends the body (a struggle).
+ * ring and a catchlight. `worry` widens the eye and opens
+ * the mouth; `wiggle` bends the body (a struggle).
  *
  * Own units: nose at +100, tail fork at about -110, belly down, the middle
  * at 0,0.
@@ -151,17 +151,6 @@ export function drawFish(ctx: CanvasRenderingContext2D, p: FishPose, boil: numbe
   ctx.restore();
 }
 
-/** Screen up, and screen right, as unit directions in the current (own) frame. */
-function screenAxes(ctx: CanvasRenderingContext2D): { readonly up: Pt; readonly side: Pt } {
-  const m = ctx.getTransform();
-  const det = m.a * m.d - m.b * m.c || 1;
-  const norm = (v: Pt): Pt => {
-    const l = Math.hypot(v.x, v.y) || 1;
-    return { x: v.x / l, y: v.y / l };
-  };
-  return { up: norm({ x: m.c / det, y: -m.a / det }), side: norm({ x: m.d / det, y: -m.b / det }) };
-}
-
 function drawFace(ctx: CanvasRenderingContext2D, p: FishPose, boil: number): void {
   const worry = Math.max(0, Math.min(1, p.worry));
   const { x, y } = FISH_EYE;
@@ -193,12 +182,6 @@ function drawFace(ctx: CanvasRenderingContext2D, p: FishPose, boil: number): voi
   ctx.arc(x + look.x - r * 0.24, y + look.y + r * 0.22, r * 0.08, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 1;
-  // A worried brow hugging the top of the eye as seen on screen (however the fish hangs), its front end raised.
-  if (worry > 0.02) {
-    const { up, side } = screenAxes(ctx);
-    const at = (a: number, b: number): Pt => ({ x: x + up.x * a + side.x * b, y: y + up.y * a + side.y * b });
-    taper(ctx, [at(r * 1.0, -r * 1.0), at(r * 1.3 + 1.5 * worry, -r * 0.15), at(r * 1.35 + 3 * worry, r * 0.65)], 2.2 + 1.6 * worry, 1, '#1b1a1f', 0.85 * worry);
-  }
   // Bitten by the snout: the mouth is inside the shark's.
   if (p.bitten) return;
   // The mouth at the tip of the snout: a line when calm; scared, a worried round "o" with pale lips.
