@@ -963,6 +963,205 @@ The rest follows Othrys: mines of every kind, piles, chests, a watchtower, a mer
 - **Chapter 1, re-run with these mind changes** (Othrys, 16 seeds): 20 of 31 (65%): 13/16 fresh, 7/15 ridden on (the doc's Nov 9 round: 11 of 15). The Seraph Spire in the game: part day 15 to 43 fresh, 16 to 55 ridden on. Saving in the first town (the old rule) gave 17 of 31. Not retuned.
 - **Left:** a person's playtest; the Benben day; the fresh first strike. In the balance runs (paid maps not installed) our Taverns can offer Sethi, and Apepi hires Paser and Sethi as captains: `storyVillains` reads the installed parts (ROSTER's).
 
+## Chapter 3: the Norse (chosen Nov 10, paid)
+
+**The user chose the Norse kingdoms** over Imperial China and Persia (Nov 10). Why:
+
+- **A new land.** Snow and pine forest. The game already has the snow terrain, but no people lives on it yet. The first two chapters are sunlit (Greece, then the Nile).
+- **The magic is already in the lore.** Rune Magic (see "Spells"): runes carved on troops, with lasting bonuses or effects that fire, some stronger as friendly units are wounded or killed.
+- **A new way to play.** The aggressive people: berserkers who hit harder as they're wounded. Their war machine is a **battering ram** that breaks the gate, never the walls (the Greeks' Catapult breaks walls; Egypt's ramp goes over them).
+- **Safe for the art pipeline.** Raiders, shieldmaidens, bowmen, draugr, trolls, valkyries, frost giants, a dragon: almost no half-human creatures, which PixelLab draws badly.
+- **Popular.** The most played mythology in games right now.
+
+## Chapter 3: The Long Winter (draft, Nov 10, waiting on the user)
+
+Everything below is a first draft for the user to approve or change: the roster, the heroes and the story. The numbers are first guesses; the balance bot settles them, as it did for chapters 1 and 2.
+
+The chapter works like the other two. It is one land that grows over four parts, with a fresh hero, and nothing carries over from chapter 2. It comes to the full game as a free update. Players arrive having won two chapters, so nothing is taught again. Each part still adds one new thing, in chapter 1's order:
+
+1. **Part 1:** the new people and their rage.
+2. **Part 2:** Rune Magic and the second hero.
+3. **Part 3:** the battering ram and a rival.
+4. **Part 4:** a lord's mind, the rest of the city and the legendary site.
+
+**From chapter 2.** The chapter card's last line becomes the chapter's `teaser`: "sails north to the Norse kingdoms: a new people, Hervor the shieldmaiden, berserkers and Rune Magic, in a winter that won't end."
+
+### The story
+
+It is the third year of the **Fimbulwinter**, the great winter with no summers that comes before the end of the world. The fjords are frozen, the ships can't sail and the steadings are starving. The jarls fight over what is left instead of standing together.
+
+**Hervor** is a shieldmaiden of Hlaðir. In the saga she wakes her dead father at his barrow and takes the cursed sword Tyrfing from him. She rides south over the mountains to find out who is keeping the sun away.
+
+The answer comes in part 2. The winter is not the gods' doing: someone is singing it. **Gunnhild**, "Mother of Kings", learned seiðr (sorcery) in the far north. She sang the winter so the starving jarls would kneel to her husband, **Eirik Bloodaxe**. While the winter holds, the wolf **Sköll** keeps closing on the sun. When Gunnhild falls, the song ends and the sun comes up over the fjord. That sunrise is the chapter's last picture, and it makes a good promo.
+
+Eirik, Gunnhild, Hervor, Heid and the others are figures from history and the sagas, used the same way as Kassander, Lykaon and Apepi.
+
+### The Norse Kingdoms (faction id `norse`)
+
+The people of the northern fjords under the old gods. Farmers with axes and hunters on skis fill the low levels. Above them are the beasts and powers of the Eddas: dwarves, trolls, valkyries and a wyrm.
+
+They are the **aggressive** people: high Attack, low Defense, and hardest to beat when they are already losing. The Greeks are balanced and Egypt is tough with its rites. The Norse have no flier below level 6.
+
+**Rage** is the people's mark (as the Griffin's double answer is the Greeks'): a raging stack gets +1 Attack for each tenth of its starting count it has lost this battle, up to +10. On the base units only the Berserker has it.
+
+**On their own snow**, a Norse hero moves as on grass (`norse` ignores snow's extra cost).
+
+**Art risk (PixelLab).** There are almost no human-animal hybrids. The risks:
+- **The Valkyrie** is a rider on a winged horse. The Pegasus Rider came out well, so this should work.
+- **The Ski Bowman** needs skis drawn in side view. The fallback is snowshoes.
+- **The Dwarf** must read as a short, broad warrior, not a child or a gnome.
+- **The Wyrm** must look different from a generic dragon. It gets a long serpent body, two legs and frost-blue scales.
+
+| Lvl | Unit (id) | Att | Def | Damage | HP | Speed | Growth | Cost | Notes |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | Karl (karl) | 5 | 4 | 1–3 | 10 | 4 | 14 | 60 | Free farmer with a hand axe and a round shield |
+| 2 | Hunter (hunter) | 6 | 3 | 2–3 | 10 | 4 | 9 | 100 | Yew bow, furs. Shoots, 12 shots |
+| 3 | Berserker (berserker) | 10 | 4 | 3–6 | 22 | 6 | 7 | 200 | Bear pelt, no armour. **Rage** |
+| 4 | Dwarf (dwarf) | 9 | 13 | 5–8 | 38 | 4 | 4 | 300 | A smith of the deep halls with a hammer and a leather apron. The people's wall |
+| 5 | Troll (troll) | 13 | 9 | 10–14 | 45 | 4 | 3 | 400 | Hill troll with a tree-trunk club. Regen 5 |
+| 6 | Valkyrie (valkyrie) | 16 | 14 | 16–24 | 95 | 9 | 2 | 1000 | On a winged horse. Flies, two hexes |
+| 7 | Wyrm (wyrm) | 21 | 18 | 40–50 | 200 | 11 | 1 | 3000 + 1 gem | Flies. **Breath:** a strike also hits the unit in the hex behind its target (new). Three hexes if its picture measures so |
+
+| Line | Level 2 (id) | Att | Def | Damage | HP | Speed | Cost | Level 3 (id) | Att | Def | Damage | HP | Speed | Cost |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | Hirdman (karl2) | 7 | 5 | 2–3 | 12 | 5 | 80 | Huscarl (karl3) | 8 | 7 | 2–4 | 15 | 5 | 100, Dane axe: **cleave** |
+| 2 | Ski Bowman (hunter2) | 7 | 3 | 2–4 | 10 | 7 | 130, 16 shots | Archer of Ullr (hunter3) | 8 | 4 | 3–4 | 12 | 7 | 170, 20 shots, **shoots twice** (new) |
+| 3 | Bear Warrior (berserker2) | 11 | 5 | 3–7 | 25 | 7 | 240 | Berserker of Odin (berserker3) | 13 | 6 | 4–8 | 28 | 8 | 290, **rage counts double** (up to +20) |
+| 4 | Dwarf Guard (dwarf2) | 11 | 14 | 6–9 | 42 | 4 | 360 | Rune-Forged Dwarf (dwarf3) | 12 | 16 | 7–10 | 48 | 5 | 430, **shield wall** (shots do half) |
+| 5 | Stone Troll (troll2) | 14 | 11 | 11–15 | 50 | 5 | 450, regen 5 | Troll King (troll3) | 16 | 12 | 12–16 | 55 | 5 | 520, **regen 15** |
+| 6 | Shield Valkyrie (valkyrie2) | 17 | 16 | 18–26 | 100 | 10 | 1200 | Valkyrie of Odin (valkyrie3) | 19 | 17 | 20–28 | 115 | 11 | 1500, **+1 morale** to the army |
+| 7 | Frost Wyrm (wyrm2) | 23 | 20 | 45–55 | 230 | 13 | 3600 + 2 gems | Wyrm of Gnitaheath (wyrm3) | 26 | 22 | 50–60 | 270 | 15 | 4400 + 3 gems, **strikes unanswered** |
+
+The level-3 traits mostly reuse kinds the engine already has: cleave, shield wall, regen, morale and strikes unanswered. Only rage, breath and shooting twice are new.
+
+The upgrades follow the "better armed" rule. The Karl gets a helmet and mail, then a Dane axe and a jarl's red cloak. The Hunter gets skis and a fur hood, then a rune-carved yew bow. The Berserker gets a bear-head hood and arm rings, then two axes and Odin's ravens painted on the skin. The Dwarf gets iron mail, then glowing runes on the hammer and the plate. The Troll gets stone skin, then a crown of antlers and a bound iron club. The Valkyrie gets a winged helm and a round shield, then gold mail and a spear of light. The Wyrm gets ice-blue scales, then a crown of horns and rune scars.
+
+**Epic and Legendary** (the Rarity rule, with stats from its formula):
+
+| Line | Epic (4) | Legendary (5) | Legendary trait |
+|---|---|---|---|
+| Karl | Jomsviking | Einherjar | rebirth (half): Odin's chosen dead rise to fight again |
+| Hunter | Huntsman of Skadi | Archer of Ýdalir | no melee penalty |
+| Berserker | Úlfheðinn | Chosen of Odin | strikes unanswered |
+| Dwarf | Dwarf Lord | Son of Ivaldi | answers every strike |
+| Troll | Mountain King | Troll of Jötunheim | cleave |
+| Valkyrie | Valkyrie Captain | Valkyrie of Fólkvangr | strikes unanswered |
+| Wyrm | Fafnir's Kin | Níðhöggr | poison |
+
+**Buildings.** Halls, walls, Tavern, Marketplace, Storehouse and Treasury work as before under the same ids. The other shared buildings get Norse names:
+- **Mage Guild:** the **Hof** (the temple where the runes are cut).
+- **Blacksmith:** the **Shipwright** (it sells the rams, which are built from keel timber).
+- **Stables:** the **Ski Track**.
+
+The town is a ring fort of timber and earth, like Trelleborg, on a fjord. Its castle on the field follows [inkheroes-castles.md](inkheroes-castles.md): a timber palisade, a gatehouse and log towers.
+
+| Line | Dwelling | First upgrade | Second upgrade |
+|---|---|---|---|
+| 1 Karls | Longhouse | Hird Hall | Huscarl Hall |
+| 2 Hunters | Hunting Lodge | Ski Lodge | Ýdalir, Ullr's yew dales |
+| 3 Berserkers | Berserker Camp | Bear Pit | Odin's Grove |
+| 4 Dwarves | Dwarf Forge | Deep Forge | Eitri's Forge |
+| 5 Trolls | Troll Cave | Troll Bridge | Troll Hall |
+| 6 Valkyries | Shield Hall | Hall of the Chosen | Valhalla's Gate |
+| 7 Wyrms | Wyrm's Hoard | Gnitaheath | Root of Yggdrasil |
+
+**The Norse own building: the Mead Hall** (needs the Village Hall). A hero who leaves town after a night there takes +1 morale until the end of their next battle.
+
+### Rune Magic (the Norse divine powers)
+
+Runes are **carved, not cast for a while**. A rune lasts the whole battle, never Spell Power rounds, so its numbers are smaller than a timed spell's. This matches the lore: lasting bonuses, effects that fire, and strength that grows as friendly units fall.
+
+| Spell (id) | Level | Mana | Effect |
+|---|---|---|---|
+| Tiwaz, Tyr's rune (tiwaz) | 1 | 6 | A friendly stack gets +2 Attack, and +1 more each time it loses creatures (up to +6). Lasts the battle |
+| Isa, the ice rune (isa) | 1 | 6 | An enemy stack can't answer strikes. Timed (Spell Power rounds): ice melts |
+| Thurisaz, Thor's rune (thurisaz) | 2 | 10 | Carved on a friendly stack. Each melee strike against it brings lightning down on the striker for 5 × SP + 10. Lasts the battle |
+
+The Norse need no scarce resource like Egypt's Ankhs: the cost is that runes can't be stacked high in one go. A stack holds one rune; a new rune replaces the old one.
+
+### The war machine: the battering ram
+
+The Greeks break walls and Egypt goes over them. **The Norse break the gate, and only the gate**: everything then pours through one hole the defender knows about. Vikings really used rams at the siege of Paris in 885–886. A ram works by itself, comes to a siege only and can't be hit, like every war machine.
+
+| Ram | Grade | Price | Effect |
+|---|---|---|---|
+| Ram (ram) | Common | 1500 | The gate falls at the end of round 3 |
+| Iron Ram (ram2) | Uncommon | 3000 | The gate falls at the end of round 2 |
+| Ram of the Sea-Kings (ram3) | Rare, a prize | – | The gate falls at the end of round 2, and both towers beside it crack (breaches at `wallGateNorth` and `wallGateSouth`) |
+
+The Shipwright sells the Ram from part 3 and the Iron Ram from part 4. The Ram of the Sea-Kings is part 4's prize. Without a ram, a hero storms by hand as before.
+
+### Heroes
+
+Ten, as each people has: five Knights and five Clerics (`src/logic/roster/norse.ts`).
+
+| Hero | Class | Specialty | Starts with | Who |
+|---|---|---|---|---|
+| Hervor | Knight | Berserkers (line 3) | Offense | The shieldmaiden of Hlaðir (campaign hero). Her father and his eleven brothers were berserkers |
+| Eirik Bloodaxe | Knight | Karls (line 1) | Offense | The king who killed his brothers for the crown (rival, part 3) |
+| Einar Thambarskelfir | Knight | Hunters (line 2) | Archery | The archer of Svolder, the strongest bow in Norway |
+| Sigurd | Knight | Dwarves (line 4) | Leadership | The dragon-slayer, raised by the dwarf smith Regin |
+| Harald Hardrada | Knight | Gold: +350 gold a day | Leadership, Logistics | The king who came home from Byzantium rich in gold |
+| Heid | Cleric | Thurisaz: it strikes 50% harder | Wisdom | The völva (seeress) of the Völuspá (campaign hero, hired from part 2) |
+| Gunnhild | Cleric | Isa: it lasts a round more per 5 levels | Wisdom, Mysticism | "Mother of Kings", who learned sorcery in the far north (the lord, part 4) |
+| Thorbjorg | Cleric | Tiwaz: +1 more to its cap per 5 levels | Wisdom | The "little völva" of the Greenland saga |
+| Brynhild | Cleric | Valkyries (line 6) | Wisdom | The valkyrie who defied Odin |
+| Egil Skallagrimsson | Cleric | Trolls (line 5) | Wisdom, Mysticism | Skald and rune-master, of half-troll stock. He raised a cursing pole against Eirik and Gunnhild |
+
+Chapter 1 opened with a fighter and chapter 2 with a mystic, so chapter 3 opens with a fighter again: Hervor has no spellbook until part 2. The same roster rules apply: a hero is in play only once, story villains (Eirik, Gunnhild) are never offered at our Taverns, and from part 3 on the Taverns offer two from the roster.
+
+### The parts
+
+The four parts come down the land from north to south and back up into the far north.
+
+**Part 1: Hlaðir** (32 × 24). This part teaches the people and rage. Hervor holds Hlaðir, at the head of a frozen fjord. Snow, pine forest and the ice of the fjord (walkable, slow). At the fjord's mouth the frost giant **Hrímgrímnir** sits on the ice with his wolves, so no ship has sailed for three winters. **Goal:** beat Hrímgrímnir on the ice. Opens: the halls, Fort, Citadel, Tavern, Mead Hall and the dwellings of lines 1–4. No Hof yet.
+
+**Part 2: Uppsala.** This part teaches Rune Magic. The road goes over the mountains to the great temple at Uppsala, where Heid reads the winter. The king's mounds there have opened and the dead walk (draugr). The first rune staff (the Norse spellbook, the **Novice's Rune Staff**) lies on the temple altar, held by the **Barrow King**, as chapter 1's first book waited among the Stymphalian Birds. **Goal:** free the temple. Heid joins at Uppsala's Tavern and tells what she reads: someone is singing the winter. Opens: the Hof (level 1–2) and line 5.
+
+**Part 3: The Bloodaxe.** This part teaches the ram and a rival. Eirik Bloodaxe rides from **Avaldsnes** to make himself king of the starving land. From the part's third night he races us for **Kaupang**, the market town with the last grain ships (fought for, never handed over, like Gebtu). His towns are ring forts, which is why the Shipwright sells the Ram here. **Goal:** `overthrow`: Avaldsnes taken and Eirik beaten. If beaten he flees north to his queen.
+
+**Part 4: Hálogaland** (the chapter's last part, free to explore like Othrys and the Delta). The far north, where the sun no longer rises: snow, ice, pine and the northern lights. **Gunnhild** is a lord (`rival.mind: 'lord'`, the first Cleric lord, so the lord mind's battle spells matter most here). She holds **Bjarkøy** and **Steigen**, with Eirik as her captain if he lived (`comesBack`). Two neutral towns are raced. The part opens the whole Norse tree. Sites:
+- **Mímir's Well**, at a root of the world tree: the chapter's legendary site (Epic → Legendary), guarded by **Sköll**, the wolf who hunts the sun.
+- **Angantyr's barrow**, where draugr guard **Tyrfing**, the chapter's Legendary (orange) prize: Hervor's own family sword, as in the saga.
+- An Arena, learning stones, outer dwellings (a troll bridge, a wyrm's hoard) and a treasure barrow (a bank).
+
+**Goal:** `overthrow` Gunnhild. **The ending:** her song stops, Sköll loses the sun's scent and the sun rises over the fjord.
+
+### New neutrals (the north)
+
+| Unit (id) | Lvl | Att | Def | Damage | HP | Speed | Notes |
+|---|---|---|---|---|---|---|---|
+| Wolf (wolf) | 2 | – | – | – | – | – | The existing wolf, in a white winter coat if the art allows |
+| Draugr (draugr) | 2 | 6 | 5 | 2–3 | 14 | 3 | Undead |
+| Cave Bear (bear) | 3 | 9 | 8 | 4–7 | 28 | 5 | Two hexes |
+| Barrow King (barrowKing) | 5 | 12 | 12 | 10–14 | 50 | 4 | Undead, curse 25% (the Mummy's curse). Part 2's guard |
+| Hrímgrímnir, frost giant (frostGiant) | 6 | 17 | 14 | 18–26 | 130 | 5 | Two hexes. Answers every strike. Part 1's boss |
+| Sköll (skoll) | 7 | 22 | 18 | 35–45 | 240 | 10 | Three hexes. Cleave. The guard of Mímir's Well |
+
+### What the engine needs
+
+1. **A third people.** It plugs into `factions.ts` the way Egypt did. The plumbing should already take a third, but this checks it.
+2. **New traits:**
+   - **rage**, and rage counting double;
+   - **breath**, which hits the target and the hex behind it, and works for wide units;
+   - **shoots twice**.
+3. **Norse heroes ignore snow's extra cost.**
+4. **The three runes.** A rune that lasts the battle, a rune that fires when its stack is struck, and one rune per stack.
+5. **The ram.** The gate falls at round N, and the Rare ram cracks the gate's two towers.
+6. **Walkable fjord ice** on the map, as a terrain that costs more, if the map needs it.
+
+### Art (PixelLab), before the engine
+
+As for Egypt: first a test of the risky units (Valkyrie, Ski Bowman, Dwarf, Wyrm, Frost Giant, Sköll) plus the Karl, Hunter, Berserker and Troll, about 12 gens. Then the 21 animated units and their 14 upgrades, the Norse town screen (longhouses, the Hof, runestones, boat sheds on the fjord), the ring-fort castle and the map sprites.
+
+Music: a **townNorse** loop (tagelharpa, lur horns, frame drum). The narrator is David, as in chapters 1 and 2.
+
+### Open for the user
+
+- The roster: the seven lines, and the Wyrm at level 7 rather than a Frost Giant (which is a neutral here).
+- Hervor first, and the winter story ending on the sunrise.
+- The Mead Hall as the Norse own building. The alternative, a **boat house** that lets heroes sail the fjords, fits the people better but means building boats into the map engine.
+
 ## The day card
 
 The morning's card is an infographic, built from a report the night leaves on the prompt (older saves keep their text card): the totals with their icons; a bar per source of gold, each town by name, then gold mines and estates, measured against the biggest; the hero's face with the tiles to ride and a mana gauge; on the first day of a week, each town's fresh recruits as faces with counts, lowest level first so the columns line up, and that the wilds have grown; then the rival's news. On a short, wide screen it spreads into two columns.
