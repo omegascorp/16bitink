@@ -2,7 +2,7 @@ import { townById, type Adventure } from '../../logic/adventure';
 import { bagOf, bagSize, BAGS, itemDef, type ItemId } from '../../logic/items';
 import { has } from '../../logic/town';
 import type { Hero } from '../../logic/hero';
-import { BAG_SHOP, cantBuyBag, cantGive, cantStore, cantTakeStored, giveItem, heroesIn, nextBag, storeItem, storeOf, storeRoom, takeStored } from '../../logic/storage';
+import { BAG_SHOP, cantBuyBag, cantGive, cantStore, cantTakeStored, giveItem, heroesIn, keptIn, nextBag, sharedRoom, sharedWith, storeItem, takeStored } from '../../logic/storage';
 import { BUILDINGS } from '../../logic/buildings';
 
 /** A place in the Storehouse room: one of the store's, or one in a hero's bag. */
@@ -38,16 +38,25 @@ export interface StoreHero {
 
 export interface StoreView {
   readonly title: string;
-  /** "Kept here: 3 / 8". */
+  /** "Kept here: 3 / 8"; with a Portal, "Kept: 3 / 40, shared with Eudora and Tegea". */
   readonly kept: string;
   readonly room: number;
+  /** The places the room draws: all of them, but a Portal's shared store shows no more than a Treasury's beyond its pieces (and one free). */
+  readonly places: number;
+  /** The pieces in reach, the shared store's with a Portal. */
+  readonly items: readonly ItemId[];
   readonly heroes: readonly StoreHero[];
 }
+
+/** The places a shared store shows at least: a Treasury's. */
+const SHOWN = 20;
 
 /** The room as things stand in town `townId`. */
 export function storeView(adv: Adventure, townId: string): StoreView {
   const town = townById(adv, townId)!;
-  const room = storeRoom(town);
+  const room = sharedRoom(adv, town);
+  const items = keptIn(adv, town);
+  const others = sharedWith(adv, town).slice(1).map((t) => t.name);
   const heroes = heroesIn(adv, town).map((hero): StoreHero => {
     const next = nextBag(hero);
     const why = next && cantBuyBag(adv, townId, hero.id);
@@ -63,7 +72,11 @@ export function storeView(adv: Adventure, townId: string): StoreView {
       },
     };
   });
-  return { title: has(town, 'treasury') ? 'Treasury' : 'Storehouse', kept: `Kept here: ${storeOf(town).length} / ${room}`, room, heroes };
+  // One line: two towns by name, more by count.
+  const withWhom = others.length <= 2 ? others.join(' and ') : `${others.length} other towns`;
+  const kept = others.length ? `Kept: ${items.length} / ${room}, shared with ${withWhom}` : `Kept here: ${items.length} / ${room}`;
+  const places = Math.min(room, Math.max(SHOWN, items.length + 1));
+  return { title: has(town, 'treasury') ? 'Treasury' : 'Storehouse', kept, room, places, items, heroes };
 }
 
 /** The biggest bag a hero can have: rows are laid out for it. */
@@ -71,7 +84,7 @@ export const BIGGEST_BAG = BAGS[BAGS.length - 1]!.size;
 
 /** The piece at `ref`, if any. */
 export function itemAt(adv: Adventure, townId: string, ref: StoreRef): ItemId | undefined {
-  if (ref.kind === 'store') return storeOf(townById(adv, townId)!)[ref.i];
+  if (ref.kind === 'store') return keptIn(adv, townById(adv, townId)!)[ref.i];
   return heroesIn(adv, townById(adv, townId)!).find((h) => h.id === ref.heroId)?.bag?.[ref.i];
 }
 

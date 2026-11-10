@@ -61,7 +61,7 @@ describe('Othrys, the land', () => {
   });
 
   it('opens the rest of the Greek tree: nothing Greek is off, and the Blacksmith adds nothing', () => {
-    expect(UNLOCKS[3]).toEqual(['capitol', 'tiltyard2', 'tiltyard3', 'monastery3', 'seraphSpire', 'seraphSpire2', 'seraphSpire3']);
+    expect(UNLOCKS[3]).toEqual(['capitol', 'tiltyard2', 'tiltyard3', 'monastery3', 'seraphSpire', 'seraphSpire2', 'seraphSpire3', 'portal3']);
     expect(OTHRYS.off).toEqual(lockedOn(4));
     expect(OTHRYS.off.filter((b) => !BUILDINGS[b].only)).toEqual([]);
     expect(BUILDING_IDS.filter((b) => !BUILDINGS[b].only && !openBy(4).has(b))).toEqual([]);

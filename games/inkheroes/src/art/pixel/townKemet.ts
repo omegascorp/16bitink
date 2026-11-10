@@ -15,49 +15,52 @@ import p12 from './town-kemet/marketplace.png?url';
 import p13 from './town-kemet/stables.png?url';
 import p14 from './town-kemet/storehouse.png?url';
 import p15 from './town-kemet/treasury.png?url';
-import p16 from './town-kemet/guardhouse.png?url';
-import p17 from './town-kemet/archeryRange.png?url';
-import p18 from './town-kemet/griffinTower.png?url';
-import p19 from './town-kemet/barracks.png?url';
-import p20 from './town-kemet/monastery.png?url';
-import p21 from './town-kemet/tiltyard.png?url';
-import p22 from './town-kemet/seraphSpire.png?url';
-import p23 from './town-kemet/guardhouse-2.png?url';
-import p24 from './town-kemet/guardhouse-3.png?url';
-import p25 from './town-kemet/archeryRange-2.png?url';
-import p26 from './town-kemet/archeryRange-3.png?url';
-import p27 from './town-kemet/griffinTower-2.png?url';
-import p28 from './town-kemet/griffinTower-3.png?url';
-import p29 from './town-kemet/barracks-2.png?url';
-import p30 from './town-kemet/barracks-3.png?url';
-import p31 from './town-kemet/monastery-2.png?url';
-import p32 from './town-kemet/monastery-3.png?url';
-import p33 from './town-kemet/tiltyard-2.png?url';
-import p34 from './town-kemet/tiltyard-3.png?url';
-import p35 from './town-kemet/seraphSpire-2.png?url';
-import p36 from './town-kemet/seraphSpire-3.png?url';
-import p37 from './town-kemet/house-a.png?url';
-import p38 from './town-kemet/house-b.png?url';
-import p39 from './town-kemet/house-c.png?url';
-import p40 from './town-kemet/house-d.png?url';
-import p41 from './town-kemet/house-e.png?url';
-import p42 from './town-kemet/house-f.png?url';
-import p43 from './town-kemet/fountain.png?url';
-import p44 from './town-kemet/palm-a.png?url';
-import p45 from './town-kemet/palm-b.png?url';
-import p46 from './town-kemet/wall.png?url';
-import p47 from './town-kemet/wall-up.png?url';
-import p48 from './town-kemet/wall-gate.png?url';
-import p49 from './town-kemet/corner-front.png?url';
-import p50 from './town-kemet/corner-back.png?url';
-import p51 from './town-kemet/corner-left.png?url';
-import p52 from './town-kemet/corner-left-rear.png?url';
-import p53 from './town-kemet/corner-right.png?url';
-import p54 from './town-kemet/corner-right-rear.png?url';
+import p16 from './town-kemet/portal.png?url';
+import p17 from './town-kemet/portal-2.png?url';
+import p18 from './town-kemet/portal-3.png?url';
+import p19 from './town-kemet/guardhouse.png?url';
+import p20 from './town-kemet/archeryRange.png?url';
+import p21 from './town-kemet/griffinTower.png?url';
+import p22 from './town-kemet/barracks.png?url';
+import p23 from './town-kemet/monastery.png?url';
+import p24 from './town-kemet/tiltyard.png?url';
+import p25 from './town-kemet/seraphSpire.png?url';
+import p26 from './town-kemet/guardhouse-2.png?url';
+import p27 from './town-kemet/guardhouse-3.png?url';
+import p28 from './town-kemet/archeryRange-2.png?url';
+import p29 from './town-kemet/archeryRange-3.png?url';
+import p30 from './town-kemet/griffinTower-2.png?url';
+import p31 from './town-kemet/griffinTower-3.png?url';
+import p32 from './town-kemet/barracks-2.png?url';
+import p33 from './town-kemet/barracks-3.png?url';
+import p34 from './town-kemet/monastery-2.png?url';
+import p35 from './town-kemet/monastery-3.png?url';
+import p36 from './town-kemet/tiltyard-2.png?url';
+import p37 from './town-kemet/tiltyard-3.png?url';
+import p38 from './town-kemet/seraphSpire-2.png?url';
+import p39 from './town-kemet/seraphSpire-3.png?url';
+import p40 from './town-kemet/house-a.png?url';
+import p41 from './town-kemet/house-b.png?url';
+import p42 from './town-kemet/house-c.png?url';
+import p43 from './town-kemet/house-d.png?url';
+import p44 from './town-kemet/house-e.png?url';
+import p45 from './town-kemet/house-f.png?url';
+import p46 from './town-kemet/fountain.png?url';
+import p47 from './town-kemet/palm-a.png?url';
+import p48 from './town-kemet/palm-b.png?url';
+import p49 from './town-kemet/wall.png?url';
+import p50 from './town-kemet/wall-up.png?url';
+import p51 from './town-kemet/wall-gate.png?url';
+import p52 from './town-kemet/corner-front.png?url';
+import p53 from './town-kemet/corner-back.png?url';
+import p54 from './town-kemet/corner-left.png?url';
+import p55 from './town-kemet/corner-left-rear.png?url';
+import p56 from './town-kemet/corner-right.png?url';
+import p57 from './town-kemet/corner-right-rear.png?url';
 import paving from './town-kemet/paving.png?url';
 import type { TownSprite } from './town';
 
-export type KemetArt = 'hall-village' | 'hall-town' | 'hall-city' | 'hall-capitol' | 'walls-fort' | 'walls-citadel' | 'walls-castle' | 'guild-1' | 'guild-2' | 'templeOsiris' | 'tavern' | 'blacksmith' | 'marketplace' | 'stables' | 'storehouse' | 'treasury' | 'guardhouse' | 'archeryRange' | 'griffinTower' | 'barracks' | 'monastery' | 'tiltyard' | 'seraphSpire' | 'guardhouse-2' | 'guardhouse-3' | 'archeryRange-2' | 'archeryRange-3' | 'griffinTower-2' | 'griffinTower-3' | 'barracks-2' | 'barracks-3' | 'monastery-2' | 'monastery-3' | 'tiltyard-2' | 'tiltyard-3' | 'seraphSpire-2' | 'seraphSpire-3' | 'house-a' | 'house-b' | 'house-c' | 'house-d' | 'house-e' | 'house-f' | 'fountain' | 'palm-a' | 'palm-b' | 'wall' | 'wall-up' | 'wall-gate' | 'corner-front' | 'corner-back' | 'corner-left' | 'corner-left-rear' | 'corner-right' | 'corner-right-rear';
+export type KemetArt = 'hall-village' | 'hall-town' | 'hall-city' | 'hall-capitol' | 'walls-fort' | 'walls-citadel' | 'walls-castle' | 'guild-1' | 'guild-2' | 'templeOsiris' | 'tavern' | 'blacksmith' | 'marketplace' | 'stables' | 'storehouse' | 'treasury' | 'portal' | 'portal-2' | 'portal-3' | 'guardhouse' | 'archeryRange' | 'griffinTower' | 'barracks' | 'monastery' | 'tiltyard' | 'seraphSpire' | 'guardhouse-2' | 'guardhouse-3' | 'archeryRange-2' | 'archeryRange-3' | 'griffinTower-2' | 'griffinTower-3' | 'barracks-2' | 'barracks-3' | 'monastery-2' | 'monastery-3' | 'tiltyard-2' | 'tiltyard-3' | 'seraphSpire-2' | 'seraphSpire-3' | 'house-a' | 'house-b' | 'house-c' | 'house-d' | 'house-e' | 'house-f' | 'fountain' | 'palm-a' | 'palm-b' | 'wall' | 'wall-up' | 'wall-gate' | 'corner-front' | 'corner-back' | 'corner-left' | 'corner-left-rear' | 'corner-right' | 'corner-right-rear';
 
 /** Egypt's city: the Greek city's keys (a Levy Camp is the 'guardhouse'), plus its own Temple of Osiris and palms. */
 export const KEMET_ART: Readonly<Record<KemetArt, TownSprite>> = {
@@ -77,45 +80,48 @@ export const KEMET_ART: Readonly<Record<KemetArt, TownSprite>> = {
   'stables': { url: p13, w: 152, h: 109 },
   'storehouse': { url: p14, w: 138, h: 120 },
   'treasury': { url: p15, w: 156, h: 132 },
-  'guardhouse': { url: p16, w: 130, h: 83 },
-  'archeryRange': { url: p17, w: 165, h: 125 },
-  'griffinTower': { url: p18, w: 116, h: 212 },
-  'barracks': { url: p19, w: 182, h: 127 },
-  'monastery': { url: p20, w: 164, h: 134 },
-  'tiltyard': { url: p21, w: 210, h: 123 },
-  'seraphSpire': { url: p22, w: 127, h: 175 },
-  'guardhouse-2': { url: p23, w: 163, h: 155 },
-  'guardhouse-3': { url: p24, w: 178, h: 147 },
-  'archeryRange-2': { url: p25, w: 144, h: 175 },
-  'archeryRange-3': { url: p26, w: 210, h: 163 },
-  'griffinTower-2': { url: p27, w: 144, h: 231 },
-  'griffinTower-3': { url: p28, w: 156, h: 276 },
-  'barracks-2': { url: p29, w: 181, h: 165 },
-  'barracks-3': { url: p30, w: 215, h: 192 },
-  'monastery-2': { url: p31, w: 142, h: 170 },
-  'monastery-3': { url: p32, w: 217, h: 223 },
-  'tiltyard-2': { url: p33, w: 214, h: 227 },
-  'tiltyard-3': { url: p34, w: 240, h: 161 },
-  'seraphSpire-2': { url: p35, w: 140, h: 287 },
-  'seraphSpire-3': { url: p36, w: 160, h: 252 },
-  'house-a': { url: p37, w: 102, h: 96 },
-  'house-b': { url: p38, w: 104, h: 90 },
-  'house-c': { url: p39, w: 146, h: 119 },
-  'house-d': { url: p40, w: 84, h: 74 },
-  'house-e': { url: p41, w: 101, h: 132 },
-  'house-f': { url: p42, w: 116, h: 84 },
-  'fountain': { url: p43, w: 88, h: 67 },
-  'palm-a': { url: p44, w: 57, h: 90 },
-  'palm-b': { url: p45, w: 69, h: 81 },
-  'wall': { url: p46, w: 135, h: 117 },
-  'wall-up': { url: p47, w: 134, h: 116 },
-  'wall-gate': { url: p48, w: 191, h: 150 },
-  'corner-front': { url: p49, w: 121, h: 107 },
-  'corner-back': { url: p50, w: 159, h: 134 },
-  'corner-left': { url: p51, w: 108, h: 134 },
-  'corner-left-rear': { url: p52, w: 34, h: 47 },
-  'corner-right': { url: p53, w: 110, h: 134 },
-  'corner-right-rear': { url: p54, w: 34, h: 49 },
+  'portal': { url: p16, w: 150, h: 135 },
+  'portal-2': { url: p17, w: 150, h: 153 },
+  'portal-3': { url: p18, w: 150, h: 170 },
+  'guardhouse': { url: p19, w: 130, h: 83 },
+  'archeryRange': { url: p20, w: 165, h: 125 },
+  'griffinTower': { url: p21, w: 116, h: 212 },
+  'barracks': { url: p22, w: 182, h: 127 },
+  'monastery': { url: p23, w: 164, h: 134 },
+  'tiltyard': { url: p24, w: 210, h: 123 },
+  'seraphSpire': { url: p25, w: 127, h: 175 },
+  'guardhouse-2': { url: p26, w: 163, h: 155 },
+  'guardhouse-3': { url: p27, w: 178, h: 147 },
+  'archeryRange-2': { url: p28, w: 144, h: 175 },
+  'archeryRange-3': { url: p29, w: 210, h: 163 },
+  'griffinTower-2': { url: p30, w: 144, h: 231 },
+  'griffinTower-3': { url: p31, w: 156, h: 276 },
+  'barracks-2': { url: p32, w: 181, h: 165 },
+  'barracks-3': { url: p33, w: 215, h: 192 },
+  'monastery-2': { url: p34, w: 142, h: 170 },
+  'monastery-3': { url: p35, w: 217, h: 223 },
+  'tiltyard-2': { url: p36, w: 214, h: 227 },
+  'tiltyard-3': { url: p37, w: 240, h: 161 },
+  'seraphSpire-2': { url: p38, w: 140, h: 287 },
+  'seraphSpire-3': { url: p39, w: 160, h: 252 },
+  'house-a': { url: p40, w: 102, h: 96 },
+  'house-b': { url: p41, w: 104, h: 90 },
+  'house-c': { url: p42, w: 146, h: 119 },
+  'house-d': { url: p43, w: 84, h: 74 },
+  'house-e': { url: p44, w: 101, h: 132 },
+  'house-f': { url: p45, w: 116, h: 84 },
+  'fountain': { url: p46, w: 88, h: 67 },
+  'palm-a': { url: p47, w: 57, h: 90 },
+  'palm-b': { url: p48, w: 69, h: 81 },
+  'wall': { url: p49, w: 135, h: 117 },
+  'wall-up': { url: p50, w: 134, h: 116 },
+  'wall-gate': { url: p51, w: 191, h: 150 },
+  'corner-front': { url: p52, w: 121, h: 107 },
+  'corner-back': { url: p53, w: 159, h: 134 },
+  'corner-left': { url: p54, w: 108, h: 134 },
+  'corner-left-rear': { url: p55, w: 34, h: 47 },
+  'corner-right': { url: p56, w: 110, h: 134 },
+  'corner-right-rear': { url: p57, w: 34, h: 49 },
 };
 
 /** Egypt's paving (sandstone flags, isometric already). */

@@ -257,7 +257,7 @@ describe('riding on into the Red Land', () => {
     expect(seen(townById(next, GEBTU)!)).toBe(false);
     expect(seen(townById(next, NUBT)!)).toBe(false);
     expect(next.prompts.at(-1)).toMatchObject({ kind: 'message', line: 'part-redLand' });
-    expect(openIn(TWO_LANDS_UNLOCKS, 3)).toEqual(new Set([...openIn(TWO_LANDS_UNLOCKS, 2), 'castle', 'treasury', 'tiltyard', 'monastery2', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3']));
+    expect(openIn(TWO_LANDS_UNLOCKS, 3)).toEqual(new Set([...openIn(TWO_LANDS_UNLOCKS, 2), 'castle', 'treasury', 'tiltyard', 'monastery2', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3', 'portal2']));
     expect(def.off).not.toContain('tiltyard');
     expect(def.off).toContain('seraphSpire');
     expect(def.parDays).toBe(35);

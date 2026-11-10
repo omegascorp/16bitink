@@ -26,6 +26,7 @@ import { specialtyOf } from './roster';
 import { specialtyGold } from './specialty';
 import type { LordMemory } from './lord/knowledge';
 import { growDwellings, hireAtDwelling } from './dwellings';
+import { mobArmy, mobLost, mobWon } from './portalMob';
 import { previousMap } from '../level/maps';
 import { CHAPTER1, lineText, LINES, narrated, STORM_WORDS, type LineId } from '../narration/lines';
 
@@ -112,6 +113,8 @@ export interface RivalState {
 export const RIVAL = 'rival';
 export const DEFEND = 'defend:';
 export const GATE = 'gate:';
+/** `portal:<town>`: the week's band at a town of ours with a Summoning Portal, fought by the hero in it (src/logic/portalMob.ts). */
+export const PORTAL = 'portal:';
 
 const grids = new WeakMap<MapDef, Grid>();
 export function gridOf(def: MapDef): Grid {
@@ -656,11 +659,12 @@ function joined(a: Army, b: Army): Army {
  * hero in it), the rival lord in the field (RIVAL), the hero at a town's
  * gate (GATE + its id: in the open, whoever storms it), or a town of ours
  * the rival storms past its gate (DEFEND + its id: the garrison, commanded
- * by the hero of ours in it, if any). At a town with a Fort the attacker has
- * the left, whoever it is, and the walls stand on the right; towers hold
- * whom the town placed there, else they man themselves.
+ * by the hero of ours in it, if any), or the week's band at a town of ours
+ * (PORTAL + its id: in the open, needs `def`). At a town with a Fort the
+ * attacker has the left, whoever it is, and the walls stand on the right;
+ * towers hold whom the town placed there, else they man themselves.
  */
-export function battleSides(adv: Adventure, id: string): BattleSetup {
+export function battleSides(adv: Adventure, id: string, def?: MapDef): BattleSetup {
   const seed = (adv.seed ^ (adv.day * 7919) ^ hashId(id)) >>> 0;
   const foe = rivalHero(adv);
   // A pending fight from an old save: our hero in the garrison was met "in the field".
@@ -682,6 +686,10 @@ export function battleSides(adv: Adventure, id: string): BattleSetup {
     return { attacker: heroSide(ours), defender: lordSide(adv, foe), seed };
   }
   const me = heroSide(adv.hero, playerArmy(adv));
+  if (id.startsWith(PORTAL)) {
+    if (!def) throw new Error(`a portal fight needs its map: ${id}`);
+    return { attacker: me, defender: { hero: null, army: mobArmy(adv, def, id.slice(PORTAL.length)) }, seed };
+  }
   if (id === RIVAL) {
     if (!foe) throw new Error('no rival in the field');
     return { attacker: me, defender: lordSide(adv, foe), seed };
@@ -723,7 +731,10 @@ export function afterBattle(played: Adventure, def: MapDef, id: string, battle: 
   const ourGate = atGate?.owner === 'player' ? townGuards(was, atGate).gate : undefined;
   const adv = ourGate ? pickHero(was, ourGate.id) : was;
   const side = playerSide(battle);
+  // A Summoning Portal's band: won as a monster is, lost with the hero coming home.
+  const mob = id.startsWith(PORTAL) ? id.slice(PORTAL.length) : undefined;
   if (battle.winner !== side) {
+    if (mob) return mobLost(adv, def, mob, battle);
     if (ourGate) return gateLost(adv, def, atGate!, battle);
     // Beaten by his hero in the field or at his gate: he keeps only what lived, as in every fight.
     const fell = heroFell(adv, def);
@@ -755,6 +766,7 @@ export function afterBattle(played: Adventure, def: MapDef, id: string, battle: 
   // The site the hero was fighting for is theirs now, unless another monster still guards it.
   const site = then ? liveObjects(next).find((o) => o.id === then) : undefined;
   if (site && site.kind !== 'monster' && !guardAt(next, site.x, site.y)) next = visitSite(next, site, def).adv;
+  if (mob) next = mobWon(next, def, mob);
   return checkGoal(queueLevelUps(next), def);
 }
 

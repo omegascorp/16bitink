@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import { BACKDROP } from '../art/palette';
 import { getHost, getSound } from '../host';
-import { buyMachine, cantBuyMachine, enterTown, garrisonHero, heroTown, leadOut, ourHeroes, playerTowns, townById, withTown, type Adventure } from '../logic/adventure';
+import { buyMachine, cantBuyMachine, enterTown, garrisonHero, heroTown, leadOut, ourHeroes, playerTowns, PORTAL, townById, withTown, type Adventure } from '../logic/adventure';
+import { cantStepThrough, portalLevel, stepThrough } from '../logic/portal';
+import { cantFightMob } from '../logic/portalMob';
 import { cantHireHero, hireHero, selectHero, swapTownHeroes, tavernsHire, townHeroes, withHero, type TownHeroes } from '../logic/heroes';
 import { gainItem } from '../logic/items';
 import type { SpellId } from '../logic/spells';
@@ -51,6 +53,7 @@ import { forSale, sellPiece } from '../logic/sell';
 import { storeTap, type StoreRef } from './town/storeData';
 import { buyBag, cantBuyBag } from '../logic/storage';
 import { TownWindow } from './town/townWindow';
+import { PortalRoom } from './town/portalRoom';
 
 /** A press that moves further than this (UI px) is a drag, not a tap. */
 const DRAG = 6;
@@ -75,6 +78,8 @@ const OPENS: Partial<Record<BuildingId, TownScreen>> = {
   guardhouse2: 'fort', archeryRange2: 'fort', griffinTower2: 'fort', barracks2: 'fort', monastery2: 'fort', tiltyard2: 'fort', seraphSpire2: 'fort',
   guardhouse3: 'fort', archeryRange3: 'fort', griffinTower3: 'fort', barracks3: 'fort', monastery3: 'fort', tiltyard3: 'fort', seraphSpire3: 'fort',
   mageGuild1: 'guild', mageGuild2: 'guild', blacksmith: 'smith', tavern: 'tavern', storehouse: 'store', treasury: 'store', marketplace: 'market',
+  // The Portal's first level is its shared store; from the second it has a room of its own.
+  portal: 'store', portal2: 'portal', portal3: 'portal',
 };
 
 /** What a building does, in words (a dwelling names the creature it hires, the town's people's own). */
@@ -97,7 +102,7 @@ export class TownScene extends Phaser.Scene {
   private size = { w: 0, h: 0, k: 1 };
   private view: PixelTownView | null = null;
   private bar: TownBar | null = null;
-  private window: TownWindow | GuildRoom | SmithRoom | TavernRoom | StoreRoom | MarketRoom | SellRoom | null = null;
+  private window: TownWindow | GuildRoom | SmithRoom | TavernRoom | StoreRoom | MarketRoom | SellRoom | PortalRoom | null = null;
   /** The piece picked to sell at the Marketplace (its place in forSale). */
   private sellPick: number | null = null;
   /** What the Marketplace has picked to trade (none: its first pick). */
@@ -132,16 +137,19 @@ export class TownScene extends Phaser.Scene {
   /** A hero hired here while another stood in the gate: picked once the town is left. */
   /** The town shown: the one the hero stands in, else the player's first. */
   private townId = '';
+  /** A hero stepped through a Great Portal to this town: the map centres on them once it's left. */
+  private travelled = false;
 
   constructor() {
     super('Town');
   }
 
-  create(data?: { townId?: string }): void {
+  create(data?: { townId?: string; travelled?: boolean; note?: string }): void {
     getSound(this)?.music('townGreek');
     this.session = Session.get(this);
     const adv = this.session.adv;
     this.townId = data?.townId ?? heroTown(adv)?.id ?? playerTowns(adv)[0]!.id;
+    this.travelled = !!data?.travelled;
     this.pickHeroHere();
     this.cameras.main.setBackgroundColor(BACKDROP);
     this.picked = null;
@@ -184,6 +192,7 @@ export class TownScene extends Phaser.Scene {
       this.ready = true;
       this.bar = new TownBar(this, { open: (s) => this.openScreen(s), leave: () => this.leave(), pickSlot: (r) => this.pickSlot(r), canCarry: (r) => this.canPick(r), dropSlot: (from, to) => this.moveCompany(from, to), split: () => this.openSplit(), ride: () => this.rideHere() }, DEPTH.bar);
       this.drawAll();
+      if (data?.note) this.toast(data.note);
     });
   }
 
@@ -255,7 +264,7 @@ export class TownScene extends Phaser.Scene {
 
   private drawAll(): void {
     if (!this.bar) return;
-    this.bar.layout(this.size.w, this.size.h, this.town(), this.hires(), this.rideOffer());
+    this.bar.layout(this.size.w, this.size.h, this.town(), this.hires(), this.rideOffer(), portalLevel(this.town()) >= 2 && !!(this.heroesHere().visitor ?? this.heroesHere().garrison));
     this.pickHeroHere();
     this.bar.refresh(this.session.adv, this.town(), this.picked, this.heroesHere());
     this.drawView();
@@ -295,7 +304,7 @@ export class TownScene extends Phaser.Scene {
     const towns = playerTowns(adv);
     this.towns ??= new TownList(this, TOWNS.w, {
       textureOf: (t) => townTexOf(def, t),
-      onOpen: (townId) => this.scene.restart({ townId }),
+      onOpen: (townId) => this.scene.restart({ townId, travelled: this.travelled }),
     });
     this.towns.set(towns.length > 1 ? towns : [], this.townId);
     this.towns.root.setDepth(DEPTH.plate).setPosition(this.size.w - TOWNS.w - TOWNS.gap, this.bar!.top - TOWNS.gap).setVisible(!this.screen);
@@ -373,6 +382,10 @@ export class TownScene extends Phaser.Scene {
     if (this.screen === 'sell') {
       const act = { close: () => this.openScreen(null), back: () => this.openScreen('market'), pick: (i: number) => this.pickSale(i), sell: (r: Parameters<typeof sellPiece>[2]) => this.sell(r) };
       this.window = new SellRoom(this, adv, this.townId, this.sellPick, room, act, depth);
+      return;
+    }
+    if (this.screen === 'portal') {
+      this.window = new PortalRoom(this, adv, this.session.def, this.townId, room, { close: () => this.openScreen(null), fight: () => this.fightMob(), step: (id) => this.stepThrough(id) }, depth);
       return;
     }
     if (this.screen === 'smith') {
@@ -486,7 +499,33 @@ export class TownScene extends Phaser.Scene {
 
   private leave(): void {
     this.scene.stop();
-    (this.scene.get('Map') as MapScene).back();
+    const map = this.scene.get('Map') as MapScene;
+    map.back();
+    if (this.travelled) map.centreOnHero();
+  }
+
+  /** The picked hero fights the Portal's band: the town closes for the battle, and the map follows it. */
+  private fightMob(): void {
+    const why = cantFightMob(this.session.adv, this.session.def);
+    if (why) {
+      this.toast(why);
+      return;
+    }
+    this.scene.stop();
+    (this.scene.get('Map') as MapScene).startBattle(PORTAL + this.townId);
+  }
+
+  /** The picked hero steps through the Great Portal: the other town's screen opens, the hero in its gate (or garrison). */
+  private stepThrough(id: string): void {
+    const { adv, def } = this.session;
+    const next = stepThrough(adv, def, adv.hero.id, id);
+    if (!next) {
+      this.toast(cantStepThrough(adv, adv.hero.id, id) ?? 'The Portal is closed');
+      return;
+    }
+    this.session.set(next);
+    getSound(this)?.play('spell');
+    this.scene.restart({ townId: id, travelled: true, note: `${next.hero.name} steps through to ${townById(next, id)!.name}` });
   }
 
   /** A building in the townscape opens what it does; a bare plot offers the building that would stand there. */

@@ -14,12 +14,18 @@ const TOWN_W = { max: 150, min: 110 } as const;
 export const BTN = { w: 56, gap: 3, narrowH: 56 } as const;
 /** The rows of buttons beside the armies, each as high as a slot. */
 const GRID_ROWS = 2;
-export type TownButton = 'hall' | 'fort' | 'guild' | 'smith' | 'tavern' | 'store' | 'ride' | 'leave';
+export type TownButton = 'hall' | 'fort' | 'guild' | 'smith' | 'tavern' | 'store' | 'portal' | 'ride' | 'leave';
 
-/** The buttons a town shows: the Guild, the Blacksmith and the Storehouse only once they stand, the Tavern once it stands on a map with heroes to hire (`hires`), "Ride here" while the picked hero is `away`. */
-export function townButtons(built: readonly BuildingId[], hires = false, away = false): TownButton[] {
+/**
+ * The buttons a town shows: the Guild, the Blacksmith and the Storehouse
+ * only once they stand, the Tavern once it stands on a map with heroes to
+ * hire (`hires`), the Portal from its second level while a hero of ours is
+ * `inside`, "Ride here" while the picked hero is `away`.
+ */
+export function townButtons(built: readonly BuildingId[], hires = false, away = false, inside = false): TownButton[] {
   const has = (b: BuildingId): boolean => built.includes(b);
-  return ['hall', 'fort', ...(has('mageGuild1') ? ['guild' as const] : []), ...(has('blacksmith') ? ['smith' as const] : []), ...(hires && has('tavern') ? ['tavern' as const] : []), ...(has('storehouse') ? ['store' as const] : []), ...(away ? ['ride' as const] : []), 'leave'];
+  const portal = inside && has('portal2');
+  return ['hall', 'fort', ...(has('mageGuild1') ? ['guild' as const] : []), ...(has('blacksmith') ? ['smith' as const] : []), ...(hires && has('tavern') ? ['tavern' as const] : []), ...(has('storehouse') ? ['store' as const] : []), ...(portal ? ['portal' as const] : []), ...(away ? ['ride' as const] : []), 'leave'];
 }
 
 /** `cells` buttons' width, side by side. */

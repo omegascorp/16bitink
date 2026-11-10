@@ -144,6 +144,13 @@ function foeNear(adv: Adventure, memory: LordMemory, t: { x: number; y: number }
   return knownFoes(adv, memory).filter(reach).reduce((n, f) => Math.max(n, f.strength), 0);
 }
 
+/** How much stronger the strongest foe in reach of `t` is than all that holds it (its garrison and the side's heroes in it); 0: none, or held. */
+export function townDanger(adv: Adventure, memory: LordMemory, t: Town): number {
+  const near = foeNear(adv, memory, t, DANGER_DAYS);
+  const inside = lordHeroes(adv).filter((h) => h.x === t.x && h.y === t.y).reduce((n, h) => n + armyStrength(h.army), 0);
+  return near > 0 ? Math.max(0, near - armyStrength(t.garrison) - inside) : 0;
+}
+
 /** A new hero at a Tavern of the side's: the second from SECOND_DAY of the part, the third with THIRD_INCOME a day, up to `maxHeroes`. */
 function hireHeroes(adv: Adventure, def: MapDef, memory: LordMemory, rules: LordRules): Adventure {
   const riding = lordHeroes(adv);
@@ -185,9 +192,7 @@ export function townsEvening(adv: Adventure, def: MapDef, memory: LordMemory): A
   for (const t of playerTowns(a)) {
     const spec = [def.town, ...(def.towns ?? [])].find((x) => x.id === t.id);
     const cap = Math.max(IDLE_FLOOR, armyStrength(armyOf(spec?.garrison ?? [])) * GARRISON_GROWTH);
-    const near = foeNear(a, memory, t, DANGER_DAYS);
-    const inside = lordHeroes(a).filter((h) => h.x === t.x && h.y === t.y).reduce((n, h) => n + armyStrength(h.army), 0);
-    const threatened = near > 0 && armyStrength(t.garrison) + inside < near;
+    const threatened = townDanger(a, memory, t) > 0;
     // Threatened: everything, savings and all. Else idle gold beyond IDLE_KEEP buys a garrison for a hero to collect.
     const keep = threatened ? 0 : a.purse.gold - Math.max(0, spendable(a, memory) - IDLE_KEEP);
     if (!threatened && keep >= a.purse.gold) continue;

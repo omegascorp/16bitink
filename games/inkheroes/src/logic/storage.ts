@@ -7,9 +7,10 @@ import { canAfford, pay, type Amount } from './resources';
 import { has, type Town } from './town';
 
 /**
- * Gear kept off the heroes: each town's Storehouse (a Treasury holds more),
- * the bigger bags it sells, and pieces handed from one hero to another.
- * A hero carries little (`BAGS`), so the store is where the rest waits.
+ * Gear kept off the heroes: each town's Storehouse (a Treasury holds more,
+ * a Portal joins it to the other Portal towns' as one store), the bigger
+ * bags it sells, and pieces handed from one hero to another. A hero carries
+ * little (`BAGS`), so the store is where the rest waits.
  */
 
 /** Where a piece is taken from: a place in the bag, or a slot it is worn in. */
@@ -24,6 +25,46 @@ export const BAG_SHOP: Readonly<Record<'saddlebags' | 'packMule', { readonly cos
 /** How many pieces `t` keeps: its best store's room, 0 without one. */
 export const storeRoom = (t: Pick<Town, 'built'>): number => Math.max(0, ...t.built.map((b) => BUILDINGS[b].store ?? 0));
 export const storeOf = (t: Pick<Town, 'store'>): readonly ItemId[] => t.store ?? [];
+
+/**
+ * The towns whose stores `town`'s Storehouse reaches: with a Portal, every
+ * town of its holder's that has one (itself first, then the map's order),
+ * kept as one store; without, itself alone. Each piece still lies in one
+ * town's own store, so a Portal town taken takes its own pieces with it.
+ */
+export function sharedWith(adv: Adventure, town: Pick<Town, 'id'>): Town[] {
+  const here = townById(adv, town.id);
+  if (!here) return [];
+  if (!has(here, 'portal')) return [here];
+  return [here, ...adv.towns.filter((t) => t.id !== here.id && t.owner === here.owner && has(t, 'portal'))];
+}
+
+/** Every piece `town`'s Storehouse reaches, its own first (sharedWith's order): the store's places count through it. */
+export const keptIn = (adv: Adventure, town: Pick<Town, 'id'>): ItemId[] => sharedWith(adv, town).flatMap((t) => [...storeOf(t)]);
+/** The room of every store `town`'s reaches, together. */
+export const sharedRoom = (adv: Adventure, town: Pick<Town, 'id'>): number => sharedWith(adv, town).reduce((n, t) => n + storeRoom(t), 0);
+
+/** Where the shared store's piece `i` lies: the town that holds it, and its place in that town's own store. */
+function keptAt(adv: Adventure, town: Pick<Town, 'id'>, i: number): { town: Town; i: number } | null {
+  let at = i;
+  for (const t of sharedWith(adv, town)) {
+    if (at < storeOf(t).length) return at >= 0 ? { town: t, i: at } : null;
+    at -= storeOf(t).length;
+  }
+  return null;
+}
+
+/** `adv` without the shared store's piece `i` (reached from `town`), taken from whichever town holds it. */
+export function withoutKept(adv: Adventure, town: Pick<Town, 'id'>, i: number): Adventure {
+  const at = keptAt(adv, town, i);
+  return at ? withTown(adv, { ...at.town, store: storeOf(at.town).filter((_, j) => j !== at.i) }) : adv;
+}
+
+/** `adv` with piece `id` kept in `town`'s store, or (it full) the first town sharing it with room; null when all are full. */
+export function keepIn(adv: Adventure, town: Pick<Town, 'id'>, id: ItemId): Adventure | null {
+  const room = sharedWith(adv, town).find((t) => storeOf(t).length < storeRoom(t));
+  return room ? withTown(adv, { ...room, store: [...storeOf(room), id] }) : null;
+}
 
 /** Our heroes standing in `t`: the one in its garrison and the one in its gate. */
 export const heroesIn = (adv: Adventure, t: Pick<Town, 'x' | 'y'>): Hero[] => ourHeroes(adv).filter((h) => h.x === t.x && h.y === t.y);
@@ -62,23 +103,23 @@ export function cantStore(adv: Adventure, townId: string, heroId: string, from: 
   const at = atStore(adv, townId, heroId);
   if (typeof at === 'string') return at;
   if (!takeFrom(at.hero, from)) return 'Nothing there';
-  if (storeOf(at.town).length >= storeRoom(at.town)) return `The ${has(at.town, 'treasury') ? 'Treasury' : 'Storehouse'} is full`;
+  if (keptIn(adv, at.town).length >= sharedRoom(adv, at.town)) return `The ${has(at.town, 'treasury') ? 'Treasury' : 'Storehouse'} is full`;
   return null;
 }
 
 /** Hero `heroId` leaves the piece at `from` in the town's store; null when they can't (see cantStore). */
 export function storeItem(adv: Adventure, townId: string, heroId: string, from: ItemFrom): Adventure | null {
   if (cantStore(adv, townId, heroId, from)) return null;
-  const town = townById(adv, townId)!;
   const left = takeFrom(heroById(adv, heroId)!, from)!;
-  return withTown(withHero(adv, withinMana(left.hero)), { ...town, store: [...storeOf(town), left.id] });
+  // Into this town's own store while it has room, else another the Portal joins.
+  return keepIn(withHero(adv, withinMana(left.hero)), townById(adv, townId)!, left.id);
 }
 
 /** Why hero `heroId` can't take the store's piece `i`, or null when they can. */
 export function cantTakeStored(adv: Adventure, townId: string, heroId: string, i: number): string | null {
   const at = atStore(adv, townId, heroId);
   if (typeof at === 'string') return at;
-  const id = storeOf(at.town)[i];
+  const id = keptIn(adv, at.town)[i];
   if (!id) return 'Nothing there';
   return canTake(at.hero, id) ? null : `${at.hero.name}'s bag is full`;
 }
@@ -87,9 +128,8 @@ export function cantTakeStored(adv: Adventure, townId: string, heroId: string, i
 export function takeStored(adv: Adventure, townId: string, heroId: string, i: number): Adventure | null {
   if (cantTakeStored(adv, townId, heroId, i)) return null;
   const town = townById(adv, townId)!;
-  const id = storeOf(town)[i]!;
-  const got = gainItem(heroById(adv, heroId)!, id);
-  return withTown(withHero(adv, got.hero), { ...town, store: storeOf(town).filter((_, j) => j !== i) });
+  const got = gainItem(heroById(adv, heroId)!, keptIn(adv, town)[i]!);
+  return withoutKept(withHero(adv, got.hero), town, i);
 }
 
 /** The bag a hero would buy next, if a bigger one exists. */

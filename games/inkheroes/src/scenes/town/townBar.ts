@@ -15,7 +15,7 @@ import { PurseRow, PURSE_BAR_H, PURSE_ROW_W } from '../hud/purseRow';
 import type { RideHere } from '../../logic/rideHere';
 import { armiesW, armyH, BTN, buttonGrid, buttonsGridW, cellsW, GAP, HEAD_GAP, LINE, NARROW_ROUND, narrowButtonW, PAD, ROW_GAP, stripLayout, townButtons, type TownButton } from './stripLayout';
 
-export type TownScreen = 'hall' | 'fort' | 'guild' | 'smith' | 'tavern' | 'store' | 'market' | 'sell';
+export type TownScreen = 'hall' | 'fort' | 'guild' | 'smith' | 'tavern' | 'store' | 'market' | 'sell' | 'portal';
 /** A slot of a row; `i` HEAD is the row's head (the crest or the hero's face): picking the hero there moves them with every company. */
 export type SlotRef = { readonly army: 'hero' | 'garrison' | 'tower'; readonly i: number };
 export const HEAD = -1;
@@ -65,8 +65,8 @@ const PANEL_FILL = [34, 24, 17, 246] as const;
  * hero, slot by slot (tap one, then another, to move troops; tap the
  * hero's face, then the other row, to move the hero with every company,
  * or drag a company there; a picked company can be split); Hall, Fort,
- * the Guild, the Blacksmith and the Tavern once built, and Leave, in two rows; under it
- * all the purse and the date. On a narrow screen the buttons and the town's
+ * the Guild, the Blacksmith, the Tavern, the Store and the Portal once
+ * built, and Leave, in two rows; under it all the purse and the date. On a narrow screen the buttons and the town's
  * lines stack above the armies.
  */
 export class TownBar {
@@ -140,6 +140,7 @@ export class TownBar {
       smith: { label: 'Smith', icon: 'smith', onClick: () => actions.open('smith') },
       tavern: { label: 'Tavern', icon: 'tavern', onClick: () => actions.open('tavern') },
       store: { label: 'Store', icon: 'store', onClick: () => actions.open('store') },
+      portal: { label: 'Portal', icon: 'town', onClick: () => actions.open('portal') },
       ride: { label: 'Ride here', icon: 'auto', onClick: () => actions.ride() },
       leave: { label: 'Leave', icon: 'leave', rim: 'gold', onClick: () => actions.leave() },
     };
@@ -215,10 +216,10 @@ export class TownBar {
     this.faces = null;
   }
 
-  /** Lays the strip out for town `t` on a `w` × `h` screen, with the Tavern's button when it `hires`; where its top lands. */
-  layout(w: number, h: number, t: Town, hires = false, ride: RideHere | null = null): number {
+  /** Lays the strip out for town `t` on a `w` × `h` screen, with the Tavern's button when it `hires`, the Portal's with a hero `inside`; where its top lands. */
+  layout(w: number, h: number, t: Town, hires = false, ride: RideHere | null = null, inside = false): number {
     this.ride = ride;
-    const names = townButtons(t.built, hires, !!ride);
+    const names = townButtons(t.built, hires, !!ride, inside);
     const { narrow, slot, townW } = stripLayout(w, h, PURSE_BAR_H, names.length);
     if (slot !== this.slot) this.makeFaces(slot);
     const buttonsH = narrow ? BTN.narrowH : slot;

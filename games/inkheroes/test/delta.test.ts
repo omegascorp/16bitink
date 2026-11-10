@@ -79,7 +79,7 @@ describe('the Delta, the land', () => {
   });
 
   it('opens the rest of Egypt’s tree: nothing of Egypt’s is off, and the Workshop adds nothing', () => {
-    expect(TWO_LANDS_UNLOCKS[3]).toEqual(['capitol', 'tiltyard2', 'tiltyard3', 'monastery3', 'seraphSpire', 'seraphSpire2', 'seraphSpire3']);
+    expect(TWO_LANDS_UNLOCKS[3]).toEqual(['capitol', 'tiltyard2', 'tiltyard3', 'monastery3', 'seraphSpire', 'seraphSpire2', 'seraphSpire3', 'portal3']);
     expect(DELTA.off).toEqual(lockedIn(TWO_LANDS_UNLOCKS, 4));
     expect(DELTA.off.filter((b) => !BUILDINGS[b].only)).toEqual([]);
     expect(BUILDING_IDS.filter((b) => !BUILDINGS[b].only && !openIn(TWO_LANDS_UNLOCKS, 4).has(b))).toEqual([]);

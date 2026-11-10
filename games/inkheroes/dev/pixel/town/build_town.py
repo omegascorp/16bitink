@@ -62,6 +62,10 @@ PIECES = {
     'seraphSpire-3': ('seraphSpire-3.png', None),
     'storehouse': ('storehouse.png', None),
     'treasury': ('treasury.png', None),
+    # The Portal, three levels (create_image_pixen, then each level an edit_image_pixen of the one before).
+    'portal': ('portal.png', None),
+    'portal-2': ('portal-2.png', None),
+    'portal-3': ('portal-3.png', None),
     # The city round them, always there: houses and the fountain.
     **{f'house-{k}': (f'house-{k}.png', None) for k in 'abcdef'},
     'fountain': ('fountain.png', None),

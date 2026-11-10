@@ -46,7 +46,8 @@ describe("Egypt's city", () => {
   it('lays its houses clear of every plot and the canal', () => {
     const lots = lotsOf('kemet').map((l) => l.plot);
     const houses = housePlots('kemet');
-    expect(houses.length).toBeGreaterThan(8);
+    // Eight since the Portal's arch keeps a row clear behind it (one house fewer than before, Nov 10).
+    expect(houses.length).toBeGreaterThanOrEqual(8);
     for (const h of houses) {
       for (const p of lots) expect(overlap(h.plot, p)).toBe(false);
       for (let i = h.plot.a; i < h.plot.a + h.plot.n; i++) expect(isCanal(i, h.plot.b, 'kemet')).toBe(false);

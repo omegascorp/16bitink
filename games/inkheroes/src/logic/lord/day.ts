@@ -18,13 +18,14 @@ import { ranked, reachOf, SAFE, targetsFor, threatAt, throughView, type Ctx, typ
 import { findPath } from '../path';
 import { dailyMp } from '../hero';
 import { lordHeroes, outfit, spendable, townsEvening, townsMorning, type LordRules } from './towns';
+import { portalDuty } from './portal';
 
 /**
  * A lord's whole day, for the side played as "ours" (the player's, or the
  * rival's on the mirrored adventure): his towns build and hire, then each
- * hero rides (the runners first, the main hero last), choosing from what
- * the side knows, under the player's rules; the evening hires garrisons
- * where a foe draws near. A fight with the other side is fought at once
+ * hero rides (the runners first, the main hero last; a Portal's duty
+ * first, portal.ts), choosing from what the side knows, under the
+ * player's rules; the evening hires garrisons where a foe draws near. A fight with the other side is fought at once
  * (`auto`, AI against AI) or stops the day (`stop`: the player plays it).
  */
 
@@ -64,6 +65,8 @@ export function lordDay(adv: Adventure, def: MapDef, memory: LordMemory, opts: L
   // Runners first: the main hero's ride, which may end in a fight that stops the day, comes last.
   const order = lordHeroes(a).sort((x, y) => (x.id === main?.id ? 1 : 0) - (y.id === main?.id ? 1 : 0)).map((h) => h.id);
   for (const id of order) {
+    // A Portal first: home through a Great Portal to a town in danger, or a band fought (src/logic/lord/portal.ts); either ends his day.
+    if (a.status === 'playing') a = portalDuty(a, def, mem, id, id === main?.id, opts);
     for (let leg = 0; leg < LEGS && a.status === 'playing'; leg++) {
       const hero = ourHeroes(a).find((h) => h.id === id);
       if (!hero || hero.mp <= 0 || armyStrength(hero.army) <= 0) break;
@@ -178,7 +181,7 @@ const theirs = (adv: Adventure, id: string): boolean => id === RIVAL || id.start
  * does: back home with no army, to hire again.
  */
 function fightOut(adv: Adventure, def: MapDef, id: string, memory: LordMemory, then?: string): Adventure {
-  const setup = battleSides(adv, id);
+  const setup = battleSides(adv, id, def);
   const me = setup.siege?.me ?? 0;
   const refuge = playerTowns(adv).find((t) => t.id !== id);
   const mySide = me === 0 ? setup.attacker : setup.defender;

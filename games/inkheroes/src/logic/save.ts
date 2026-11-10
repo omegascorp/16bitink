@@ -29,6 +29,8 @@ const OLD_MACHINES: Readonly<Record<string, number>> = { ballista: 1500, tent: 7
 const MAX_ANKHS = 999;
 /** Most cards a save may hold waiting. */
 const MAX_PROMPTS = 20;
+/** The latest week a save's town may have beaten its Portal's band in. */
+const MAX_WEEK = 1e5;
 /** The most a hero can have left today beyond a day's movement (a town's Stables, and one on the road). */
 const MP_BONUS = STABLES_MP * 2;
 
@@ -376,7 +378,9 @@ function parseTown(raw: Record<string, unknown>, t: { id: string; name: string; 
   // Gear in its store, no more than its store keeps.
   const store = Array.isArray(raw.store) ? raw.store.filter(isItemId).slice(0, storeRoom({ built })) : [];
   const ankhs = isInt(raw.ankhs, 1, MAX_ANKHS) ? { ankhs: raw.ankhs } : {};
-  return { id: t.id, name: t.name, owner, x: t.x, y: t.y, built, builtToday: raw.builtToday, stock, garrison, ...towers, guild: t.guild, ...people, ...ankhs, ...(raw.ally === true && owner === 'neutral' ? { ally: true } : {}), ...(store.length ? { store } : {}) };
+  // The week its Summoning Portal's band was beaten (saves from before the Portal have none).
+  const mob = isInt(raw.mobBeaten, 1, MAX_WEEK) ? { mobBeaten: raw.mobBeaten } : {};
+  return { id: t.id, name: t.name, owner, x: t.x, y: t.y, built, builtToday: raw.builtToday, stock, garrison, ...towers, guild: t.guild, ...people, ...ankhs, ...mob, ...(raw.ally === true && owner === 'neutral' ? { ally: true } : {}), ...(store.length ? { store } : {}) };
 }
 
 /** The saved buildings the map allows, the town's people build, and whose needs are met (the town's starting ones always). */

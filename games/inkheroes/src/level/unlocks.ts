@@ -10,12 +10,12 @@ import type { SoldMachine } from '../logic/items';
 export const UNLOCKS: readonly (readonly BuildingId[])[] = [
   // Map 1: the walls, a hall, the four lowest dwellings. No magic yet: Rowan finds a spellbook on map 2.
   ['villageHall', 'townHall', 'fort', 'citadel', 'tavern', 'guardhouse', 'archeryRange', 'griffinTower', 'barracks'],
-  // Map 2: the first upgrades of those four, the centaurs, the market, both floors of the guild, the Blacksmith, ahead of the chapter's first siege, and the Storehouse, for the second hero's gear.
-  ['cityHall', 'marketplace', 'mageGuild1', 'mageGuild2', 'blacksmith', 'storehouse', 'stables', 'monastery', 'guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2'],
-  // Map 3: the Castle, the Treasury, the second upgrades of the first four, the companions and the centaurs' first upgrade.
-  ['castle', 'treasury', 'tiltyard', 'monastery2', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3'],
-  // Map 4, Othrys, the chapter's last part: the rest of the tree, so the chapter ends with its whole city (the Capitol, the Titans' line, the last upgrades of lines 5 and 6).
-  ['capitol', 'tiltyard2', 'tiltyard3', 'monastery3', 'seraphSpire', 'seraphSpire2', 'seraphSpire3'],
+  // Map 2: the first upgrades of those four, the centaurs, the market, both floors of the guild, the Blacksmith, ahead of the chapter's first siege, and the Storehouse, for the second hero's gear, with the Portal that keeps the towns' stores as one.
+  ['cityHall', 'marketplace', 'mageGuild1', 'mageGuild2', 'blacksmith', 'storehouse', 'stables', 'monastery', 'guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2', 'portal'],
+  // Map 3: the Castle, the Treasury, the second upgrades of the first four, the companions and the centaurs' first upgrade; the Summoning Portal, so a hero left to guard a town has the week's band to fight (user, Nov 10: from mid-chapter, when guards start to sit idle).
+  ['castle', 'treasury', 'tiltyard', 'monastery2', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3', 'portal2'],
+  // Map 4, Othrys, the chapter's last part: the rest of the tree, so the chapter ends with its whole city (the Capitol, the Titans' line, the last upgrades of lines 5 and 6, the Great Portal's way between towns).
+  ['capitol', 'tiltyard2', 'tiltyard3', 'monastery3', 'seraphSpire', 'seraphSpire2', 'seraphSpire3', 'portal3'],
 ];
 
 /**
@@ -25,12 +25,12 @@ export const UNLOCKS: readonly (readonly BuildingId[])[] = [
 export const TWO_LANDS_UNLOCKS: readonly (readonly BuildingId[])[] = [
   // Part 1, Nekhen: the halls and walls, the Tavern, the House of Life's first floor and Osiris's temple (the Rites and Ankhs are the part's lesson), the four lowest dwellings.
   ['villageHall', 'townHall', 'fort', 'citadel', 'tavern', 'mageGuild1', 'templeOsiris', 'guardhouse', 'archeryRange', 'griffinTower', 'barracks'],
-  // Part 2, Abu: the chapter's first siege, so the Workshop (the Earth Ramp); the market, the House of Life's second floor, the Storehouse, the Chariot Road, the embalmers, and the first upgrades of lines 1–4.
-  ['cityHall', 'marketplace', 'mageGuild2', 'blacksmith', 'storehouse', 'stables', 'monastery', 'guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2'],
-  // Part 3, the Red Land (as the Black Banner opened Korax's tier): the Castle, the Treasury, the Sphinx Terrace (line 6), Per-Nefer (line 5's first upgrade), the second upgrades of lines 1–4. The Benben Stone waits for part 4.
-  ['castle', 'treasury', 'tiltyard', 'monastery2', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3'],
-  // Part 4, the Delta, the chapter's last part: the rest of the tree, so the chapter ends with its whole city (the Capitol, the Bennu's line, the last upgrades of lines 5 and 6).
-  ['capitol', 'tiltyard2', 'tiltyard3', 'monastery3', 'seraphSpire', 'seraphSpire2', 'seraphSpire3'],
+  // Part 2, Abu: the chapter's first siege, so the Workshop (the Earth Ramp); the market, the House of Life's second floor, the Storehouse, the Chariot Road, the embalmers, the first upgrades of lines 1–4, and the Shrine of Wepwawet.
+  ['cityHall', 'marketplace', 'mageGuild2', 'blacksmith', 'storehouse', 'stables', 'monastery', 'guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2', 'portal'],
+  // Part 3, the Red Land (as the Black Banner opened Korax's tier): the Castle, the Treasury, the Sphinx Terrace (line 6), Per-Nefer (line 5's first upgrade), the second upgrades of lines 1–4, the Gate of the Duat (the guard's weekly band). The Benben Stone waits for part 4.
+  ['castle', 'treasury', 'tiltyard', 'monastery2', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3', 'portal2'],
+  // Part 4, the Delta, the chapter's last part: the rest of the tree, so the chapter ends with its whole city (the Capitol, the Bennu's line, the last upgrades of lines 5 and 6, the Great Gate).
+  ['capitol', 'tiltyard2', 'tiltyard3', 'monastery3', 'seraphSpire', 'seraphSpire2', 'seraphSpire3', 'portal3'],
 ];
 
 /** The buildings a chapter's `k`th part (1-based) can build: all its parts before it opened, and what it adds. */

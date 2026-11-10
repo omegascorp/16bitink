@@ -33,3 +33,6 @@ fountain 66adae86-429a-4771-ad5d-5bfd9e6832e1
 palm-a f93cfc5a-e555-4873-81db-27674b2d5833
 palm-b 42334f5d-ad8a-41c0-a18e-fb37650935b0
 stables bfffb1b0-359a-4ef9-9b68-961654f1bb49
+portal 2bec5f14-29b8-408f-965b-3fbdfa4330b5
+portal-2 ba8b448f-c43a-4842-9bc0-1d14bf243fb0
+portal-3 212a2308-4f0f-4e97-bd6b-83cb0bfa45cd

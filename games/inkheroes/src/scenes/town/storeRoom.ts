@@ -18,21 +18,21 @@ export interface StoreActions {
 
 /**
  * The Storehouse (or Treasury) as a room, like the Blacksmith's: the
- * pieces it keeps, and under them each hero of ours in the town with their
+ * pieces it keeps (with a Portal, the store it shares with the other Portal
+ * towns), and under them each hero of ours in the town with their
  * bag and the bigger bag it sells. A tap picks a piece, the next sends it:
  * into the store, into a bag, or from one hero to the other.
  */
 export class StoreRoom extends TownRoom {
   constructor(scene: Phaser.Scene, adv: Adventure, townId: string, private readonly picked: StoreRef | null, note: string, area: { w: number; h: number }, private readonly act: StoreActions, depth: number) {
     const view = storeView(adv, townId);
-    const l = storeLayout(roomIn(area), view.room, view.heroes.map((h) => bagSize(h.hero)));
+    const l = storeLayout(roomIn(area), view.places, view.heroes.map((h) => bagSize(h.hero)));
     super(scene, area, l, { title: view.title, art: UI_TEX.storeRoom }, () => act.close(), depth);
     const { pad, inset, line } = STORE;
     const x = pad + inset;
     this.plate(pad, l.store.y, l.w - pad * 2, l.store.h);
     this.label(view.kept, x, l.store.y + inset, { align: 'left', anchor: { x: 0, y: 0 }, ink: INK.dim });
-    const town = adv.towns.find((t) => t.id === townId)!;
-    this.cells(town.store ?? [], view.room, l.store.cols, x, l.store.y + inset + line + 3, (i) => ({ kind: 'store', i }));
+    this.cells(view.items, view.places, l.store.cols, x, l.store.y + inset + line + 3, (i) => ({ kind: 'store', i }));
     view.heroes.forEach((h, n) => this.hero(h, l, l.heroes[n]!));
     this.foot(adv, townId, note, l);
   }

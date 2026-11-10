@@ -1,15 +1,15 @@
-import { ourHeroes, townById, withTown, type Adventure } from './adventure';
+import { ourHeroes, townById, type Adventure } from './adventure';
 import { withHero } from './heroes';
 import { itemDef, type ItemId, type Quality } from './items';
 import { addTo } from './resources';
-import { storeOf } from './storage';
+import { keptIn, withoutKept } from './storage';
 import { has, type Town } from './town';
 
 /**
  * Selling spare pieces at the Marketplace (docs/inkheroes-design.md,
  * Loot): it buys from the bag of a hero of ours in the town and from the
- * town's store, at a price by grade. Legendary pieces, spellbooks and war
- * machines can't be sold.
+ * town's store (with a Portal, the store it shares), at a price by grade.
+ * Legendary pieces, spellbooks and war machines can't be sold.
  */
 
 /** What the Marketplace pays for a piece of each grade (none: never sold). */
@@ -37,7 +37,7 @@ function market(adv: Adventure, townId: string): Town | string {
 export function pieceAt(adv: Adventure, townId: string, ref: SellRef): ItemId | undefined {
   const town = townById(adv, townId);
   if (!town) return undefined;
-  if (ref.kind === 'store') return storeOf(town)[ref.i];
+  if (ref.kind === 'store') return keptIn(adv, town)[ref.i];
   const hero = ourHeroes(adv).find((h) => h.id === ref.heroId && h.x === town.x && h.y === town.y);
   return hero?.bag?.[ref.i];
 }
@@ -47,7 +47,7 @@ export function forSale(adv: Adventure, townId: string): { ref: SellRef; id: Ite
   const town = townById(adv, townId);
   if (!town) return [];
   const refs: SellRef[] = [
-    ...storeOf(town).map((_, i): SellRef => ({ kind: 'store', i })),
+    ...keptIn(adv, town).map((_, i): SellRef => ({ kind: 'store', i })),
     ...ourHeroes(adv).filter((h) => h.x === town.x && h.y === town.y).flatMap((h) => (h.bag ?? []).map((_, i): SellRef => ({ kind: 'bag', heroId: h.id, i }))),
   ];
   return refs.flatMap((ref) => {
@@ -72,7 +72,7 @@ export function sellPiece(adv: Adventure, townId: string, ref: SellRef): Adventu
   const town = townById(adv, townId)!;
   const price = sellPrice(pieceAt(adv, townId, ref)!)!;
   const paid = { ...adv, purse: addTo(adv.purse, { gold: price }) };
-  if (ref.kind === 'store') return withTown(paid, { ...town, store: storeOf(town).filter((_, i) => i !== ref.i) });
+  if (ref.kind === 'store') return withoutKept(paid, town, ref.i);
   const hero = ourHeroes(adv).find((h) => h.id === ref.heroId)!;
   return withHero(paid, { ...hero, bag: hero.bag!.filter((_, i) => i !== ref.i) });
 }

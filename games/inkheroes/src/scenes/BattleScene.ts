@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getHost, getSound } from '../host';
-import { afterBattle, battleSides, DEFEND, gridOf, type BattleSetup } from '../logic/adventure';
+import { afterBattle, battleSides, DEFEND, gridOf, PORTAL, type BattleSetup } from '../logic/adventure';
 import { act, activeStack, alive, canShoot, conquer, createBattle, experienceFor, handOptions, moveHeadFor, occupiableHexes, playerSide, rampsToPlace, stackAt, strikeChoices, strikeFrom, targetable, type BattleSide, type SiegeSetup, type StrikeOption } from '../logic/battle';
 import { chooseAction } from '../logic/battleAi';
 import { cantCast, spellAmount } from '../logic/battleSpells';
@@ -129,7 +129,7 @@ export class BattleScene extends Phaser.Scene {
     if (sb) return { sides: sb, terrain: sb.terrain, heroes: sb.heroes };
     const session = this.session!;
     const adv = session.adv;
-    const sides = battleSides(adv, data.monsterId);
+    const sides = battleSides(adv, data.monsterId, session.def);
     const g = gridOf(session.def);
     const terrain = g.terrain[tileIndex(g, adv.hero.x, adv.hero.y)]!;
     return { sides, terrain: terrain === 'water' ? 'grass' : terrain, heroes: [!!sides.attacker.hero, !!sides.defender.hero] };
@@ -567,7 +567,7 @@ export class BattleScene extends Phaser.Scene {
       title: won ? 'Victory!' : 'Defeat',
       body: won
         ? `${fled ? `${fled} fled the field, leaving his army behind.\n` : ''}${lost.length ? `Fallen: ${lost.map((l) => `${l.n} ${l.name}`).join(', ')}.` : 'Not one of yours fell.'}\n+${xp} experience`
-        : this.monsterId.startsWith(DEFEND) ? `The garrison is beaten, and the town falls.` : `${adv.hero.name}'s army is beaten.`,
+        : this.monsterId.startsWith(DEFEND) ? `The garrison is beaten, and the town falls.` : this.monsterId.startsWith(PORTAL) ? `${adv.hero.name}'s army is beaten, but the Portal brings ${adv.hero.name} home.` : `${adv.hero.name}'s army is beaten.`,
       buttons: [{ label: won ? 'Back to the map' : 'Go on', onClick: done }],
     });
   }

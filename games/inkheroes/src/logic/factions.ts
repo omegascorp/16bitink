@@ -73,6 +73,8 @@ export const FACTIONS: Readonly<Record<TownFaction, FactionDef>> = {
       monastery: 'House of Embalming', monastery2: 'Per-Nefer', monastery3: 'Valley Tomb',
       tiltyard: 'Sphinx Terrace', tiltyard2: 'Avenue of Sphinxes', tiltyard3: 'Great Sphinx Court',
       seraphSpire: 'Benben Stone', seraphSpire2: 'Obelisk of Heliopolis', seraphSpire3: 'Temple of Ra',
+      // Wepwawet, the jackal who opens the ways; the Duat, the land of the dead its creatures come out of.
+      portal: 'Shrine of Wepwawet', portal2: 'Gate of the Duat', portal3: 'Great Gate of Wepwawet',
     },
     // Egypt's own order: the jackals guard the levies' camp, the chariots come after them, the embalmers serve Anubis, and the Bennu needs Osiris's temple.
     needs: {
@@ -87,6 +89,8 @@ export const FACTIONS: Readonly<Record<TownFaction, FactionDef>> = {
     says: {
       mageGuild1: 'Teaches 3 level-1 spells; sells a papyrus of spells',
       blacksmith: 'Sells siege ramps, which get an army over town walls',
+      portal: 'Its store and those of your other towns with a Shrine of Wepwawet are kept as one: a hero in any of them leaves or takes any piece',
+      portal3: 'A hero in town with movement left steps through to another town of yours with a Great Gate; it ends their day',
     },
     school: 'rites',
     book: 'novicePapyrus',

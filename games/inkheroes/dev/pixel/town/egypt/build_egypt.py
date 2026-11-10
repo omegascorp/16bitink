@@ -28,6 +28,7 @@ DWELLINGS = ['guardhouse', 'archeryRange', 'griffinTower', 'barracks', 'monaster
 PIECES = [
     'hall-village', 'hall-town', 'hall-city', 'hall-capitol', 'walls-fort', 'walls-citadel', 'walls-castle',
     'guild-1', 'guild-2', 'templeOsiris', 'tavern', 'blacksmith', 'marketplace', 'stables', 'storehouse', 'treasury',
+    'portal', 'portal-2', 'portal-3',
     *DWELLINGS, *[f'{d}-{n}' for d in DWELLINGS for n in (2, 3)],
     *[f'house-{k}' for k in 'abcdef'], 'fountain', 'palm-a', 'palm-b',
     'wall', 'wall-up', 'wall-gate', 'corner-front', 'corner-back', 'corner-left', 'corner-left-rear', 'corner-right', 'corner-right-rear',

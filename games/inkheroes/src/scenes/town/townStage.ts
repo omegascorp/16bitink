@@ -82,6 +82,8 @@ const dwelling = (id: BuildingId & TownArt, has: Has): readonly (readonly [TownA
     return [has(art) ? (art as TownArt) : id, `${id}${n}` as BuildingId] as const;
   }).concat([[id, id]]);
 
+/** The Portal's three levels, both peoples': on the free block behind the hall. */
+const PORTAL_PLOT: Plot = { a: 17, b: 9, n: 4 };
 /** The Temple of Osiris, Egypt's own: on a free plot before the hall's right flank. */
 const OSIRIS_PLOT: Plot = { a: 22, b: 14, n: 4 };
 
@@ -102,6 +104,8 @@ const lotsFor = (has: Has, faction: TownFaction): readonly Lot[] => [
   { plot: { a: 24, b: 20, n: 5 }, ladder: one('marketplace') },
   { plot: { a: 27, b: 14, n: 5 }, ladder: dwelling('archeryRange', has) },
   { plot: { a: 27, b: 8, n: 5 }, ladder: one('stables') },
+  // Behind the hall, between the walls and the guild: its arch rises over the square.
+  { plot: PORTAL_PLOT, ladder: [['portal-3', 'portal3'], ['portal-2', 'portal2'], ['portal', 'portal']] },
   ...(faction === 'kemet' ? [{ plot: OSIRIS_PLOT, ladder: one('templeOsiris') }] : []),
 ];
 
@@ -157,6 +161,9 @@ export function housePlots(faction: TownFaction = 'crown'): { art: TownArt; plot
   const kit = townKit(faction);
   const taken = new Uint8Array(CITY * CITY);
   for (const p of [...lotsOf(faction).map((l) => l.plot), FOUNTAIN]) mark(taken, p, 0);
+  // The Portal's arch rises well above its plot: a row of open paving along its side towards the hall's back, so no house stands there half hidden behind it.
+  mark(taken, { a: PORTAL_PLOT.a - 1, b: PORTAL_PLOT.b - 1, n: 1 }, 0);
+  for (let k = 0; k < PORTAL_PLOT.n; k++) mark(taken, { a: PORTAL_PLOT.a - 1, b: PORTAL_PLOT.b + k, n: 1 }, 0);
   const rand = rng(SEED);
   const out: { art: TownArt; plot: Plot }[] = [];
   const fits = (a: number, b: number, n: number): boolean => {
@@ -221,6 +228,7 @@ const LADDERS: readonly (readonly BuildingId[])[] = [
   ['villageHall', 'townHall', 'cityHall', 'capitol'],
   ['fort', 'citadel', 'castle'],
   ['mageGuild1', 'mageGuild2'],
+  ['portal', 'portal2', 'portal3'],
   ...(['guardhouse', 'archeryRange', 'griffinTower', 'barracks', 'monastery', 'tiltyard', 'seraphSpire'] as const).map((d) => [d, `${d}2`, `${d}3`] as BuildingId[]),
 ];
 

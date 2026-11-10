@@ -8,6 +8,7 @@ export const BUILDING_IDS = [
   'guardhouse2', 'guardhouse3', 'archeryRange2', 'archeryRange3', 'griffinTower2', 'griffinTower3', 'barracks2', 'barracks3',
   'monastery2', 'monastery3', 'tiltyard2', 'tiltyard3', 'seraphSpire2', 'seraphSpire3',
   'templeOsiris',
+  'portal', 'portal2', 'portal3',
 ] as const;
 export type BuildingId = (typeof BUILDING_IDS)[number];
 
@@ -71,6 +72,10 @@ export const BUILDINGS: Readonly<Record<BuildingId, BuildingDef>> = {
   tiltyard3: { name: 'Cataphract Lists', cost: { gold: 6000, wood: 10, ore: 10, crystal: 5 }, needs: ['tiltyard2', 'castle'], says: 'Hires Cataphracts', dwelling: 'lancer3' },
   seraphSpire2: { name: 'Elder Spire', cost: { gold: 15000, mercury: 5, sulfur: 5, crystal: 5, gems: 5 }, needs: ['seraphSpire', 'mageGuild2'], says: 'Hires Elder Titans', dwelling: 'seraph2' },
   seraphSpire3: { name: 'Olympus Gate', cost: { gold: 25000, mercury: 10, sulfur: 10, crystal: 10, gems: 10 }, needs: ['seraphSpire2', 'castle'], says: 'Hires Titan Lords', dwelling: 'seraph3' },
+  // The Portal's three levels (user, Nov 9): one store for every town with one, a mob a week to fight, then the way between towns.
+  portal: { name: 'Portal', cost: { gold: 2000, wood: 5, ore: 10 }, needs: ['storehouse'], says: 'Its store and those of your other towns with a Portal are kept as one: a hero in any of them leaves or takes any piece' },
+  portal2: { name: 'Summoning Portal', cost: { gold: 3000, ore: 5, mercury: 3, sulfur: 3 }, needs: ['portal'], says: 'Calls one band of the land’s creatures a week: a hero in town fights it for experience and a chance at gear' },
+  portal3: { name: 'Great Portal', cost: { gold: 4000, ore: 5, crystal: 5 }, needs: ['portal2', 'treasury'], says: 'A hero in town with movement left steps through to another town of yours with a Great Portal; it ends their day' },
   // A people's own buildings.
   templeOsiris: { name: 'Temple of Osiris', cost: { gold: 2000, wood: 5, ore: 5 }, needs: ['mageGuild1'], says: 'One Ankh a week for a hero in town: the Rite of Osiris needs one', only: 'kemet', ankhs: 1 },
 };

@@ -32,6 +32,8 @@ export interface Town {
   readonly faction?: TownFaction;
   /** Ankhs its Temple of Osiris has made and no hero has taken yet. */
   readonly ankhs?: number;
+  /** The week its Summoning Portal's band was last beaten (src/logic/portalMob.ts): gone until the next. */
+  readonly mobBeaten?: number;
 }
 
 export const has = (t: Town, b: BuildingId): boolean => t.built.includes(b);

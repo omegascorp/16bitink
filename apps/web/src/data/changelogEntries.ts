@@ -288,6 +288,40 @@ export const GAME_ENTRIES: Readonly<Record<string, readonly ChangelogEntry[]>> =
   inkheroes: [
     {
       date: "2026-11-09",
+      title: "Portals and portal hunts",
+      changes: [
+        "Added the Portal, a town building with three levels.",
+        "Portal: every town with one shares a single store, as big as their stores together, so gear left in one town can be picked up in another.",
+        "Summoning Portal: each week it calls a band of monsters you can see in advance (how many, how tough against your army, the experience, and the gear it may carry). The hero guarding the town can fight it, and that ends their day. Lose, and the army is lost but the hero comes home.",
+        "Great Portal: a hero can step through to any other town of yours that has one, which uses up the rest of their day.",
+        "Rival lords build Portals too, use them to bring a hero home to defend, and send their guards against the weekly band.",
+        "Egypt's Portals are the Shrine of Wepwawet, the Gate of the Duat and the Great Gate of Wepwawet.",
+      ],
+    },
+    {
+      date: "2026-11-09",
+      title: "Epic and Legendary units",
+      changes: [
+        "Units now come in five ranks, each with its own colour: Common, Uncommon and Rare from towns, and two higher ranks earned at special places.",
+        "An Arena of Heroes trains one company a week from Rare to Epic, and each chapter has one guarded legendary site, the Forge of Hephaestus and the Temple of Ra, that trains an Epic company to Legendary.",
+        "Every unit has new art for both new ranks: purple trim at Epic, orange at Legendary.",
+        "Unit cards, the turn order and army slots show each unit's rank in its colour; gear's top grade is orange too.",
+      ],
+    },
+    {
+      date: "2026-11-09",
+      title: "Gear cards, towns and smoother loading",
+      changes: [
+        "Tap any piece of gear for its card: what it gives, its set and which set bonuses are on, and for a piece in the bag, how it compares with what you wear now. Loot and shop cards list set bonuses too.",
+        "Click the gate half of your town to ride your hero in, or the top half to open it without entering; the cursor shows which.",
+        "Tap a company twice on the hero's sheet to see its card and compare it with its earlier levels.",
+        "Fixed the game freezing at the end of loading a map, and the loading screen's clouds now drift.",
+        "Smoother sky gradients, and the title now reads InkHeroes.",
+        "Gear dropped by a beaten hero when your bag is full now shows on the map right away.",
+      ],
+    },
+    {
+      date: "2026-11-09",
       title: "Upgrades that look the part",
       changes: [
         "Redrew the upgraded units so each level looks clearly better armed than the one before, keeping the same weapon all the way up.",
