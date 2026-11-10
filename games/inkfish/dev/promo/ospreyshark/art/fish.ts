@@ -26,6 +26,10 @@ export interface FishPose {
   readonly wiggle: number;
   /** Which way it looks: -1 back, 0 ahead, 1 up at the viewer. */
   readonly look: number;
+  /** Mirrored top to bottom (its back on the other side), after the turn. */
+  readonly flip?: boolean;
+  /** Held by the snout in something's jaws: its own mouth is not drawn. */
+  readonly bitten?: boolean;
 }
 
 const TOP: readonly Pt[] = [
@@ -70,13 +74,22 @@ function fin(ctx: CanvasRenderingContext2D, shape: readonly Pt[], root: Pt, boil
   inkLine(ctx, shape, 1.1, 0.7, boil, true);
 }
 
+/** The fish's body outline (no fins), placed: in its parent's frame. */
+export function fishOutline(p: FishPose): Pt[] {
+  const [c, n] = [Math.cos(p.a), Math.sin(p.a)];
+  return bent(BODY, p.wiggle).map((q) => {
+    const y = p.flip ? -q.y : q.y;
+    return { x: p.x + (q.x * c - y * n) * p.k, y: p.y + (q.x * n + y * c) * p.k };
+  });
+}
+
 /** The silver fish, placed. */
 export function drawFish(ctx: CanvasRenderingContext2D, p: FishPose, boil: number): void {
   const px0 = 1;
   ctx.save();
   ctx.translate(p.x, p.y);
   ctx.rotate(p.a);
-  ctx.scale(p.k, p.k);
+  ctx.scale(p.k, p.flip ? -p.k : p.k);
   const w = p.wiggle;
   const px = unitPx(ctx) * px0;
   // The tail and the fins behind the body.
@@ -138,6 +151,17 @@ export function drawFish(ctx: CanvasRenderingContext2D, p: FishPose, boil: numbe
   ctx.restore();
 }
 
+/** Screen up, and screen right, as unit directions in the current (own) frame. */
+function screenAxes(ctx: CanvasRenderingContext2D): { readonly up: Pt; readonly side: Pt } {
+  const m = ctx.getTransform();
+  const det = m.a * m.d - m.b * m.c || 1;
+  const norm = (v: Pt): Pt => {
+    const l = Math.hypot(v.x, v.y) || 1;
+    return { x: v.x / l, y: v.y / l };
+  };
+  return { up: norm({ x: m.c / det, y: -m.a / det }), side: norm({ x: m.d / det, y: -m.b / det }) };
+}
+
 function drawFace(ctx: CanvasRenderingContext2D, p: FishPose, boil: number): void {
   const worry = Math.max(0, Math.min(1, p.worry));
   const { x, y } = FISH_EYE;
@@ -169,10 +193,14 @@ function drawFace(ctx: CanvasRenderingContext2D, p: FishPose, boil: number): voi
   ctx.arc(x + look.x - r * 0.24, y + look.y + r * 0.22, r * 0.08, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 1;
-  // A worried brow hugging the top of the eye, its front end raised.
+  // A worried brow hugging the top of the eye as seen on screen (however the fish hangs), its front end raised.
   if (worry > 0.02) {
-    taper(ctx, [{ x: x - r * 1.05, y: y - r * 1.05 }, { x: x, y: y - r * 1.4 - 2 * worry }, { x: x + r * 0.95, y: y - r * 1.55 - 4 * worry }], 2.2 + 1.6 * worry, 1, '#1b1a1f', 0.85 * worry);
+    const { up, side } = screenAxes(ctx);
+    const at = (a: number, b: number): Pt => ({ x: x + up.x * a + side.x * b, y: y + up.y * a + side.y * b });
+    taper(ctx, [at(r * 1.0, -r * 1.0), at(r * 1.3 + 1.5 * worry, -r * 0.15), at(r * 1.35 + 3 * worry, r * 0.65)], 2.2 + 1.6 * worry, 1, '#1b1a1f', 0.85 * worry);
   }
+  // Bitten by the snout: the mouth is inside the shark's.
+  if (p.bitten) return;
   // The mouth at the tip of the snout: a line when calm; scared, a worried round "o" with pale lips.
   const open = worry;
   if (open > 0.05) {

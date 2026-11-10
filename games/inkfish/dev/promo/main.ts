@@ -132,6 +132,7 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * gulppuffer (gameplay: a pufferfish inflates inside the viperfish).
  * gulpgiant (gameplay: the viperfish swallows a giant sleeper shark).
  * gulpoar (gameplay: the viperfish slurps down a whole oarfish).
+ * gulptuna (gameplay: the viperfish swallows a whole bluefin tuna).
  * pelican (a zoo pelican in Japan tries to swallow a baby capybara).
  * ospreyshark (an osprey carries a shark that has a fish in its mouth, Florida 2018).
  * They're loaded lazily (import() on demand).
@@ -545,6 +546,11 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
     await loadCaptionFont();
     const { createGulpOar } = await import('./gulpoar/render');
     return createGulpOar(ctx);
+  },
+  gulptuna: async () => {
+    await loadCaptionFont();
+    const { createGulpTuna } = await import('./gulptuna/render');
+    return createGulpTuna(ctx);
   },
   pelican: async () => {
     await loadCaptionFont();

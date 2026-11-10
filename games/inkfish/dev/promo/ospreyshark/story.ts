@@ -127,7 +127,8 @@ export function sharkAt(t: number): SharkPlace {
   const thrash = 0.6 + 0.4 * Math.max(window01(u, AT.shark - 0.1, AT.shark + 1.2, 0.3), window01(u, AT.tail - 0.1, AT.tail + 1, 0.3));
   const beat = cyc(t, 15) + 0.8 * thrash * Math.sin(cyc(t, 33));
   const worried = 0.3 + 0.5 * window01(u, AT.fish - 0.1, AT.fish + 0.8, 0.2);
-  return sharkPlace(0.8, beat, worried);
+  // It rides the bird's wingbeat, a touch behind it (it hangs from the feet).
+  return sharkPlace(0.8, beat, worried, 5.5 * Math.sin(cyc(t, 11) - 0.85));
 }
 
 export interface FishState {

@@ -2,6 +2,7 @@ import { type Pt } from '../../../../src/art/pen';
 import { fillShape, inkLine, seeded, unitPx, within } from '../../pelican/art/ink';
 import { dab, smoothLoop, softLine, taper } from '../../seal/art/paint';
 import { type FeatherInk, paintFeather } from './feather';
+import { type OspreyFoot, paintLegAndFoot, paintTrousers } from './foot';
 import { paintWing } from './wing';
 
 /**
@@ -14,8 +15,7 @@ import { paintWing } from './wing';
  * cere, a barred tail. The near wing shows its underside (white coverts, the
  * dark wrist patch and the dark bar along the coverts, grey barred flight
  * feathers with dark tips, the long fingered primaries), the far wing its
- * dark brown top. The legs are bare grey-white and scaly below short white
- * "trousers", the toes clamp round whatever it carries, the talons black.
+ * dark brown top. The legs and gripping feet are in foot.ts.
  *
  * Own units: facing right (+x), y down, the body's middle at 0,0, about 390
  * from the beak to the tail tip and 1,000 across the raised wings.
@@ -118,21 +118,6 @@ function paintBody(ctx: CanvasRenderingContext2D, boil: number): void {
   inkLine(ctx, BODY, 1.7, 0.8, boil, true);
 }
 
-function paintThigh(ctx: CanvasRenderingContext2D, hip: Pt, toward: Pt, boil: number): void {
-  const d = { x: toward.x - hip.x, y: toward.y - hip.y };
-  const l = Math.hypot(d.x, d.y) || 1;
-  const knee = { x: hip.x + (d.x / l) * 30, y: hip.y + (d.y / l) * 30 };
-  const shape = smoothLoop([
-    { x: hip.x - 18, y: hip.y - 10 }, { x: hip.x + 18, y: hip.y - 10 }, { x: knee.x + 12, y: knee.y }, { x: knee.x + 2, y: knee.y + 8 }, { x: knee.x - 12, y: knee.y + 2 },
-  ], 4);
-  const g = ctx.createLinearGradient(hip.x, hip.y, knee.x, knee.y);
-  g.addColorStop(0, '#f4f1ea');
-  g.addColorStop(1, '#c9c6c4');
-  fillShape(ctx, shape, g);
-  within(ctx, shape, () => dab(ctx, knee.x, knee.y, 18, '110,110,140', 0.3));
-  inkLine(ctx, shape.slice(Math.floor(shape.length * 0.3)), 1.2, 0.6, boil);
-}
-
 function paintHead(ctx: CanvasRenderingContext2D, cry: number, boil: number): void {
   const g = ctx.createLinearGradient(0, -62, 0, -2);
   g.addColorStop(0, '#fffefb');
@@ -214,66 +199,11 @@ function paintHead(ctx: CanvasRenderingContext2D, cry: number, boil: number): vo
   dab(ctx, 174, -37, 2.2, '20,20,24', 0.9);
 }
 
-// ---------------------------------------------------------------- legs and feet
-
-/** A toe from `from` toward `to`, bending, with scales and a black hooked talon. */
-function paintToe(ctx: CanvasRenderingContext2D, from: Pt, to: Pt, curl: number, far: boolean, boil: number): void {
-  const d = { x: to.x - from.x, y: to.y - from.y };
-  const l = Math.hypot(d.x, d.y) || 1;
-  const n = { x: -d.y / l, y: d.x / l };
-  const mid = { x: from.x + d.x * 0.5 + n.x * curl * l * 0.18, y: from.y + d.y * 0.5 + n.y * curl * l * 0.18 };
-  const line = [from, mid, to];
-  const tone = far ? '#a7a39b' : '#dcd8ce';
-  taper(ctx, line, 15, 9, tone, 1);
-  taper(ctx, line.map((p) => ({ x: p.x - n.x * 2.5, y: p.y - n.y * 2.5 })), 5, 3, far ? '#c4c0b8' : '#f4f1ea', 0.7);
-  // Scales: little rings across the toe.
-  for (let i = 1; i < 5; i++) {
-    const u = i / 5;
-    const p = u < 0.5 ? { x: from.x + (mid.x - from.x) * u * 2, y: from.y + (mid.y - from.y) * u * 2 } : { x: mid.x + (to.x - mid.x) * (u - 0.5) * 2, y: mid.y + (to.y - mid.y) * (u - 0.5) * 2 };
-    inkLine(ctx, [{ x: p.x + n.x * 6, y: p.y + n.y * 6 }, { x: p.x - n.x * 6, y: p.y - n.y * 6 }], 0.8, 0.35, boil);
-  }
-  inkLine(ctx, line.map((p) => ({ x: p.x + n.x * 6.5, y: p.y + n.y * 6.5 })), 1.1, 0.6, boil);
-  inkLine(ctx, line.map((p) => ({ x: p.x - n.x * 6.5, y: p.y - n.y * 6.5 })), 1.1, 0.6, boil);
-  // The talon: long, curved, black, hooking in.
-  const dir = { x: d.x / l, y: d.y / l };
-  const hook = [
-    { x: to.x + n.x * 5, y: to.y + n.y * 5 },
-    { x: to.x + dir.x * 14 + n.x * 2, y: to.y + dir.y * 14 + n.y * 2 },
-    { x: to.x + dir.x * 20 - n.x * 8 * Math.sign(curl || 1), y: to.y + dir.y * 20 - n.y * 8 * Math.sign(curl || 1) },
-    { x: to.x + dir.x * 10 - n.x * 3, y: to.y + dir.y * 10 - n.y * 3 },
-    { x: to.x - n.x * 5, y: to.y - n.y * 5 },
-  ];
-  fillShape(ctx, smoothLoop(hook, 3), '#111014');
-  softLine(ctx, hook.slice(0, 3), 1.4, '#8a8a96', 0.6, 2);
-}
-
-/** One leg from the hip to the foot, the toes clamped round what it carries: `toes` are the toe tips (own units). */
-function paintLeg(ctx: CanvasRenderingContext2D, hip: Pt, foot: Pt, toes: readonly Pt[], far: boolean, boil: number): void {
-  const d = { x: foot.x - hip.x, y: foot.y - hip.y };
-  const l = Math.hypot(d.x, d.y) || 1;
-  const n = { x: -d.y / l, y: d.x / l };
-  const start = { x: hip.x + (d.x / l) * 24, y: hip.y + (d.y / l) * 24 };
-  const tone = far ? '#a9a59d' : '#d9d5cb';
-  taper(ctx, [start, foot], 20, 16, tone, 1);
-  taper(ctx, [start, foot].map((p) => ({ x: p.x - n.x * 4, y: p.y - n.y * 4 })), 6, 4, far ? '#c4c0b8' : '#f3f0e8', 0.7);
-  // Rough scales down the shank.
-  const rng = seeded(far ? 17 : 29);
-  for (let i = 0; i < 9; i++) {
-    const u = 0.1 + 0.85 * (i / 8);
-    const p = { x: start.x + (foot.x - start.x) * u, y: start.y + (foot.y - start.y) * u };
-    inkLine(ctx, [{ x: p.x + n.x * 8, y: p.y + n.y * 8 }, { x: p.x - n.x * (6 + rng() * 2), y: p.y - n.y * (6 + rng() * 2) + 2 }], 0.8, 0.35, boil);
-  }
-  inkLine(ctx, [start, foot].map((p) => ({ x: p.x + n.x * 9, y: p.y + n.y * 9 })), 1.2, 0.65, boil);
-  inkLine(ctx, [start, foot].map((p) => ({ x: p.x - n.x * 9, y: p.y - n.y * 9 })), 1.2, 0.65, boil);
-  toes.forEach((tip, i) => paintToe(ctx, foot, tip, i % 2 ? -0.8 : 0.8, far, boil));
-  dab(ctx, foot.x, foot.y, 11, far ? '130,126,120' : '220,216,206', 0.9);
-}
-
 // ---------------------------------------------------------------- the whole bird
 
 export interface OspreyGrip {
-  /** Feet (own units) and their toe tips, front foot first. */
-  readonly feet: readonly { readonly foot: Pt; readonly toes: readonly Pt[] }[];
+  /** The feet (own units), front foot first. */
+  readonly feet: readonly OspreyFoot[];
 }
 
 /** Wing angles (screen radians, own frame) for a beat: the arm and the hand of each wing. */
@@ -302,16 +232,17 @@ export function drawOspreyBack(ctx: CanvasRenderingContext2D, p: OspreyPose, boi
 /** The legs and clamped feet (drawn over what it carries). */
 export function drawOspreyFeet(ctx: CanvasRenderingContext2D, p: OspreyPose, grip: OspreyGrip, boil: number): void {
   placed(ctx, p, () => {
-    grip.feet.forEach((f, i) => paintLeg(ctx, HIPS[i]!, f.foot, f.toes, i === 1, boil));
+    // The rear leg first: it is the far one, a little in the body's shadow.
+    for (let i = grip.feet.length - 1; i >= 0; i--) paintLegAndFoot(ctx, HIPS[i]!, grip.feet[i]!, i === 1, boil);
   });
 }
 
-/** The tail, the body, the trousers, the near wing and the head (over the legs). */
+/** The tail, the trousers, the body, the head and the near wing (over the legs). */
 export function drawOspreyFront(ctx: CanvasRenderingContext2D, p: OspreyPose, grip: OspreyGrip, boil: number): void {
   const w = wingAngles(p);
   placed(ctx, p, () => {
     paintTail(ctx, boil);
-    grip.feet.forEach((f, i) => paintThigh(ctx, HIPS[i]!, f.foot, boil));
+    grip.feet.forEach((f, i) => paintTrousers(ctx, HIPS[i]!, f.ankle, i === 1, boil));
     paintBody(ctx, boil);
     paintHead(ctx, p.cry, boil);
     paintWing(ctx, { root: NEAR_SHOULDER, armA: w.near[0], handA: w.near[1], len: WING_LEN, lead: 1, under: true }, boil);
@@ -322,3 +253,4 @@ export function drawOspreyFront(ctx: CanvasRenderingContext2D, p: OspreyPose, gr
 export const ospreyToWorld = (p: OspreyPose, q: Pt): Pt => ({ x: p.x + q.x * p.k, y: p.y + q.y * p.k });
 export const worldToOsprey = (p: OspreyPose, q: Pt): Pt => ({ x: (q.x - p.x) / p.k, y: (q.y - p.y) / p.k });
 export { HEAD_C as OSPREY_HEAD };
+export type { OspreyFoot, OspreyToe } from './foot';
