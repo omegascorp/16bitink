@@ -1,6 +1,6 @@
 import type { Rgba } from '../battle/pixelRaster';
 import type { Pixels } from '../battle/pixelScenery';
-import type { TownFaction } from '../../logic/creatures';
+import type { TownPeople } from './townKit';
 import { CITY, isCanal, isGarden, toGrid, toStage, type Plot } from './townStage';
 
 /**
@@ -34,9 +34,11 @@ interface WallStone {
   readonly lip: Rgba;
   readonly edge: Rgba;
 }
-const STONE: Readonly<Record<TownFaction, WallStone>> = {
+const STONE: Readonly<Record<TownPeople, WallStone>> = {
   crown: { lit: [198, 182, 150, 255], shade: [140, 124, 100, 255], lip: [226, 214, 186, 255], edge: [52, 40, 28, 255] },
   kemet: { lit: [214, 170, 112, 255], shade: [150, 108, 70, 255], lip: [240, 206, 146, 255], edge: [58, 38, 24, 255] },
+  // The ring fort's rampart: frozen earth and turf under a lip of snow.
+  norse: { lit: [138, 108, 80, 255], shade: [92, 70, 54, 255], lip: [236, 240, 244, 255], edge: [40, 30, 26, 255] },
 };
 /** Egypt's canal: the water's two blues and the bank's width in tile fractions. */
 const WATER: readonly Rgba[] = [[44, 120, 150, 255], [60, 146, 170, 255], [86, 176, 192, 255], [190, 226, 222, 255]];
@@ -75,7 +77,7 @@ function onPlot(bare: readonly Plot[], i: number, j: number): boolean {
 }
 
 /** Paints the city's ground over `out` (the countryside for `area`); `bare` are the plots not built on. */
-export function paintCity(out: Pixels, area: Area, sw: GroundSwatches, bare: readonly Plot[], faction: TownFaction = 'crown'): void {
+export function paintCity(out: Pixels, area: Area, sw: GroundSwatches, bare: readonly Plot[], faction: TownPeople = 'crown'): void {
   const stone = STONE[faction];
   const left = toStage(0, CITY);
   const front = toStage(CITY, CITY);

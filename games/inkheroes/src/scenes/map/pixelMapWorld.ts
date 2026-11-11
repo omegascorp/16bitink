@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { KEMET_TOWN, MAP_COVER, TOWN_LOOKS } from '../../art/pixel/map';
+import { MAP_COVER, TOWN_LOOKS, type MapCover } from '../../art/pixel/map';
 import { BACKDROP } from '../../art/palette';
 import type { MapDef } from '../../level/types';
 import { gridOf, isSeen, liveObjects, ourHeroes, rivalHeroes, type Adventure } from '../../logic/adventure';
@@ -17,9 +17,10 @@ import { putBuffer, texturePixels, UI_TEX } from '../battle/pixelUi';
 import { coverPlacements } from './mapCover';
 import { factionOf } from '../../logic/factions';
 import type { BuildingId } from '../../logic/buildings';
+import type { TownFaction } from '../../logic/creatures';
 import { renderMapTown, type CityArt } from '../town/cityRender';
 import { TOWN_TEX } from '../town/townTex';
-import { MAP_TEX, siteArtOf, siteSprite } from './pixelMapArt';
+import { isNorseMap, MAP_TEX, peopleTownOf, siteArtOf, siteSprite } from './pixelMapArt';
 import { composeFog, fogPieces, GROUND_BORDER, MAP_TILE, touchedPieces, type PixelRect } from './pixelGround';
 import { groundNow } from './groundPrep';
 import { Ride, RIDE_FPS } from './ride';
@@ -97,6 +98,20 @@ function drawMark(kind: 'dot' | 'ring' | 'cross', ink: Rgba): PixelBuffer {
   return b;
 }
 
+/** Mountain and peak pictures by ground: the first four mountains and two peaks stand on every ground but snow and ice (the red desert range among them); snow and ice get the blue-grey snowy ones. */
+const MOUNTAINS: Readonly<Partial<Record<MapCover, { readonly plain: number; readonly snowy: readonly number[] }>>> = {
+  mountain: { plain: 4, snowy: [3, 4, 5] },
+  peak: { plain: 2, snowy: [2, 3] },
+};
+
+/** Which sprite of a cover kind a placement takes. */
+function coverPick(g: ReturnType<typeof gridOf>, p: { kind: MapCover; pick: number; x: number; y: number }, n: number): number {
+  const m = MOUNTAINS[p.kind];
+  if (!m) return p.pick % n;
+  const ground = g.terrain[Math.floor(p.x / MAP_TILE) + Math.floor((p.y - 1) / MAP_TILE) * g.w];
+  return ground === 'snow' || ground === 'ice' ? m.snowy[p.pick % m.snowy.length]! : p.pick % m.plain;
+}
+
 /**
  * Everything drawn on the adventure map, as pixel art on the battle's grid:
  * the composed ground, cover (forests, mountain ranges, boulders, the
@@ -135,14 +150,18 @@ export class PixelMapWorld {
   /** Each town's picture and the buildings it was drawn with (it is redrawn as the town grows). */
   private readonly townImgs = new Map<string, { img: Phaser.GameObjects.Image; built: string }>();
 
+  /** A Norse map's borrowed sites (altar, shrine, lair) wear the Norse looks. */
+  private readonly norse: boolean;
+
   constructor(private readonly scene: Phaser.Scene, private readonly def: MapDef, adv: Adventure) {
     this.layer = scene.add.layer();
+    this.norse = isNorseMap(def);
     const g = gridOf(def);
     this.drawGround();
     for (const p of coverPlacements(g, def.seed)) {
       const list = MAP_COVER[p.kind];
       if (!list.length) continue;
-      const i = p.pick % list.length;
+      const i = coverPick(g, p, list.length);
       const s = list[i]!;
       // The bridge lies flat under whoever crosses it.
       const depth = p.kind === 'bridge' ? FIGURE_DEPTH - 1 : FIGURE_DEPTH + p.y;
@@ -197,12 +216,13 @@ export class PixelMapWorld {
   }
 
   /** The town as its own screen shows it: the city for what is built, shrunk to a map sprite (redrawn as it grows). */
-  private townSprite(id: string, built: readonly BuildingId[], kemet = false): { key: string; sprite: { w: number; h: number; footX: number; footY: number } } {
+  private townSprite(id: string, built: readonly BuildingId[], faction?: TownFaction): { key: string; sprite: { w: number; h: number; footX: number; footY: number } } {
     // A town with a picture of its own (Nubt's red banners), drawn whole.
     const look = this.def.towns?.find((t) => t.id === id)?.look;
     if (look && TOWN_LOOKS[look]) return { key: MAP_TEX.townLook(look), sprite: TOWN_LOOKS[look]! };
-    // Egypt's town is drawn whole (walled, pylons, obelisk); it does not grow with the buildings.
-    if (kemet) return { key: MAP_TEX.kemetTown, sprite: KEMET_TOWN };
+    // Egypt's town and the Norse ring fort are drawn whole; they do not grow with the buildings.
+    const people = peopleTownOf({ faction });
+    if (people) return people;
     const px = (key: string): Pixels => texturePixels(this.scene, key);
     const art: CityArt = {
       piece: (a) => px(TOWN_TEX.piece(a)),
@@ -215,7 +235,7 @@ export class PixelMapWorld {
   }
 
   private addTown(t: Town): void {
-    const s = this.townSprite(t.id, t.built, factionOf(t) === 'kemet');
+    const s = this.townSprite(t.id, t.built, factionOf(t));
     const feet = tileFeet(t.x, t.y);
     // The gatehouse's doorstep stands on the gate tile, so the roads that end there lead to the door.
     const img = this.place(s.key, s.sprite, feet.x, feet.y, FIGURE_DEPTH + feet.y);
@@ -250,7 +270,7 @@ export class PixelMapWorld {
       this.addLyingItem(o);
       return;
     }
-    const art = siteArtOf(o);
+    const art = siteArtOf(o, this.norse);
     const s = art ? siteSprite(art) : null;
     if (!s) return;
     const img = this.place(s.key, s.sprite, feet.x, feet.y + 2, FIGURE_DEPTH + feet.y - 1);
@@ -332,7 +352,7 @@ export class PixelMapWorld {
       if (!drawn || drawn.built === t.built.join()) continue;
       // Built in town: the map's town grows with it.
       drawn.built = t.built.join();
-      const s = this.townSprite(t.id, t.built, factionOf(t) === 'kemet');
+      const s = this.townSprite(t.id, t.built, factionOf(t));
       const feet = tileFeet(t.x, t.y);
       drawn.img.setTexture(s.key).setDisplayOrigin(s.sprite.footX, s.sprite.footY).setPosition(feet.x, feet.y);
     }

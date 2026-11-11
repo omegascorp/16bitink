@@ -1,0 +1,186 @@
+{
+ "shieldmaiden": {
+  "face": [
+   42,
+   34
+  ]
+ },
+ "berserker": {
+  "face": [
+   46,
+   30
+  ]
+ },
+ "dwarf": {
+  "face": [
+   46,
+   40
+  ]
+ },
+ "shieldmaiden2": {
+  "face": [
+   42,
+   34
+  ]
+ },
+ "berserker2": {
+  "face": [
+   46,
+   30
+  ]
+ },
+ "dwarf2": {
+  "face": [
+   46,
+   40
+  ]
+ },
+ "shieldmaiden3": {
+  "face": [
+   42,
+   34
+  ]
+ },
+ "berserker3": {
+  "face": [
+   46,
+   30
+  ]
+ },
+ "dwarf3": {
+  "face": [
+   46,
+   40
+  ]
+ },
+ "shieldmaiden4": {
+  "face": [
+   42,
+   34
+  ]
+ },
+ "berserker4": {
+  "face": [
+   46,
+   30
+  ]
+ },
+ "dwarf4": {
+  "face": [
+   46,
+   40
+  ]
+ },
+ "shieldmaiden5": {
+  "face": [
+   42,
+   34
+  ]
+ },
+ "berserker5": {
+  "face": [
+   46,
+   30
+  ]
+ },
+ "dwarf5": {
+  "face": [
+   46,
+   40
+  ]
+ },
+ "hunter": {
+  "face": [
+   46,
+   37
+  ],
+  "shot": [
+   68,
+   46
+  ]
+ },
+ "hunter2": {
+  "face": [
+   37,
+   36
+  ],
+  "shot": [
+   70,
+   41
+  ],
+  "dx": -4
+ },
+ "hunter2Foot": {
+  "face": [
+   44,
+   33
+  ],
+  "shot": [
+   66,
+   44
+  ]
+ },
+ "hunter3": {
+  "face": [
+   37,
+   36
+  ],
+  "shot": [
+   70,
+   41
+  ],
+  "dx": -4
+ },
+ "hunter3Foot": {
+  "face": [
+   40,
+   33
+  ],
+  "shot": [
+   68,
+   42
+  ]
+ },
+ "hunter4": {
+  "face": [
+   37,
+   36
+  ],
+  "shot": [
+   70,
+   41
+  ],
+  "dx": -4
+ },
+ "hunter4Foot": {
+  "face": [
+   44,
+   33
+  ],
+  "shot": [
+   66,
+   44
+  ]
+ },
+ "hunter5": {
+  "face": [
+   37,
+   36
+  ],
+  "shot": [
+   70,
+   41
+  ],
+  "dx": -4
+ },
+ "hunter5Foot": {
+  "face": [
+   44,
+   33
+  ],
+  "shot": [
+   66,
+   44
+  ]
+ }
+}

@@ -79,6 +79,19 @@ export interface MapDef {
     readonly heroes?: number;
     /** What his heroes start wearing, by hero id (his own and those his Taverns hire), at no cost to his balance: their four stats are lowered by what it adds (src/logic/lord/kit.ts). */
     readonly kit?: Readonly<Record<string, Gear>>;
+    /** A lord's town whose garrison stays behind its walls: his heroes never take it along (Avaldsnes's huscarls), so storming it is a siege while he rides. */
+    readonly holds?: string;
+    /**
+     * A lord's captains out of the story, riding with him from the part's
+     * start (Eirik, fled north to Gunnhild): played fresh, always; ridden on,
+     * only one the part before left alive (beaten in the field and fled, in
+     * its rival's `fallen`; not gone with his banner). Never hired at a Tavern.
+     */
+    readonly captains?: readonly HeroDef[];
+    /** What the narrator tells the first time a captain of his is seen (`captains`' first: Eirik's return). */
+    readonly captainLine?: LineId;
+    /** What the narrator tells the first time the lord himself is seen (Eirik's, Gunnhild's). */
+    readonly line?: LineId;
   };
   readonly purse: Amount;
   /** What the Crown sends when the chapter rides on into this part (a part played straight on from the one before keeps its purse). */

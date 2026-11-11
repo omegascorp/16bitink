@@ -27,7 +27,25 @@ export type LineId =
   | 'part-redLand'
   | 'redLand-won'
   | 'part-delta'
-  | 'twoLands-won';
+  | 'twoLands-won'
+  | 'part-hladir'
+  | 'hrimgrimnir'
+  | 'hladir-won'
+  | 'part-uppsala'
+  | 'uppsala-joins'
+  | 'aun'
+  | 'uppsala-won'
+  | 'part-bloodaxe'
+  | 'eirik'
+  | 'kaupang-lost'
+  | 'eirik-flees'
+  | 'bloodaxe-won'
+  | 'part-halogaland'
+  | 'gunnhild'
+  | 'eirik-returns'
+  | 'skoll'
+  | 'tyrfing'
+  | 'longWinter-won';
 
 export interface NarratedLine {
   /** Who's speaking, named on the strip. */
@@ -68,10 +86,30 @@ export const LINES: Readonly<Record<LineId, NarratedLine>> = {
   'redLand-won': told('Set’s banner falls', "[triumphant] Sethi falls, and Set's red banner comes down over Nubt! [joyful] The south is one at last… [uneasy] but a boat comes up the river with bad news. [grim] In the north a foreign king holds the Delta: Apepi of Avaris, who took the name of the serpent of chaos! [urgent] And he rides for Iunu, the city of the sun."),
   'part-delta': told('The Delta', "[grand, storytelling] North of the Red Land the Nile spreads into a thousand channels… the Delta, green and wide, all the way to the sea. [ominous] There Apepi, a king of the Hyksos, rules from Avaris. His people came over Sinai with horses and took Egypt's gods as their own! [awed] He rides for Iunu, where the Benben stone stands, the hill the Bennu first landed on. Whoever holds it has the Bennu's flight! [warning] He scouts, he hires captains, he waits for his moment… [wry] Three ways lead in, by the White Walls, the north wadi or the desert road behind Nubt: none of them is easy. [resolute] Take Avaris and Per-Bastet… and bring the serpent-king down!"),
   'twoLands-won': told('The Two Lands are one', "[triumphant] Apepi falls, and the serpent banners fall from the walls of Avaris! [solemn] The Hyksos ride back over Sinai… [joyful] and from the cataract to the sea, the Two Lands are one! [awed] Over Iunu the Bennu wheels in the morning light. [warm] From Nekhen's sluice to the marshes of the Delta, the Nile runs free… [hopeful] and Neferet's name is sung on every boat that sails it."),
+  'part-hladir': told('Hladir', "[grand, storytelling] It is the third winter with no summer… the Fimbulwinter, the great winter before the end of the world. [grim] The fjord is frozen, the ships can't sail, and the steadings are starving. [ominous] At the fjord's mouth the frost giant Hrimgrimnir sits on the ice with his wolves… and no ship has passed him in three winters. [proud] But Hladir has a shieldmaiden! Hervor, whose father and his eleven brothers were berserkers. [wry] Wound a berserker, and he only hits harder… [resolute] Raise the hall's warriors, and drive the giant off the ice!"),
+  'hrimgrimnir': told('Hrimgrimnir', "[ominous] There, out on the ice… Hrimgrimnir! [awed] Tall as a mast, with frost in his beard, and he answers every blow that's struck at him. [grim] His wolves circle, hungry. [eager] Good! Let him strike the berserkers… every wound only makes them angrier!"),
+  'hladir-won': told('The ice breaks', "[triumphant] Hrimgrimnir falls, and the ice at the fjord's mouth cracks like thunder! [joyful] The longships can sail again, and Hladir eats tonight. [uneasy] But the sun still won't climb above the hills… [mysterious] and the winter isn't ending. [resolute] Over the mountains, the great temple at Uppsala keeps the old lore. Hervor rides south to ask who is keeping the sun away!"),
+  'part-uppsala': told('Uppsala', "[grand, storytelling] Over the mountains, the road runs down to Uppsala, where the old kings sleep in their mounds… [ominous] but they sleep no longer! The mounds have opened, and the dead walk the snow. [grim] At the great temple, Barrow Kings hold the gate, and Aun the Old holds the steps. [intrigued] On the temple's altar lies a rune staff. Win it, and Hervor can carve the runes: Tyr's rune makes a company fiercer with every man it loses! [warm] Uppsala's ring fort still holds out… and Heid the volva is there. [resolute] Take the staff, and free the temple!"),
+  'uppsala-joins': told('Uppsala opens its gates', "[relieved] Uppsala's gates swing open, and its people come out to meet Hervor! [mysterious] In the hall sits Heid, the volva, her staff across her knees. She has read the winter in the bones and the stars… [shocked] and it isn't the gods' doing at all! [ominous] Someone is singing it. A song of sorcery, sung in the far north, night after night… [resolute] Hire Heid at your Tavern, and she'll ride with you to find the singer."),
+  'aun': told('Aun the Old', "[ominous] There, on the temple's steps… Aun the Old! [disgusted] He gave Odin nine of his own sons, one every ten years, to buy himself more life… [grim] and even death couldn't make him let go. [uneasy] The dead of all three mounds stand with him. [eager] Carve a rune on your army first… then send them up those steps!"),
+  'uppsala-won': told('The temple is free', "[triumphant] Aun the Old falls, and the dead lie down in their mounds again! [solemn] Smoke rises from the temple's fire for the first time in three winters… [uneasy] but a rider comes up the frozen road with bad news. [grim] At Avaldsnes, on the western sea, Eirik Bloodaxe has raised his banner: the king who killed his own brothers for the crown! [urgent] The starving jarls kneel to him one by one… and he means to be king of the whole hungry land."),
+  'part-bloodaxe': told('The Bloodaxe', "[grand, storytelling] South over the fells, the land runs down to the western sea… [grim] and there, at Avaldsnes, Eirik Bloodaxe has raised his banner! The king who killed his own brothers for the crown. [ominous] The starving jarls kneel to him one by one… [urgent] On the frozen bay in the east lies Kaupang, the market town, with the last grain ships of the north. He wants them. Get there first… or you'll be fighting him for every sack of grain! [sly] His ring fort has walls of timber and earth… but a Norse army doesn't climb walls. It breaks the gate! [resolute] Buy a Ram at Kaupang's Shipwright, take Avaldsnes… and bring the Bloodaxe down!"),
+  'eirik': told('Eirik Bloodaxe', "[ominous] There, under a red banner… Eirik Bloodaxe himself! [grim] He carries his brothers' blood in his name, and he's proud of it. [wry] His shieldmaidens fight harder for him than for any jarl in the north… [eager] Good! Let them meet Hervor's!"),
+  'kaupang-lost': told('Kaupang has fallen', "[dismayed] Too late… Eirik's riders reached Kaupang first! [bitter] His banner flies over the grain ships now, and the hungry jarls will follow the bread. [determined] Take it back from him!"),
+  'eirik-flees': told('Eirik flees', "[scornful] The Bloodaxe turns his horse and runs! [wry] He's left his whole army in the snow… [warning] but he'll hire another at Avaldsnes. Take his ring fort, and he'll have nowhere left to run."),
+  'bloodaxe-won': told('The Bloodaxe flees north', "[triumphant] Avaldsnes falls, and Eirik's banner comes down over the western sea! [joyful] Kaupang's grain ships sail for the steadings, and the north eats tonight… [uneasy] but the Bloodaxe isn't dead. [grim] He has fled north, to the far north where the sun no longer rises, to his queen: Gunnhild, Mother of Kings. [ominous] And at night, from beyond the mountains, Heid hears her singing… [resolute] Hervor rides north to Halogaland, to end the song!"),
+  'part-halogaland': told('Halogaland', "[grand, storytelling] North of the fjords lies Halogaland, where the sun no longer rises… [awed] Only the northern lights burn over the snow, green and cold. [ominous] And every night, from Bjarkoy and Steigen, a woman's voice carries over the ice. Gunnhild, Mother of Kings, is singing the winter! [grim] She learned her seidr from the Sami in the far north, and the jarls kneel to her husband because they're starving. [uneasy] At Mimir's Well, at a root of the world tree, the wolf Skoll waits… and while the song holds, he is closing on the sun. [resolute] Two towns stand between her and the coast. Take them first… then take Bjarkoy and Steigen, and stop the song!"),
+  'gunnhild': told('Gunnhild', "[ominous] There, in a cloak of black feathers… Gunnhild herself! [awed] The snow goes quiet where she walks, and her runes turn a shield arm to ice. [wry] She doesn't need to win the fight… only to keep singing. [resolute] Then don't give her time to finish the verse!"),
+  'eirik-returns': told('The Bloodaxe rides again', "[surprised] Look, under the red banner again… Eirik Bloodaxe! [scornful] He ran all the way north to his queen, and she gave him a new army. [grim] He fights for her now, and he fights hard: he has nowhere else to run. [eager] Good. This time, there's no Avaldsnes to flee to!"),
+  'skoll': told('Skoll', "[awed] There, by the well at the world tree's root… Skoll, the wolf who hunts the sun! [ominous] He's bigger than a longship, and every winter night he gets a little closer to it. [intrigued] Mimir's Well lies behind him. Its water gave Odin his wisdom, for the price of an eye… [eager] Beat the wolf, and the well will make your best warriors into legends!"),
+  'tyrfing': told('Tyrfing', "[hushed, awed] In the barrow's dark, across Angantyr's knees… Tyrfing! [solemn] The sword the dwarves forged for a king, and cursed: it never misses, and every time it's drawn, it must kill. [warm] It was Hervor's father's sword. Now it's hers… [grim] and its curse with it. [resolute] Let the curse fall on Gunnhild!"),
+  'longWinter-won': told('The sun rises', "[triumphant] Gunnhild falls, and in the middle of a verse… her song stops! [hushed, awed] For a moment the whole north holds its breath. [relieved] Then, far away, Skoll lifts his head… he's lost the sun's scent! [joyful] And over the fjord, for the first time in three winters, the sun comes up! [warm] The ice groans and cracks, the longships rock free, and on every steading roof the snow begins to drip. [proud] From Hladir to Halogaland, the north sings a new song now… and it's Hervor's!"),
 };
 
 /** Chapter 1's places and people the lines name: a line is told only where its words are true. */
 export const CHAPTER1 = { eudora: 'eudora-town', korax: 'korax-town', kassander: 'kassander' } as const;
+/** Chapter 3's: the town that opens its gates in part 2 (Uppsala, where Heid reads the winter), and part 3's rival king, his ring fort and the market town both race for. */
+export const CHAPTER3 = { uppsala: 'uppsala-town', eirik: 'eirik', avaldsnes: 'avaldsnes-town', kaupang: 'kaupang-town', gunnhild: 'gunnhild' } as const;
 /** Chapter 2's first rival lord, his city and the town both race for (chapter 2's part 3, the Red Land). */
 export const CHAPTER2 = { redLand: 'red-land', sethi: 'sethi', nubt: 'nubt-town', gebtu: 'gebtu-town' } as const;
 

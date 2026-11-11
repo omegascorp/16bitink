@@ -6,7 +6,7 @@ import { isTownFaction } from '../logic/factions';
 import type { HeroClass } from '../logic/hero';
 import { fitsSlot, ITEM_IDS, SLOTS, type Gear, type ItemId } from '../logic/items';
 import { TILE_CHARS } from '../logic/map';
-import { BANK_LOOKS, DWELLING_LOOKS, LAIR_LOOKS, objectFootprint, SANCTUM_LOOKS, type BankLook, type DwellingLook, type LairLook, type MapObject, type ObjectKind, type Owner, type SanctumLook } from '../logic/objects';
+import { BANK_LOOKS, DWELLING_LOOKS, LAIR_LOOKS, objectFootprint, SANCTUM_LOOKS, TEMPLE_LOOKS, type BankLook, type DwellingLook, type LairLook, type MapObject, type ObjectKind, type Owner, type SanctumLook, type TempleLook } from '../logic/objects';
 import { parseGrid, passable } from '../logic/map';
 import { lairDoor } from '../logic/lairs';
 import { heroFromDef } from '../logic/adventure';
@@ -16,7 +16,7 @@ import { rosterHero } from '../logic/roster';
 import { RESOURCES, type Amount, type Resource } from '../logic/resources';
 import { isSkillId, type Rank, type Skills } from '../logic/skills';
 import { isSpellId, type SpellId } from '../logic/spells';
-import { isLineId } from '../narration/lines';
+import { isLineId, type LineId } from '../narration/lines';
 import { CHAPTERS, MAPS } from './maps';
 import type { Goal, HeroDef, MapDef } from './types';
 
@@ -35,7 +35,7 @@ const MAX_COUNT = 4000;
 const MAX_GOLD = 1e6;
 const ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const HERO_CLASSES: readonly HeroClass[] = ['knight', 'cleric'];
-const KINDS: readonly ObjectKind[] = ['mine', 'pile', 'chest', 'campfire', 'mercCamp', 'watchtower', 'standingStone', 'shrine', 'windmill', 'stables', 'spellbook', 'monster', 'item', 'learningStone', 'dwelling', 'bank', 'lair', 'arena', 'sanctum'];
+const KINDS: readonly ObjectKind[] = ['mine', 'pile', 'chest', 'campfire', 'mercCamp', 'watchtower', 'standingStone', 'shrine', 'windmill', 'stables', 'spellbook', 'monster', 'item', 'learningStone', 'dwelling', 'bank', 'lair', 'arena', 'sanctum', 'temple'];
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const int = (v: unknown, lo: number, hi: number): v is number => Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi;
@@ -141,6 +141,11 @@ function object(v: unknown, g: { w: number; h: number }): MapObject {
     if (!isCreatureId(v.creature) || !int(v.count, 1, MAX_COUNT)) throw new Error('bad monster');
     Object.assign(o, { creature: v.creature, count: v.count });
     if (v.brood !== undefined) o.brood = slot(v.brood);
+    if (v.name !== undefined) o.name = text(v.name, 'monster name');
+    if (v.line !== undefined) {
+      if (!isLineId(v.line)) throw new Error('bad monster line');
+      o.line = v.line;
+    }
   }
   if (v.drop !== undefined || v.item !== undefined) {
     for (const k of ['drop', 'item'] as const) if (v[k] !== undefined && !isItemId(v[k])) throw new Error(`bad ${k}`);
@@ -166,6 +171,10 @@ function object(v: unknown, g: { w: number; h: number }): MapObject {
     if (!BANK_LOOKS.includes(v.look as BankLook)) throw new Error('bad keep');
     o.look = v.look;
     if (v.prize !== undefined) o.prize = amount(v.prize, 'prize');
+    if (v.line !== undefined) {
+      if (!isLineId(v.line)) throw new Error('bad keep line');
+      o.line = v.line;
+    }
   }
   if (kind === 'lair') {
     if (!isCreatureId(v.creature) || !int(v.count, 1, MAX_COUNT) || !LAIR_LOOKS.includes(v.look as LairLook)) throw new Error('bad lair');
@@ -173,6 +182,10 @@ function object(v: unknown, g: { w: number; h: number }): MapObject {
   }
   if (kind === 'sanctum') {
     if (!SANCTUM_LOOKS.includes(v.look as SanctumLook)) throw new Error('bad legendary site');
+    o.look = v.look;
+  }
+  if (kind === 'temple') {
+    if (!TEMPLE_LOOKS.includes(v.look as TempleLook)) throw new Error('bad temple');
     o.look = v.look;
   }
   if (kind === 'learningStone' && v.visitedBy !== undefined) o.visitedBy = ids<string>(v.visitedBy, 20, 'visited by', (h): h is string => typeof h === 'string' && ID.test(h));
@@ -205,12 +218,19 @@ function rival(v: unknown, g: { w: number; h: number }): NonNullable<MapDef['riv
   if (v.headStart !== undefined && (typeof v.headStart !== 'number' || !(v.headStart >= 0 && v.headStart <= 1))) throw new Error('bad rival head start');
   if (v.heroes !== undefined && (!Number.isInteger(v.heroes) || !((v.heroes as number) >= 1 && (v.heroes as number) <= 8))) throw new Error('bad rival hero count');
   if (v.mind !== undefined && v.mind !== 'lord') throw new Error('bad rival mind');
+  if (v.holds !== undefined && (typeof v.holds !== 'string' || !/^[a-z0-9-]{1,40}$/.test(v.holds))) throw new Error('bad rival holds');
+  if (v.captains !== undefined && (!Array.isArray(v.captains) || v.captains.length > 3)) throw new Error('bad rival captains');
+  for (const k of ['line', 'captainLine'] as const) if (v[k] !== undefined && !isLineId(v[k])) throw new Error(`bad rival ${k}`);
   return {
     hero: hero(v.hero, g), build: ids<BuildingId>(v.build, 60, 'rival build', isBuildingId), purse: amount(v.purse, 'rival purse'),
     ...(v.headStart !== undefined ? { headStart: v.headStart as number } : {}),
     ...(v.heroes !== undefined ? { heroes: v.heroes as number } : {}),
     ...(v.mind !== undefined ? { mind: 'lord' as const } : {}),
     ...(v.kit !== undefined ? { kit: kit(v.kit) } : {}),
+    ...(v.holds !== undefined ? { holds: v.holds as string } : {}),
+    ...(v.captains !== undefined ? { captains: (v.captains as unknown[]).map((c) => hero(c, g)) } : {}),
+    ...(v.line !== undefined ? { line: v.line as LineId } : {}),
+    ...(v.captainLine !== undefined ? { captainLine: v.captainLine as LineId } : {}),
   };
 }
 
@@ -294,7 +314,7 @@ function map(v: unknown): MapDef {
     off: ids<BuildingId>(v.off, 80, 'off', isBuildingId),
     seed: v.seed,
   };
-  const problems = [...lairProblems(out), ...kitProblems(out)];
+  const problems = [...lairProblems(out), ...kitProblems(out, out.rival ? [out.rival.hero, ...(out.rival.captains ?? [])] : [])];
   if (problems.length) throw new Error(problems[0]);
   return out;
 }

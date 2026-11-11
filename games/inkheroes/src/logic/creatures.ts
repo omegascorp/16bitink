@@ -1,9 +1,9 @@
 import type { Amount } from './resources';
 
-/** A people (`crown` the Greeks, `kemet` Egypt), the wild neutrals, or the war machines. */
-export type Faction = 'crown' | 'kemet' | 'neutral' | 'machine';
+/** A people (`crown` the Greeks, `kemet` Egypt, `norse` the Norse), the wild neutrals, or the war machines. */
+export type Faction = 'crown' | 'kemet' | 'norse' | 'neutral' | 'machine';
 /** The peoples who hold towns and lead heroes. */
-export type TownFaction = Extract<Faction, 'crown' | 'kemet'>;
+export type TownFaction = Extract<Faction, 'crown' | 'kemet' | 'norse'>;
 
 export interface CreatureDef {
   readonly id: CreatureId;
@@ -62,12 +62,22 @@ export interface CreatureDef {
   /** An upgrade: the line's base unit, and which of its five levels (its rank) this is (2 to 5; a base unit is 1). Towns raise a line to 3; 4 and 5 are trained at map sites. */
   readonly line?: CreatureId;
   readonly tier?: 2 | 3 | 4 | 5;
+  /** +1 Attack (2 for rage that counts double) for each tenth of its starting count it has lost this battle, up to 10 tenths. */
+  readonly rage?: 1 | 2;
+  /** Its melee strike also hits the unit in the hex behind its target (a dragon's breath). */
+  readonly breath?: boolean;
+  /** A shooter that shoots twice, when it hasn't moved this turn. */
+  readonly shootsTwice?: boolean;
+  /** On skis: in a battle on snow, +2 Speed, and it may move and then shoot in the same turn. */
+  readonly skis?: boolean;
   /** A war machine bought at the Blacksmith: how its faction deals with walls. It never moves, acts by itself, and can't hold the field alone. */
-  readonly machine?: 'catapult' | 'ramp';
+  readonly machine?: 'catapult' | 'ramp' | 'ram';
   /** A catapult's stones a round, and the chances each misses or lands a double blow. */
   readonly stones?: { readonly throws: number; readonly miss: number; readonly crit: number };
   /** A siege ramp: the round it is ready by, and (the finest) a second ramp's, at another stretch. */
   readonly ramp?: { readonly ready: number; readonly second?: number };
+  /** A battering ram: the gate falls at the end of round `round`; `towers`, the wall beside the gate cracks too (breaches at wallGateNorth and wallGateSouth). */
+  readonly ram?: { readonly round: number; readonly towers?: boolean };
 }
 
 const def = <T extends CreatureDef>(c: T): T => c;
@@ -181,6 +191,55 @@ export const CREATURES = {
   // The Delta: Ammit, the Devourer, guards the House of the Benben at Iunu; no one answers its strikes.
   ammit: def({ id: 'ammit', name: 'Ammit', plural: 'Ammits', faction: 'neutral', level: 7, attack: 19, defense: 17, minDmg: 30, maxDmg: 40, hp: 220, speed: 7, growth: 1, cost: { gold: 3500 }, hexes: 3, noRetaliation: true }),
   apep: def({ id: 'apep', name: 'Serpent of Apep', plural: 'Serpents of Apep', faction: 'neutral', level: 6, attack: 17, defense: 13, minDmg: 14, maxDmg: 20, hp: 110, speed: 5, growth: 1, cost: { gold: 1500 }, hexes: 3, poison: 0.1, regen: 10 }),
+  // The Norse Kingdoms (chapter 3): the aggressive people, high Attack and low Defense; rage is their mark (docs/inkheroes-design.md).
+  shieldmaiden: def({ id: 'shieldmaiden', name: 'Shieldmaiden', plural: 'Shieldmaidens', faction: 'norse', level: 1, attack: 5, defense: 4, minDmg: 1, maxDmg: 3, hp: 10, speed: 4, growth: 14, cost: { gold: 60 } }),
+  hunter: def({ id: 'hunter', name: 'Hunter', plural: 'Hunters', faction: 'norse', level: 2, attack: 6, defense: 3, minDmg: 2, maxDmg: 3, hp: 10, speed: 4, growth: 9, cost: { gold: 100 }, shots: 12 }),
+  berserker: def({ id: 'berserker', name: 'Berserker', plural: 'Berserkers', faction: 'norse', level: 3, attack: 10, defense: 4, minDmg: 3, maxDmg: 6, hp: 22, speed: 6, growth: 7, cost: { gold: 200 }, rage: 1 }),
+  dwarf: def({ id: 'dwarf', name: 'Dwarf', plural: 'Dwarves', faction: 'norse', level: 4, attack: 9, defense: 13, minDmg: 5, maxDmg: 8, hp: 38, speed: 4, growth: 4, cost: { gold: 300 } }),
+  // The War Boar's line is `warBoar…`: `boar` is the Erymanthian Boar, a chapter-1 neutral that maps and saves already name.
+  warBoar: def({ id: 'warBoar', name: 'War Boar', plural: 'War Boars', faction: 'norse', level: 5, attack: 13, defense: 9, minDmg: 10, maxDmg: 14, hp: 45, speed: 6, growth: 3, cost: { gold: 400 }, wide: true }),
+  valkyrie: def({ id: 'valkyrie', name: 'Valkyrie', plural: 'Valkyries', faction: 'norse', level: 6, attack: 16, defense: 14, minDmg: 16, maxDmg: 24, hp: 95, speed: 9, growth: 2, cost: { gold: 1000 }, flies: true, wide: true }),
+  dragon: def({ id: 'dragon', name: 'Frost Dragon', plural: 'Frost Dragons', faction: 'norse', level: 7, attack: 21, defense: 18, minDmg: 40, maxDmg: 50, hp: 200, speed: 11, growth: 1, cost: { gold: 3000, gems: 1 }, flies: true, breath: true, wide: true }),
+  shieldmaiden2: def({ id: 'shieldmaiden2', name: 'Spear Maiden', plural: 'Spear Maidens', faction: 'norse', level: 1, attack: 7, defense: 5, minDmg: 2, maxDmg: 3, hp: 12, speed: 5, growth: 14, cost: { gold: 80 }, line: 'shieldmaiden', tier: 2 }),
+  shieldmaiden3: def({ id: 'shieldmaiden3', name: 'Jarl’s Shieldmaiden', plural: 'Jarl’s Shieldmaidens', faction: 'norse', level: 1, attack: 8, defense: 7, minDmg: 2, maxDmg: 4, hp: 15, speed: 5, growth: 14, cost: { gold: 100 }, cleave: true, line: 'shieldmaiden', tier: 3 }),
+  hunter2: def({ id: 'hunter2', name: 'Ski Bowman', plural: 'Ski Bowmen', faction: 'norse', level: 2, attack: 7, defense: 3, minDmg: 2, maxDmg: 4, hp: 10, speed: 5, growth: 9, cost: { gold: 130 }, shots: 16, skis: true, line: 'hunter', tier: 2 }),
+  hunter3: def({ id: 'hunter3', name: 'Archer of Ullr', plural: 'Archers of Ullr', faction: 'norse', level: 2, attack: 8, defense: 4, minDmg: 3, maxDmg: 4, hp: 12, speed: 6, growth: 9, cost: { gold: 170 }, shots: 20, skis: true, shootsTwice: true, line: 'hunter', tier: 3 }),
+  berserker2: def({ id: 'berserker2', name: 'Bear Warrior', plural: 'Bear Warriors', faction: 'norse', level: 3, attack: 11, defense: 5, minDmg: 3, maxDmg: 7, hp: 25, speed: 7, growth: 7, cost: { gold: 240 }, rage: 1, line: 'berserker', tier: 2 }),
+  berserker3: def({ id: 'berserker3', name: 'Berserker of Odin', plural: 'Berserkers of Odin', faction: 'norse', level: 3, attack: 13, defense: 6, minDmg: 4, maxDmg: 8, hp: 28, speed: 8, growth: 7, cost: { gold: 290 }, rage: 2, line: 'berserker', tier: 3 }),
+  dwarf2: def({ id: 'dwarf2', name: 'Dwarf Guard', plural: 'Dwarf Guards', faction: 'norse', level: 4, attack: 11, defense: 14, minDmg: 6, maxDmg: 9, hp: 42, speed: 4, growth: 4, cost: { gold: 360 }, line: 'dwarf', tier: 2 }),
+  dwarf3: def({ id: 'dwarf3', name: 'Rune-Forged Dwarf', plural: 'Rune-Forged Dwarves', faction: 'norse', level: 4, attack: 12, defense: 16, minDmg: 7, maxDmg: 10, hp: 48, speed: 5, growth: 4, cost: { gold: 430 }, shieldWall: true, line: 'dwarf', tier: 3 }),
+  warBoar2: def({ id: 'warBoar2', name: 'Iron Boar', plural: 'Iron Boars', faction: 'norse', level: 5, attack: 14, defense: 11, minDmg: 11, maxDmg: 15, hp: 50, speed: 6, growth: 3, cost: { gold: 450 }, wide: true, line: 'warBoar', tier: 2 }),
+  warBoar3: def({ id: 'warBoar3', name: 'Boar of Freyr', plural: 'Boars of Freyr', faction: 'norse', level: 5, attack: 16, defense: 12, minDmg: 12, maxDmg: 16, hp: 55, speed: 7, growth: 3, cost: { gold: 520 }, wide: true, guardian: true, line: 'warBoar', tier: 3 }),
+  valkyrie2: def({ id: 'valkyrie2', name: 'Battle Valkyrie', plural: 'Battle Valkyries', faction: 'norse', level: 6, attack: 17, defense: 16, minDmg: 18, maxDmg: 26, hp: 100, speed: 10, growth: 2, cost: { gold: 1200 }, flies: true, wide: true, line: 'valkyrie', tier: 2 }),
+  valkyrie3: def({ id: 'valkyrie3', name: 'Valkyrie of Odin', plural: 'Valkyries of Odin', faction: 'norse', level: 6, attack: 19, defense: 17, minDmg: 20, maxDmg: 28, hp: 115, speed: 11, growth: 2, cost: { gold: 1500 }, flies: true, wide: true, morale: 1, line: 'valkyrie', tier: 3 }),
+  dragon2: def({ id: 'dragon2', name: 'Ice Dragon', plural: 'Ice Dragons', faction: 'norse', level: 7, attack: 23, defense: 20, minDmg: 45, maxDmg: 55, hp: 230, speed: 13, growth: 1, cost: { gold: 3600, gems: 2 }, flies: true, breath: true, wide: true, line: 'dragon', tier: 2 }),
+  dragon3: def({ id: 'dragon3', name: 'Fafnir’s Kin', plural: 'Fafnir’s Kin', faction: 'norse', level: 7, attack: 26, defense: 22, minDmg: 50, maxDmg: 60, hp: 270, speed: 15, growth: 1, cost: { gold: 4400, gems: 3 }, flies: true, breath: true, wide: true, noRetaliation: true, line: 'dragon', tier: 3 }),
+  // The Norse Epic (4, an Arena of Heroes) and Legendary (5, Mimir's Well) ranks, from the Rarity formula.
+  shieldmaiden4: def({ id: 'shieldmaiden4', name: 'Lagertha’s Guard', plural: 'Lagertha’s Guards', faction: 'norse', level: 1, attack: 9, defense: 9, minDmg: 3, maxDmg: 5, hp: 18, speed: 6, growth: 14, cost: { gold: 130 }, cleave: true, line: 'shieldmaiden', tier: 4 }),
+  shieldmaiden5: def({ id: 'shieldmaiden5', name: 'Einherjar', plural: 'Einherjar', faction: 'norse', level: 1, attack: 10, defense: 11, minDmg: 4, maxDmg: 6, hp: 21, speed: 7, growth: 14, cost: { gold: 170 }, cleave: true, rebirth: 'half', line: 'shieldmaiden', tier: 5 }),
+  hunter4: def({ id: 'hunter4', name: 'Huntsman of Skadi', plural: 'Huntsmen of Skadi', faction: 'norse', level: 2, attack: 9, defense: 5, minDmg: 4, maxDmg: 5, hp: 14, speed: 7, growth: 9, cost: { gold: 230 }, shots: 20, skis: true, shootsTwice: true, line: 'hunter', tier: 4 }),
+  hunter5: def({ id: 'hunter5', name: 'Archer of Ydalir', plural: 'Archers of Ydalir', faction: 'norse', level: 2, attack: 10, defense: 6, minDmg: 5, maxDmg: 6, hp: 16, speed: 8, growth: 9, cost: { gold: 310 }, shots: 20, skis: true, shootsTwice: true, noMeleePenalty: true, line: 'hunter', tier: 5 }),
+  berserker4: def({ id: 'berserker4', name: 'Ulfhedinn', plural: 'Ulfhednar', faction: 'norse', level: 3, attack: 15, defense: 7, minDmg: 5, maxDmg: 9, hp: 31, speed: 9, growth: 7, cost: { gold: 365 }, rage: 2, line: 'berserker', tier: 4 }),
+  berserker5: def({ id: 'berserker5', name: 'Chosen of Odin', plural: 'Chosen of Odin', faction: 'norse', level: 3, attack: 17, defense: 8, minDmg: 6, maxDmg: 10, hp: 34, speed: 10, growth: 7, cost: { gold: 465 }, rage: 2, noRetaliation: true, line: 'berserker', tier: 5 }),
+  dwarf4: def({ id: 'dwarf4', name: 'Dwarf Lord', plural: 'Dwarf Lords', faction: 'norse', level: 4, attack: 13, defense: 18, minDmg: 8, maxDmg: 11, hp: 54, speed: 6, growth: 4, cost: { gold: 535 }, shieldWall: true, line: 'dwarf', tier: 4 }),
+  dwarf5: def({ id: 'dwarf5', name: 'Son of Ivaldi', plural: 'Sons of Ivaldi', faction: 'norse', level: 4, attack: 14, defense: 20, minDmg: 9, maxDmg: 12, hp: 60, speed: 7, growth: 4, cost: { gold: 675 }, shieldWall: true, guardian: true, line: 'dwarf', tier: 5 }),
+  warBoar4: def({ id: 'warBoar4', name: 'Hildisvini', plural: 'Hildisvini', faction: 'norse', level: 5, attack: 18, defense: 13, minDmg: 13, maxDmg: 17, hp: 60, speed: 8, growth: 3, cost: { gold: 625 }, wide: true, guardian: true, line: 'warBoar', tier: 4 }),
+  warBoar5: def({ id: 'warBoar5', name: 'Gullinbursti', plural: 'Gullinbursti', faction: 'norse', level: 5, attack: 20, defense: 14, minDmg: 14, maxDmg: 18, hp: 65, speed: 9, growth: 3, cost: { gold: 765 }, wide: true, guardian: true, cleave: true, line: 'warBoar', tier: 5 }),
+  valkyrie4: def({ id: 'valkyrie4', name: 'Valkyrie Captain', plural: 'Valkyrie Captains', faction: 'norse', level: 6, attack: 21, defense: 18, minDmg: 22, maxDmg: 30, hp: 130, speed: 12, growth: 2, cost: { gold: 1950, gems: 1 }, flies: true, wide: true, morale: 1, line: 'valkyrie', tier: 4 }),
+  valkyrie5: def({ id: 'valkyrie5', name: 'Valkyrie of Folkvangr', plural: 'Valkyries of Folkvangr', faction: 'norse', level: 6, attack: 23, defense: 19, minDmg: 24, maxDmg: 32, hp: 145, speed: 13, growth: 2, cost: { gold: 2550, gems: 2 }, flies: true, wide: true, morale: 1, noRetaliation: true, line: 'valkyrie', tier: 5 }),
+  dragon4: def({ id: 'dragon4', name: 'Elder Dragon', plural: 'Elder Dragons', faction: 'norse', level: 7, attack: 29, defense: 24, minDmg: 55, maxDmg: 65, hp: 310, speed: 16, growth: 1, cost: { gold: 5600, gems: 4 }, flies: true, breath: true, wide: true, noRetaliation: true, line: 'dragon', tier: 4 }),
+  dragon5: def({ id: 'dragon5', name: 'Nidhogg', plural: 'Nidhogg', faction: 'norse', level: 7, attack: 32, defense: 26, minDmg: 60, maxDmg: 70, hp: 350, speed: 17, growth: 1, cost: { gold: 7200, gems: 5 }, flies: true, breath: true, wide: true, noRetaliation: true, poison: 0.1, line: 'dragon', tier: 5 }),
+  // The north's neutrals (chapter 3). Growth and cost set their strength for the rival, as the other neutrals'.
+  wolfWinter: def({ id: 'wolfWinter', name: 'Winter Wolf', plural: 'Winter Wolves', faction: 'neutral', level: 2, attack: 6, defense: 3, minDmg: 2, maxDmg: 4, hp: 10, speed: 7, growth: 8, cost: { gold: 100 }, wide: true }),
+  draugr: def({ id: 'draugr', name: 'Draugr', plural: 'Draugar', faction: 'neutral', level: 2, attack: 6, defense: 5, minDmg: 2, maxDmg: 3, hp: 14, speed: 3, growth: 8, cost: { gold: 110 }, undead: true }),
+  troll: def({ id: 'troll', name: 'Troll', plural: 'Trolls', faction: 'neutral', level: 5, attack: 13, defense: 9, minDmg: 10, maxDmg: 14, hp: 45, speed: 4, growth: 3, cost: { gold: 500 }, regen: 5 }),
+  barrowKing: def({ id: 'barrowKing', name: 'Barrow King', plural: 'Barrow Kings', faction: 'neutral', level: 5, attack: 12, defense: 12, minDmg: 10, maxDmg: 14, hp: 50, speed: 4, growth: 2, cost: { gold: 600 }, undead: true, curse: 0.25 }),
+  frostGiant: def({ id: 'frostGiant', name: 'Frost Giant', plural: 'Frost Giants', faction: 'neutral', level: 6, attack: 17, defense: 14, minDmg: 18, maxDmg: 26, hp: 130, speed: 5, growth: 1, cost: { gold: 1500 }, wide: true, guardian: true }),
+  skoll: def({ id: 'skoll', name: 'Skoll', plural: 'Skoll', faction: 'neutral', level: 7, attack: 22, defense: 18, minDmg: 35, maxDmg: 45, hp: 240, speed: 10, growth: 1, cost: { gold: 3500 }, hexes: 3, cleave: true }),
+  // The Norse war machine: a battering ram that breaks the gate, and only the gate.
+  ram: def({ id: 'ram', name: 'Ram', plural: 'Rams', faction: 'machine', level: 1, attack: 0, defense: 10, minDmg: 0, maxDmg: 0, hp: 1000, speed: 20, growth: 0, cost: { gold: 1500 }, machine: 'ram', ram: { round: 3 }, retaliations: 0 }),
+  ram2: def({ id: 'ram2', name: 'Iron Ram', plural: 'Iron Rams', faction: 'machine', level: 2, attack: 0, defense: 10, minDmg: 0, maxDmg: 0, hp: 1000, speed: 20, growth: 0, cost: { gold: 3000 }, machine: 'ram', ram: { round: 2 }, retaliations: 0 }),
+  ram3: def({ id: 'ram3', name: 'Ram of the Sea-Kings', plural: 'Rams of the Sea-Kings', faction: 'machine', level: 3, attack: 0, defense: 10, minDmg: 0, maxDmg: 0, hp: 1000, speed: 20, growth: 0, cost: { gold: 5000 }, machine: 'ram', ram: { round: 2, towers: true }, retaliations: 0 }),
 } as const;
 
 export type CreatureId =
@@ -197,12 +256,19 @@ export type CreatureId =
   | 'mummy2' | 'mummy3' | 'sphinx2' | 'sphinx3' | 'bennu2' | 'bennu3'
   | 'levy4' | 'levy5' | 'nubian4' | 'nubian5' | 'jackal4' | 'jackal5' | 'chariot4' | 'chariot5'
   | 'mummy4' | 'mummy5' | 'sphinx4' | 'sphinx5' | 'bennu4' | 'bennu5'
-  | 'hyena' | 'raider' | 'scorpion' | 'crocodile' | 'petsuchos' | 'cobra' | 'lion' | 'apep' | 'gigas' | 'ammit';
+  | 'hyena' | 'raider' | 'scorpion' | 'crocodile' | 'petsuchos' | 'cobra' | 'lion' | 'apep' | 'gigas' | 'ammit'
+  | 'shieldmaiden' | 'hunter' | 'berserker' | 'dwarf' | 'warBoar' | 'valkyrie' | 'dragon'
+  | 'shieldmaiden2' | 'shieldmaiden3' | 'hunter2' | 'hunter3' | 'berserker2' | 'berserker3' | 'dwarf2' | 'dwarf3'
+  | 'warBoar2' | 'warBoar3' | 'valkyrie2' | 'valkyrie3' | 'dragon2' | 'dragon3'
+  | 'shieldmaiden4' | 'shieldmaiden5' | 'hunter4' | 'hunter5' | 'berserker4' | 'berserker5' | 'dwarf4' | 'dwarf5'
+  | 'warBoar4' | 'warBoar5' | 'valkyrie4' | 'valkyrie5' | 'dragon4' | 'dragon5'
+  | 'wolfWinter' | 'draugr' | 'troll' | 'barrowKing' | 'frostGiant' | 'skoll'
+  | 'ram' | 'ram2' | 'ram3';
 export const CREATURE_IDS = Object.keys(CREATURES) as CreatureId[];
 
 export const creature = (id: CreatureId): CreatureDef => CREATURES[id];
 /** The war machines, worst first. */
-export const MACHINES = ['catapult', 'catapult2', 'catapult3', 'ramp', 'ramp2', 'ramp3'] as const satisfies readonly CreatureId[];
+export const MACHINES = ['catapult', 'catapult2', 'catapult3', 'ramp', 'ramp2', 'ramp3', 'ram', 'ram2', 'ram3'] as const satisfies readonly CreatureId[];
 export type MachineId = (typeof MACHINES)[number];
 export const isMachine = (id: CreatureId): boolean => !!creature(id).machine;
 /** Whether a company can man a tower: a shooter that takes one hex. */
@@ -232,7 +298,8 @@ export function sizeWord(count: number): string {
 /** What a creature's ways of fighting add to its plain stats. */
 const traitsWorth = (c: CreatureDef): number =>
   (c.shots ? 1.3 : 1) * (c.flies ? 1.15 : 1) * (c.charge ? 1.1 : 1) * (c.swoop ? 1.1 : 1) * (c.cleave ? 1.25 : 1) * (c.regen ? 1.15 : 1) * (1 + (c.petrify ?? 0))
-  * (1 + (c.curse ?? 0) * 0.4) * (c.rebirth ? (c.rebirth === 'all' ? 1.3 : 1.15) : 1) * (c.guardian ? 1.1 : 1) * (c.shieldWall ? 1.05 : 1) * (c.noRangePenalty ? 1.05 : 1) * (c.noMeleePenalty ? 1.05 : 1) * (1 + (c.poison ?? 0));
+  * (1 + (c.curse ?? 0) * 0.4) * (c.rebirth ? (c.rebirth === 'all' ? 1.3 : 1.15) : 1) * (c.guardian ? 1.1 : 1) * (c.shieldWall ? 1.05 : 1) * (c.noRangePenalty ? 1.05 : 1) * (c.noMeleePenalty ? 1.05 : 1) * (1 + (c.poison ?? 0))
+  * (1 + (c.rage ?? 0) * 0.1) * (c.breath ? 1.15 : 1) * (c.shootsTwice ? 1.2 : 1) * (c.skis ? 1.05 : 1);
 
 /** A rough fighting strength, for the AI and for monsters' join/flee checks. */
 export function strengthOf(id: CreatureId, count: number): number {

@@ -45,6 +45,8 @@ export interface Hero {
   readonly ankhs?: number;
   /** What they do best (src/logic/specialty.ts), from the roster by their id. */
   readonly specialty?: Specialty;
+  /** Morale from a night in a town's Mead Hall (the Norse), until the end of their next battle. */
+  readonly mead?: number;
 }
 
 interface ClassDef {
@@ -104,15 +106,22 @@ export function toBattleHero(h: Hero): BattleHero {
   return {
     name: h.name, attack: geared.attack, defense: geared.defense, power: geared.power, mana: h.mana,
     spells: hasSpellbook(h) ? h.spells : [], skills: h.skills, ...(h.ankhs ? { ankhs: h.ankhs } : {}),
-    morale: skillValue(h.skills, 'leadership') + (worn.morale ?? 0), luck: skillValue(h.skills, 'luck') + (worn.luck ?? 0),
+    morale: skillValue(h.skills, 'leadership') + (worn.morale ?? 0) + (h.mead ?? 0), luck: skillValue(h.skills, 'luck') + (worn.luck ?? 0),
     ...(h.faction ? { faction: h.faction } : {}),
     ...(h.specialty ? { specialty: { ...h.specialty, level: h.level } } : {}),
     ...(worn.speed ? { speed: worn.speed } : {}),
   };
 }
 
-/** Morale shown on the hero card: Leadership plus the army's make-up. */
-export const heroMorale = (h: Hero): number => Math.max(-3, Math.min(3, skillValue(h.skills, 'leadership') + armyMorale(h.army)));
+/** Morale shown on the hero card: Leadership, a Mead Hall's night and the army's make-up. */
+export const heroMorale = (h: Hero): number => Math.max(-3, Math.min(3, skillValue(h.skills, 'leadership') + (h.mead ?? 0) + armyMorale(h.army)));
+
+/** `h` after a battle: a Mead Hall's morale is spent. */
+export const afterFight = <H extends Pick<Hero, 'mead'>>(h: H): H => {
+  if (h.mead === undefined) return h;
+  const { mead: _spent, ...rest } = h;
+  return rest as H;
+};
 
 /** What only matters to a hero with a spellbook. */
 const MAGIC_PRIMARIES: readonly Primary[] = ['power', 'knowledge'];

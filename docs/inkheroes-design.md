@@ -546,6 +546,8 @@ The lord AI plays the **player's** side too (from what the bot earns riding on t
 
 Winning the last part built shows its Victory card, then **Chapter 1 complete** (`chapterDoneCard` in `src/scenes/cards.ts`): the narrator tells the chapter's ending (its words read on the card with narration off), the march in numbers (days, towns held, heroes riding), then chapter 2 (since Nov 8, when part 4 was built): The Two Lands crosses to Egypt, with a new people, Neferet and the Sacred Rites. An owner gets **On to chapter 2** (its saved game, or its start); anyone else reads that it is part of the full game and gets **Full game · <price>** (the host's checkout, counted as the `free_end` offer). Back to the campaign, or More games (the host's exit, to the catalog). Finishing no longer drops the player straight on the chapter card. A later chapter's last part built ends on the same card, titled "Chapter 2: The Two Lands, so far", saying its next parts are being made.
 
+**Free play after the chapter (user, Nov 11).** Finishing a chapter no longer ends its game. The chapter-done card has **Keep exploring** (the crown button when there is nothing to start or buy; beside On to chapter N or Full game otherwise): the card closes and the same land plays on, with days, heroes, towns, the rival if still alive, mines and weekly growth. The adventure carries `freePlay: true` with status `playing` (`src/logic/freePlay.ts`); `checkGoal` never wins the part again, but losing the last town or every hero still shows the defeat card (Replay the day comes back to this morning, still in free play). The chapter counts as complete from its recorded wins (`recordWin`), never from the game's status, so a lost day can't un-win it, and no `level_end` lose is sent in free play. The free-play game is the chapter's saved game: Continue on the menu resumes it (the card shows every part Won and "Chapter complete · <date>"), and a save left on the last Victory card (old saves too) resumes straight into free play. Only the menu's Start the chapter over throws it away; the map menu's Start <part> again replays the last part from its start, out of free play. In free play the map menu says "Chapter complete: the land is yours to explore." and has **The chapter's ending** to see the card again. If the chapter later grows a part (a "so far" chapter's update), a free-play game rides on into it.
+
 ### No laurels on screen
 
 **Laurels are off (Nov 4).** They rewarded rushing and losing nothing, which works against a slow game of building up; they unlocked nothing; and a chapter is one run, so a part can't be replayed for a better score. The game still records them with each win (best laurels and days, for the account's progress and the win event), and the art is kept, so they can come back as something else.
@@ -973,9 +975,9 @@ The rest follows Othrys: mines of every kind, piles, chests, a watchtower, a mer
 - **Safe for the art pipeline.** Raiders, shieldmaidens, bowmen, draugr, trolls, valkyries, frost giants, a dragon: almost no half-human creatures, which PixelLab draws badly.
 - **Popular.** The most played mythology in games right now.
 
-## Chapter 3: The Long Winter (draft, Nov 10, waiting on the user)
+## Chapter 3: The Long Winter (approved Nov 10)
 
-Everything below is a first draft for the user to approve or change: the roster, the heroes and the story. The numbers are first guesses; the balance bot settles them, as it did for chapters 1 and 2.
+The user approved this draft as written on Nov 10: the roster with a dragon at level 7 (a Frost Dragon after the art test, the same day), Hervor first with the winter story ending on the sunrise, and the Mead Hall as the Norse own building. The numbers are still first guesses; the balance bot settles them, as it did for chapters 1 and 2.
 
 The chapter works like the other two. It is one land that grows over four parts, with a fresh hero, and nothing carries over from chapter 2. It comes to the full game as a free update. Players arrive having won two chapters, so nothing is taught again. Each part still adds one new thing, in chapter 1's order:
 
@@ -990,17 +992,17 @@ The chapter works like the other two. It is one land that grows over four parts,
 
 It is the third year of the **Fimbulwinter**, the great winter with no summers that comes before the end of the world. The fjords are frozen, the ships can't sail and the steadings are starving. The jarls fight over what is left instead of standing together.
 
-**Hervor** is a shieldmaiden of Hlaðir. In the saga she wakes her dead father at his barrow and takes the cursed sword Tyrfing from him. She rides south over the mountains to find out who is keeping the sun away.
+**Hervor** is a shieldmaiden of Hladir. In the saga she wakes her dead father at his barrow and takes the cursed sword Tyrfing from him. She rides south over the mountains to find out who is keeping the sun away.
 
-The answer comes in part 2. The winter is not the gods' doing: someone is singing it. **Gunnhild**, "Mother of Kings", learned seiðr (sorcery) in the far north. She sang the winter so the starving jarls would kneel to her husband, **Eirik Bloodaxe**. While the winter holds, the wolf **Sköll** keeps closing on the sun. When Gunnhild falls, the song ends and the sun comes up over the fjord. That sunrise is the chapter's last picture, and it makes a good promo.
+The answer comes in part 2. The winter is not the gods' doing: someone is singing it. **Gunnhild**, "Mother of Kings", learned seidr (sorcery) in the far north. She sang the winter so the starving jarls would kneel to her husband, **Eirik Bloodaxe**. While the winter holds, the wolf **Skoll** keeps closing on the sun. When Gunnhild falls, the song ends and the sun comes up over the fjord. That sunrise is the chapter's last picture, and it makes a good promo.
 
 Eirik, Gunnhild, Hervor, Heid and the others are figures from history and the sagas, used the same way as Kassander, Lykaon and Apepi.
 
 ### The Norse Kingdoms (faction id `norse`)
 
-The people of the northern fjords under the old gods. Farmers with axes and hunters on skis fill the low levels. Above them are the beasts and powers of the Eddas: dwarves, trolls, valkyries and a wyrm.
+The people of the northern fjords under the old gods. Shieldmaidens and hunters on skis fill the low levels. Above them are the beasts and powers of the Eddas: dwarves, Freyr's war boars, valkyries and a frost dragon.
 
-They are the **aggressive** people: high Attack, low Defense, and hardest to beat when they are already losing. The Greeks are balanced and Egypt is tough with its rites. The Norse have no flier below level 6.
+They are the **aggressive** people: high Attack, low Defense, and hardest to beat when they are already losing. The Greeks are balanced and Egypt is tough with its rites. Their only fliers are the two at the top: the Valkyrie and the Frost Dragon.
 
 **Rage** is the people's mark (as the Griffin's double answer is the Greeks'): a raging stack gets +1 Attack for each tenth of its starting count it has lost this battle, up to +10. On the base units only the Berserker has it.
 
@@ -1008,45 +1010,45 @@ They are the **aggressive** people: high Attack, low Defense, and hardest to bea
 
 **Art risk (PixelLab).** There are almost no human-animal hybrids. The risks:
 - **The Valkyrie** is a rider on a winged horse. The Pegasus Rider came out well, so this should work.
-- **The Ski Bowman** needs skis drawn in side view. The fallback is snowshoes.
+- **The Ski Bowman** needs skis drawn in side view (passed in the art test). It is drawn twice: gliding on skis for snow battles, and walking with the skis strapped to its back on any other ground.
 - **The Dwarf** must read as a short, broad warrior, not a child or a gnome.
-- **The Wyrm** must look different from a generic dragon. It gets a long serpent body, two legs and frost-blue scales.
+- **The Frost Dragon** (user, Nov 10) is a classic dragon: four legs, two wings, frost-blue, heavy enough for level 7. It replaced a Lindworm (two front legs, no wings): PixelLab kept drawing it four-legged or with half a leg, and the user chose a concept the generator draws well. Never legless: Egypt already has the giant serpent Apep. The user's chart of dragon kinds: `games/inkheroes/dev/art-direction/norse/reference-dragon-kinds.jpg`.
 
 | Lvl | Unit (id) | Att | Def | Damage | HP | Speed | Growth | Cost | Notes |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | Karl (karl) | 5 | 4 | 1–3 | 10 | 4 | 14 | 60 | Free farmer with a hand axe and a round shield |
+| 1 | Shieldmaiden (shieldmaiden) | 5 | 4 | 1–3 | 10 | 4 | 14 | 60 | A shieldmaiden with a hand axe and a round painted shield, Hervor's own people (user, Nov 10: better known than the Karl or a plain Raider) |
 | 2 | Hunter (hunter) | 6 | 3 | 2–3 | 10 | 4 | 9 | 100 | Yew bow, furs. Shoots, 12 shots |
 | 3 | Berserker (berserker) | 10 | 4 | 3–6 | 22 | 6 | 7 | 200 | Bear pelt, no armour. **Rage** |
 | 4 | Dwarf (dwarf) | 9 | 13 | 5–8 | 38 | 4 | 4 | 300 | A smith of the deep halls with a hammer and a leather apron. The people's wall |
-| 5 | Troll (troll) | 13 | 9 | 10–14 | 45 | 4 | 3 | 400 | Hill troll with a tree-trunk club. Regen 5 |
+| 5 | War Boar (boar) | 13 | 9 | 10–14 | 45 | 6 | 3 | 400 | Two hexes. A huge boar in Norse war barding: mail, iron plates, a painted rune shield. Freyr's animal (user, Nov 10: the Troll read as an enemy, and the bear is kept for a future Rus empire) |
 | 6 | Valkyrie (valkyrie) | 16 | 14 | 16–24 | 95 | 9 | 2 | 1000 | On a winged horse. Flies, two hexes |
-| 7 | Wyrm (wyrm) | 21 | 18 | 40–50 | 200 | 11 | 1 | 3000 + 1 gem | Flies. **Breath:** a strike also hits the unit in the hex behind its target (new). Three hexes if its picture measures so |
+| 7 | Frost Dragon (dragon) | 21 | 18 | 40–50 | 200 | 11 | 1 | 3000 + 1 gem | Flies. **Breath:** a strike also hits the unit in the hex behind its target (new). Three hexes if its picture measures so |
 
 | Line | Level 2 (id) | Att | Def | Damage | HP | Speed | Cost | Level 3 (id) | Att | Def | Damage | HP | Speed | Cost |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | Hirdman (karl2) | 7 | 5 | 2–3 | 12 | 5 | 80 | Huscarl (karl3) | 8 | 7 | 2–4 | 15 | 5 | 100, Dane axe: **cleave** |
-| 2 | Ski Bowman (hunter2) | 7 | 3 | 2–4 | 10 | 7 | 130, 16 shots | Archer of Ullr (hunter3) | 8 | 4 | 3–4 | 12 | 7 | 170, 20 shots, **shoots twice** (new) |
+| 1 | Spear Maiden (shieldmaiden2) | 7 | 5 | 2–3 | 12 | 5 | 80 | Jarl's Shieldmaiden (shieldmaiden3) | 8 | 7 | 2–4 | 15 | 5 | 100, Dane axe: **cleave** |
+| 2 | Ski Bowman (hunter2) | 7 | 3 | 2–4 | 10 | 5 | 130, 16 shots, **skis** | Archer of Ullr (hunter3) | 8 | 4 | 3–4 | 12 | 6 | 170, 20 shots, **skis**, **shoots twice** (new) |
 | 3 | Bear Warrior (berserker2) | 11 | 5 | 3–7 | 25 | 7 | 240 | Berserker of Odin (berserker3) | 13 | 6 | 4–8 | 28 | 8 | 290, **rage counts double** (up to +20) |
 | 4 | Dwarf Guard (dwarf2) | 11 | 14 | 6–9 | 42 | 4 | 360 | Rune-Forged Dwarf (dwarf3) | 12 | 16 | 7–10 | 48 | 5 | 430, **shield wall** (shots do half) |
-| 5 | Stone Troll (troll2) | 14 | 11 | 11–15 | 50 | 5 | 450, regen 5 | Troll King (troll3) | 16 | 12 | 12–16 | 55 | 5 | 520, **regen 15** |
-| 6 | Shield Valkyrie (valkyrie2) | 17 | 16 | 18–26 | 100 | 10 | 1200 | Valkyrie of Odin (valkyrie3) | 19 | 17 | 20–28 | 115 | 11 | 1500, **+1 morale** to the army |
-| 7 | Frost Wyrm (wyrm2) | 23 | 20 | 45–55 | 230 | 13 | 3600 + 2 gems | Wyrm of Gnitaheath (wyrm3) | 26 | 22 | 50–60 | 270 | 15 | 4400 + 3 gems, **strikes unanswered** |
+| 5 | Iron Boar (boar2) | 14 | 11 | 11–15 | 50 | 6 | 450 | Boar of Freyr (boar3) | 16 | 12 | 12–16 | 55 | 7 | 520, **answers every strike** |
+| 6 | Battle Valkyrie (valkyrie2) | 17 | 16 | 18–26 | 100 | 10 | 1200 | Valkyrie of Odin (valkyrie3) | 19 | 17 | 20–28 | 115 | 11 | 1500, **+1 morale** to the army |
+| 7 | Ice Dragon (dragon2) | 23 | 20 | 45–55 | 230 | 13 | 3600 + 2 gems | Fafnir's Kin (dragon3) | 26 | 22 | 50–60 | 270 | 15 | 4400 + 3 gems, **strikes unanswered** |
 
-The level-3 traits mostly reuse kinds the engine already has: cleave, shield wall, regen, morale and strikes unanswered. Only rage, breath and shooting twice are new.
+The level-3 traits mostly reuse kinds the engine already has: cleave, shield wall, answers every strike, morale and strikes unanswered. Only rage, breath, shooting twice and skis are new.
 
-The upgrades follow the "better armed" rule. The Karl gets a helmet and mail, then a Dane axe and a jarl's red cloak. The Hunter gets skis and a fur hood, then a rune-carved yew bow. The Berserker gets a bear-head hood and arm rings, then two axes and Odin's ravens painted on the skin. The Dwarf gets iron mail, then glowing runes on the hammer and the plate. The Troll gets stone skin, then a crown of antlers and a bound iron club. The Valkyrie gets a winged helm and a round shield, then gold mail and a spear of light. The Wyrm gets ice-blue scales, then a crown of horns and rune scars.
+The upgrades follow the "better armed" rule. The Shieldmaiden gets a helmet, mail and a spear, then a Dane axe and a jarl's red cloak. The Hunter gets skis and a fur hood, then a rune-carved yew bow. Both upgrades are the same hunter, never a new figure, and at least the Hunter's height. The Berserker gets a bear-head hood and arm rings, then two axes and Odin's ravens painted on the skin. The Dwarf gets iron mail, then glowing runes on the hammer and the plate. The War Boar gets full iron plates and a boar-crest frontlet, then golden bristles and rune-carved caps on its tusks. The Valkyrie gets a winged helm and a round shield, then gold mail and a spear of light. The Frost Dragon gets ice-blue scales and frosted wings, then a crown of horns and rune scars.
 
 **Epic and Legendary** (the Rarity rule, with stats from its formula):
 
 | Line | Epic (4) | Legendary (5) | Legendary trait |
 |---|---|---|---|
-| Karl | Jomsviking | Einherjar | rebirth (half): Odin's chosen dead rise to fight again |
-| Hunter | Huntsman of Skadi | Archer of Ýdalir | no melee penalty |
-| Berserker | Úlfheðinn | Chosen of Odin | strikes unanswered |
+| Shieldmaiden | Lagertha's Guard | Einherjar | rebirth (half): Odin's chosen dead rise to fight again |
+| Hunter | Huntsman of Skadi | Archer of Ydalir | no melee penalty |
+| Berserker | Ulfhedinn | Chosen of Odin | strikes unanswered |
 | Dwarf | Dwarf Lord | Son of Ivaldi | answers every strike |
-| Troll | Mountain King | Troll of Jötunheim | cleave |
-| Valkyrie | Valkyrie Captain | Valkyrie of Fólkvangr | strikes unanswered |
-| Wyrm | Fafnir's Kin | Níðhöggr | poison |
+| War Boar | Hildisvini | Gullinbursti | cleave |
+| Valkyrie | Valkyrie Captain | Valkyrie of Folkvangr | strikes unanswered |
+| Frost Dragon | Elder Dragon | Nidhogg | poison |
 
 **Buildings.** Halls, walls, Tavern, Marketplace, Storehouse and Treasury work as before under the same ids. The other shared buildings get Norse names:
 - **Mage Guild:** the **Hof** (the temple where the runes are cut).
@@ -1057,13 +1059,13 @@ The town is a ring fort of timber and earth, like Trelleborg, on a fjord. Its ca
 
 | Line | Dwelling | First upgrade | Second upgrade |
 |---|---|---|---|
-| 1 Karls | Longhouse | Hird Hall | Huscarl Hall |
-| 2 Hunters | Hunting Lodge | Ski Lodge | Ýdalir, Ullr's yew dales |
+| 1 Shieldmaidens | Longhouse | Muster Hall | Jarl's Hall |
+| 2 Hunters | Hunting Lodge | Ski Lodge | Ydalir, Ullr's yew dales |
 | 3 Berserkers | Berserker Camp | Bear Pit | Odin's Grove |
 | 4 Dwarves | Dwarf Forge | Deep Forge | Eitri's Forge |
-| 5 Trolls | Troll Cave | Troll Bridge | Troll Hall |
+| 5 War Boars | Boar Pen | Iron Pen | Freyr's Field |
 | 6 Valkyries | Shield Hall | Hall of the Chosen | Valhalla's Gate |
-| 7 Wyrms | Wyrm's Hoard | Gnitaheath | Root of Yggdrasil |
+| 7 Dragons | Dragon's Hoard | Gnitaheath | Root of Yggdrasil |
 
 **The Norse own building: the Mead Hall** (needs the Village Hall). A hero who leaves town after a night there takes +1 morale until the end of their next battle.
 
@@ -1097,16 +1099,16 @@ Ten, as each people has: five Knights and five Clerics (`src/logic/roster/norse.
 
 | Hero | Class | Specialty | Starts with | Who |
 |---|---|---|---|---|
-| Hervor | Knight | Berserkers (line 3) | Offense | The shieldmaiden of Hlaðir (campaign hero). Her father and his eleven brothers were berserkers |
-| Eirik Bloodaxe | Knight | Karls (line 1) | Offense | The king who killed his brothers for the crown (rival, part 3) |
+| Hervor | Knight | Berserkers (line 3) | Offense | The shieldmaiden of Hladir (campaign hero). Her father and his eleven brothers were berserkers |
+| Eirik Bloodaxe | Knight | Shieldmaidens (line 1) | Offense | The king who killed his brothers for the crown (rival, part 3) |
 | Einar Thambarskelfir | Knight | Hunters (line 2) | Archery | The archer of Svolder, the strongest bow in Norway |
 | Sigurd | Knight | Dwarves (line 4) | Leadership | The dragon-slayer, raised by the dwarf smith Regin |
 | Harald Hardrada | Knight | Gold: +350 gold a day | Leadership, Logistics | The king who came home from Byzantium rich in gold |
-| Heid | Cleric | Thurisaz: it strikes 50% harder | Wisdom | The völva (seeress) of the Völuspá (campaign hero, hired from part 2) |
+| Heid | Cleric | Thurisaz: it strikes 50% harder | Wisdom | The volva (seeress) of the Voluspa (campaign hero, hired from part 2) |
 | Gunnhild | Cleric | Isa: it lasts a round more per 5 levels | Wisdom, Mysticism | "Mother of Kings", who learned sorcery in the far north (the lord, part 4) |
-| Thorbjorg | Cleric | Tiwaz: +1 more to its cap per 5 levels | Wisdom | The "little völva" of the Greenland saga |
+| Thorbjorg | Cleric | Tiwaz: +1 more to its cap per 5 levels | Wisdom | The "little volva" of the Greenland saga |
 | Brynhild | Cleric | Valkyries (line 6) | Wisdom | The valkyrie who defied Odin |
-| Egil Skallagrimsson | Cleric | Trolls (line 5) | Wisdom, Mysticism | Skald and rune-master, of half-troll stock. He raised a cursing pole against Eirik and Gunnhild |
+| Egil Skallagrimsson | Cleric | War Boars (line 5) | Wisdom, Mysticism | Skald and rune-master, of half-troll stock. He raised a cursing pole against Eirik and Gunnhild |
 
 Chapter 1 opened with a fighter and chapter 2 with a mystic, so chapter 3 opens with a fighter again: Hervor has no spellbook until part 2. The same roster rules apply: a hero is in play only once, story villains (Eirik, Gunnhild) are never offered at our Taverns, and from part 3 on the Taverns offer two from the roster.
 
@@ -1114,18 +1116,18 @@ Chapter 1 opened with a fighter and chapter 2 with a mystic, so chapter 3 opens 
 
 The four parts come down the land from north to south and back up into the far north.
 
-**Part 1: Hlaðir** (32 × 24). This part teaches the people and rage. Hervor holds Hlaðir, at the head of a frozen fjord. Snow, pine forest and the ice of the fjord (walkable, slow). At the fjord's mouth the frost giant **Hrímgrímnir** sits on the ice with his wolves, so no ship has sailed for three winters. **Goal:** beat Hrímgrímnir on the ice. Opens: the halls, Fort, Citadel, Tavern, Mead Hall and the dwellings of lines 1–4. No Hof yet.
+**Part 1: Hladir** (32 × 24). This part teaches the people and rage. Hervor holds Hladir, at the head of a frozen fjord. Snow, pine forest and the ice of the fjord (walkable, slow). At the fjord's mouth the frost giant **Hrimgrimnir** sits on the ice with his wolves, so no ship has sailed for three winters. **Goal:** beat Hrimgrimnir on the ice. Opens: the halls, Fort, Citadel, Tavern, Mead Hall and the dwellings of lines 1–4. No Hof yet.
 
 **Part 2: Uppsala.** This part teaches Rune Magic. The road goes over the mountains to the great temple at Uppsala, where Heid reads the winter. The king's mounds there have opened and the dead walk (draugr). The first rune staff (the Norse spellbook, the **Novice's Rune Staff**) lies on the temple altar, held by the **Barrow King**, as chapter 1's first book waited among the Stymphalian Birds. **Goal:** free the temple. Heid joins at Uppsala's Tavern and tells what she reads: someone is singing the winter. Opens: the Hof (level 1–2) and line 5.
 
 **Part 3: The Bloodaxe.** This part teaches the ram and a rival. Eirik Bloodaxe rides from **Avaldsnes** to make himself king of the starving land. From the part's third night he races us for **Kaupang**, the market town with the last grain ships (fought for, never handed over, like Gebtu). His towns are ring forts, which is why the Shipwright sells the Ram here. **Goal:** `overthrow`: Avaldsnes taken and Eirik beaten. If beaten he flees north to his queen.
 
-**Part 4: Hálogaland** (the chapter's last part, free to explore like Othrys and the Delta). The far north, where the sun no longer rises: snow, ice, pine and the northern lights. **Gunnhild** is a lord (`rival.mind: 'lord'`, the first Cleric lord, so the lord mind's battle spells matter most here). She holds **Bjarkøy** and **Steigen**, with Eirik as her captain if he lived (`comesBack`). Two neutral towns are raced. The part opens the whole Norse tree. Sites:
-- **Mímir's Well**, at a root of the world tree: the chapter's legendary site (Epic → Legendary), guarded by **Sköll**, the wolf who hunts the sun.
+**Part 4: Halogaland** (the chapter's last part, free to explore like Othrys and the Delta). The far north, where the sun no longer rises: snow, ice, pine and the northern lights. **Gunnhild** is a lord (`rival.mind: 'lord'`, the first Cleric lord, so the lord mind's battle spells matter most here). She holds **Bjarkoy** and **Steigen**, with Eirik as her captain if he lived (`comesBack`). Two neutral towns are raced. The part opens the whole Norse tree. Sites:
+- **Mimir's Well**, at a root of the world tree: the chapter's legendary site (Epic → Legendary), guarded by **Skoll**, the wolf who hunts the sun.
 - **Angantyr's barrow**, where draugr guard **Tyrfing**, the chapter's Legendary (orange) prize: Hervor's own family sword, as in the saga.
-- An Arena, learning stones, outer dwellings (a troll bridge, a wyrm's hoard) and a treasure barrow (a bank).
+- An Arena, learning stones, outer dwellings (a boar pen, a dragon's hoard) and a treasure barrow (a bank).
 
-**Goal:** `overthrow` Gunnhild. **The ending:** her song stops, Sköll loses the sun's scent and the sun rises over the fjord.
+**Goal:** `overthrow` Gunnhild. **The ending:** her song stops, Skoll loses the sun's scent and the sun rises over the fjord.
 
 ### New neutrals (the north)
 
@@ -1133,10 +1135,10 @@ The four parts come down the land from north to south and back up into the far n
 |---|---|---|---|---|---|---|---|
 | Wolf (wolf) | 2 | – | – | – | – | – | The existing wolf, in a white winter coat if the art allows |
 | Draugr (draugr) | 2 | 6 | 5 | 2–3 | 14 | 3 | Undead |
-| Cave Bear (bear) | 3 | 9 | 8 | 4–7 | 28 | 5 | Two hexes |
+| Troll (troll) | 5 | 13 | 9 | 10–14 | 45 | 4 | Hill troll with a tree-trunk club. Regen 5. The art test's troll read as an enemy, so it is one (it replaces the Cave Bear: bears are kept for a future Rus empire) |
 | Barrow King (barrowKing) | 5 | 12 | 12 | 10–14 | 50 | 4 | Undead, curse 25% (the Mummy's curse). Part 2's guard |
-| Hrímgrímnir, frost giant (frostGiant) | 6 | 17 | 14 | 18–26 | 130 | 5 | Two hexes. Answers every strike. Part 1's boss |
-| Sköll (skoll) | 7 | 22 | 18 | 35–45 | 240 | 10 | Three hexes. Cleave. The guard of Mímir's Well |
+| Hrimgrimnir, frost giant (frostGiant) | 6 | 17 | 14 | 18–26 | 130 | 5 | Two hexes. Answers every strike. Part 1's boss |
+| Skoll (skoll) | 7 | 22 | 18 | 35–45 | 240 | 10 | Three hexes. Cleave. The guard of Mimir's Well |
 
 ### What the engine needs
 
@@ -1146,21 +1148,185 @@ The four parts come down the land from north to south and back up into the far n
    - **breath**, which hits the target and the hex behind it, and works for wide units;
    - **shoots twice**.
 3. **Norse heroes ignore snow's extra cost.**
+   - **Skis** (Ski Bowman, Archer of Ullr; user, Nov 10): in a battle on snow the unit glides on its skis, with +2 Speed, and it **may move and then shoot in the same turn** (a shooter's speed is worth nothing otherwise, as the user noted). It can glide away from an enemy next to it and shoot, or get round blockers to a clear shot. After a move the Archer of Ullr shoots once; its second shot needs it to stand still. On any other ground it is an ordinary shooter at its table speed (move or shoot) with the skis on its back, so its pictures are picked by the battle's terrain.
 4. **The three runes.** A rune that lasts the battle, a rune that fires when its stack is struck, and one rune per stack.
 5. **The ram.** The gate falls at round N, and the Rare ram cracks the gate's two towers.
 6. **Walkable fjord ice** on the map, as a terrain that costs more, if the map needs it.
 
 ### Art (PixelLab), before the engine
 
-As for Egypt: first a test of the risky units (Valkyrie, Ski Bowman, Dwarf, Wyrm, Frost Giant, Sköll) plus the Karl, Hunter, Berserker and Troll, about 12 gens. Then the 21 animated units and their 14 upgrades, the Norse town screen (longhouses, the Hof, runestones, boat sheds on the fjord), the ring-fort castle and the map sprites.
+As for Egypt: first a test of the risky units (Valkyrie, Ski Bowman, Dwarf, Frost Dragon, Frost Giant, Skoll) plus the Shieldmaiden, Hunter, Berserker and War Boar, about 12 gens. Then the 21 animated units and their 14 upgrades, the Norse town screen (longhouses, the Hof, runestones, boat sheds on the fjord), the ring-fort castle and the map sprites.
 
 Music: a **townNorse** loop (tagelharpa, lur horns, frame drum). The narrator is David, as in chapters 1 and 2.
 
-### Open for the user
+### Decided (user, Nov 10)
 
-- The roster: the seven lines, and the Wyrm at level 7 rather than a Frost Giant (which is a neutral here).
-- Hervor first, and the winter story ending on the sunrise.
-- The Mead Hall as the Norse own building. The alternative, a **boat house** that lets heroes sail the fjords, fits the people better but means building boats into the map engine.
+- **The roster** stays as drafted, with two changes from the art test: line 1 is the **Shieldmaiden** (the user turned down the Karl and then the Raider), and level 7 is a **Frost Dragon** (a Lindworm came out with half a leg; the user picked a concept PixelLab draws well). The Valkyrie's first upgrade is the Battle Valkyrie, so no two names share "shield" at the same level. Level 5 is the **War Boar**: the Troll looked like an enemy, and the bear stays free for a future Rus empire. The troll becomes a neutral.
+- **The story** stays as drafted: Hervor first, Gunnhild singing the winter, Eirik the rival in part 3, and the sunrise at the end.
+- **The Mead Hall** is the Norse own building. The boat house is not built (it would need boats in the map engine).
+- **Plain letters in names (user, Nov 11):** chapter, part, unit, hero, building and place names use only plain A–Z letters, in every chapter. Old Norse letters are transliterated (ð → d, þ → th, accents dropped: Hladir, Hrimgrimnir, Skoll, Bifrost, Halogaland), and Níðhöggr takes its English form, Nidhogg.
+
+### As built: the engine (Nov 10)
+
+Tests in `test/norse.test.ts`; the rarity numbers in `test/rarity.test.ts`.
+
+- **The people** (`norse` in `factions.ts`, units in `creatures.ts`): the 35 units as the tables say, Epic and Legendary from the Rarity formula. **The War Boar's ids are `warBoar` to `warBoar5`**: `boar` is already the Erymanthian Boar, a chapter-1 neutral that maps and saves name. The Frost Dragon is two hexes (`wide`) until its picture says otherwise.
+- **The town:** the Hof, Shipwright and Ski Track, the dwellings of the table, the Bifrost Stone, Gate of the Nine Worlds and Bifrost for the Portal's three levels. Their own order: the Berserker Camp needs the Longhouse, the Ski Track the Hunting Lodge, the Shield Hall the Boar Pen and the Mead Hall, the Dragon's Hoard the Shield Hall. The rest is the Greek tree. `BUILD_PLANS.norse` builds the Berserker Camp and the Mead Hall early.
+- **The Mead Hall** (`meadHall`, Norse only, 1500 gold and 10 wood, needs the Village Hall): a hero of its side who ends the day in the town gets `mead: 1` (saved). It adds to their battle morale until their next battle ends, won or lost. The lords get it too.
+- **Neutrals:** troll, frostGiant, skoll, draugr, barrowKing, wolfWinter as the table says. Growth and cost, for the rival's strength checks: Winter Wolf 8 a week, 100 gold; Draugr 8, 110; Troll 3, 500; Barrow King 2, 600; Frost Giant 1, 1500; Skoll 1, 3500.
+- **Rage:** +1 Attack (+2 from the Berserker of Odin up) for each tenth of the starting count lost, at most 10 tenths (`rageOf` in `damage.ts`).
+- **Breath:** a melee strike also hits the enemy behind the target, on the line from the breather's touching hex through the struck hex. It passes through a wide target's other hex. It is a blow of its own (it can poison) that is never answered, and it never hits a friend. Only the dragon's own strikes breathe, not its answers.
+- **Shoots twice:** two shots when the unit hasn't moved this turn; if the first kills the target, the second is lost.
+- **Skis:** a battle knows its ground (`createBattle`'s `field`, `BattleSetup.snow` from the hero's tile). On snow a skier gets `skiing`: +2 Speed, and a move leaves its turn open for one shot, as a move beside an enemy leaves it open for a strike. The AI glides clear of an enemy beside it and then shoots. Off snow the battle draws `<id>Foot` when the manifest has it, else the ski picture (`battleArtId` in `standIns.ts`).
+- **Snow:** a Norse hero's way over snow costs as grass (`snowWalker` in `path.ts`).
+- **Rune Magic** (school `runes`, spellbook the Novice's Rune Staff): Tiwaz starts at +2 Attack and grows +1 each time its stack loses creatures, up to 6. Isa's stack can't answer, for Spell Power rounds. Thurisaz deals 5 × SP + 10 to every melee striker of its stack, answers included. A rune replaces any other rune on the stack, and Healing lifts Isa. Isa's god is Skadi (every divine power names one). Specialties: Heid's Thurisaz +50%, Gunnhild's Isa +1 round per 5 levels, Thorbjorg's Tiwaz cap +1 per 5 levels. The battle AI and Auto cast runes (`battleCasts.ts`), never over a rune.
+- **The ram** (`ram`, `ram2`, `ram3`; machine `ram`): at the end of round 3 (2 for the finer two) the gate falls; the Ram of the Sea-Kings also breaks `wallGateNorth` and `wallGateSouth`. It plays itself and can't be hit. A siege AI with a ram never bashes the gate: it waits before the gate, then goes through. The Shipwright sells the Ram from part 3 and the Iron Ram from part 4 (`LONG_WINTER_MACHINE_UNLOCKS`).
+- **Heroes:** `src/logic/roster/norse.ts`, ten as the table says. Hervor has no staff. The Clerics carry the staff with one rune each. `NORSE_VILLAINS` (Eirik, Gunnhild) are the chapter's `villains`, never offered at our Taverns.
+- **Chapter 3** (`longWinter` in `maps.ts`): parts 9 to 12, paid, save slot `longWinter`, no part built (`parts: []`, `planned` names the four for its card). Its card says "Coming soon" to owners and offers the full game to everyone else. The Delta's end card names it and says it is being made. Its `teaser` is the line above, read at chapter 2's end. Its `ending` line came with part 4 (`longWinter-won`, Nov 11). `LONG_WINTER_UNLOCKS` follows "The parts" for parts 1 and 2, and chapter 2's order for 3 and 4. `src/level/longWinter.ts` is the empty land, served by `content/paid.ts`.
+- **Stand-ins** (`standIns.ts`), until the art lands: each Norse line wears a Greek line's art tinted frost blue (Shieldmaiden as the Hoplite, Hunter the Slinger, Berserker the Jackal Warrior, Dwarf the Minotaur, War Boar the Erymanthian Boar, Valkyrie the Companion, Dragon the Griffin). Each northern neutral wears the nearest drawn kind. The rams now have their own art, and the runes, rune staff and rams their own icons (Nov 11).
+- **Not yet:** walkable fjord ice (the Norse loot catalog is in "Norse gear", Nov 11), and the map, town and hero art. (Since Nov 11 the ice is built with part 1, and the art agents' map, town and unit art is in: see "Part 1 as built".)
+
+### Part 1 as built: Hladir (Nov 11)
+
+`src/level/hladir.ts`, laid alone so far at the top-left corner of the chapter's land (`longWinter.ts`, stitched as `twoLands.ts` is). The fjord opens **west** to the sea, so the land can grow south (Uppsala, over the mountains) and east, and the far north (part 4) can be laid round the land won, as the Delta was. The ice runs from Hladir west to the map's west edge, two tiles wide at the head and ten at the mouth; everything else is snow, with pine forest in clumps, fells along the north and south edges and pines along the east. Hladir's gate is at (24, 9), where the ice ends, with Hervor before it. Two roads leave the town: west along the north shore to the narrows, and round the fjord's head and west along the south shore. Par 21 days, as maps 1 and 5.
+
+- **Hervor** as the roster has her (Attack 2, Defense 2, Power 1, Knowledge 1, basic Offense, 18 Shieldmaidens and 7 Hunters, no rune staff). The map's hero leaves her specialty out (the paid maps' check keeps none) and the roster gives it by her id. **Hladir** (`faction: 'norse'`): Village Hall, Tavern, Longhouse. Its guild list is Tiwaz, Isa, Haste, then Thurisaz, Slow, for part 2's Hof: no Hof is open here. **Purse** as Nekhen's: 9000 gold, 20 wood, 20 ore, 3 of each rare.
+- **Opens** `LONG_WINTER_UNLOCKS[0]`: the halls, Fort, Citadel, Tavern, Mead Hall and the dwellings of lines 1–4.
+- **Walkable ice** (engine item 6): terrain `ice`, tile `i`, 175 to leave for everyone, the Norse too (their way over snow is no help on it). A fight on ice is a snow battle (`groundAt` gives snow), so skiers glide there. It is drawn in code like snow (`iceAt` in `pixelGround.ts`): blue-grey ice with lighter drifts, dark cracks and pale streaks. New tiles on snow: `p` pine, `N` fell, `x` boulder.
+- **Neutrals**, wolves and draugr near home and trolls further out (they hit hard, so the berserkers lose men and their rage shows): 5 Winter Wolves at the sawmill, 7 Draugr at the ore pit, 10 Winter Wolves on the north road at the narrows, 12 Draugr at the cairn on the south road, 2 Trolls in the north-west pines, 8 Winter Wolves on the ice mid-fjord, 6 Trolls at the gold mine, 12 Winter Wolves on the north headland, 15 Draugr at the barrow chest, 5 Trolls at the fell chest in the north-west corner.
+- **Hrimgrimnir**: one `frostGiant` with a brood of 44 Winter Wolves (3 stacks), on the ice at (3, 12). Two new map-monster fields: `name`, which the status line reads ("Hrimgrimnir, the frost giant, and lots of Winter Wolves (your goal)"), and `line`, which the narrator tells the first time a hero of ours sees him (`hrimgrimnir`); the hero stops there to look. Both are checked by `validate.ts`. In battle he is still the Frost Giant.
+- **Sites:** sawmill, ore pit, gold mine (the south shore's far end), a Mercenary Camp, a Watchtower on the north headland, a Standing Stone and a windmill (crystal). Three chests (1000, 1500 and 2000 gold), three campfires, nine piles (two of them rare: crystal and gems).
+- **Loot:** the gray Hide set (the Bronze set's stats; "Norse gear") as fixed drops (Iron Cap from the sawmill wolves, Fur Boots from the pit draugr, Hide Bracers from the narrows wolves, Fur Greaves from the cairn draugr, the Studded Belt from the grove trolls, and the Hide Jerkin from Hrimgrimnir), as map 1 drops it for Rowan, another Knight.
+- **Narration:** `part-hladir`, `hrimgrimnir` and `hladir-won` (the part's `won`, told as the chapter rides on south into Uppsala). They are recorded Nov 11. Their cards show the words meanwhile.
+- **Closed with the art agents' work:** the map draws each people's whole-town picture by the town's faction (`PEOPLE_TOWNS` and `peopleTownOf` in `pixelMapArt.ts`: Egypt's town, the Norse ring fort), not by a kemet flag. The town kit's Norse pieces use the engine's building ids (Longhouse `guardhouse` … Dragon's Hoard `seraphSpire`, Hof `mageGuild1`, Shipwright `blacksmith`, Ski Track `stables`), and the Mead Hall stands on its own plot (`townKit.ts`'s `TownPeople` is now just `TownFaction`). The War Boar's art is under `warBoar`…`warBoar5`, so the stand-in aliases are gone (the Erymanthian `boar` untouched). The battle draws `hunter2Foot` and `hunter3Foot` off snow and the ski pictures on it (checked in the running game).
+
+**Balance (Nov 11), on the real rules** (`test/hladirBalance.test.ts`, the reusable `test/partBot.ts`, Nekhen and map 1 played beside it as yardsticks; `BALANCE_SEEDS=24` prints the table). 24 seeds each, all won:
+
+| | Days | The goal's fight cost | Worst first-week fight |
+|---|---|---|---|
+| Hladir, rusher | 14 | 10 to 18% of the army | 10% |
+| Hladir, steady | 14 | 10 to 18% | 10% |
+| Hladir, careful | 16 to 17 | 0 to 6% | 10% |
+| Nekhen, rusher / steady / careful | 6–12 / 12 / 12 | 17–71% / 11–25% / 11–25% | 4–8% |
+| Map 1 (Ashford), rusher / steady / careful | 5 / 10 / 10 | 10–35% / 0–7% / 0–7% | 7% |
+
+So a steady player wins Hladir in two weeks (Nekhen's 12 days, map 1's 10), the giant's pack costs a real share of the army, and the first week stays safe. The rusher plays like the steady player here: the pack is too strong for a week-1 army even at 1.3 to 1, so both ride for it after the second week's hire. A careful player waits a third week for an army twice the pack's and wins cheaply. Tried and dropped:
+- **12 wolves** (the giant 173 strong): a steady player waited for week 2 and lost 4–6%, while a rusher, and once a steady player, took it on day 5 for 17–48%.
+- **18 to 32 wolves:** still 3–10% at days 12–14. The Norse army at day 12 is about 700 strong against Nekhen's 440 (cheap low lines that grow fast), so the pack has to be about twice the Petsuchos's strength.
+- **40 wolves:** steady 10–13%, but the rusher 6–11%, and a careful player waited to day 17. **48:** a steady player sometimes waited to day 16.
+- **3 or 4 Trolls at the mine and 4 at the fell chest:** a rusher fought them on days 5–7 for 16–34% (regen and big blows wear down a week-1 army), breaking the safe first week. At 6 and 5 they are fought in week 2, for 2–10%.
+- **Look, in the running game:** rough-ground patches read as flagstones on the snow, so they became snow. One column of fells down the east edge stacked into a fence, so that edge is pines.
+
+### Part 2 as built: Uppsala (Nov 11)
+
+`src/level/uppsala.ts` (32 × 30), laid under Hladir at (0, 24) in `longWinter.ts`, so the chapter's land is 32 × 54. Hladir's south fells open at (19–20, 23), where Uppsala's own pass meets them, and nothing else of Hladir changes. The road comes down from the pass along the east bank of the frozen river Fyris (two tiles of ice from the fells to the south fells). It crosses the ice at a ford to **Uppsala**, a Norse ring fort at (10, 36) that waits for Hervor as an ally (`waits`, as Eudora did). Its gates open to her with Heid's line. East of the road, just below the pass, is **the temple's yard**: fells on its north and west, the sacred grove's pines on its south, and one gate in from the road. Beyond the yard stand **the king's mounds**, three draugr tombs in a row. Par 28 days, as Abu.
+
+- **The goal: free the temple.** Barrow Kings hold the yard's only gate (10, a fight of its own, which drops the Volva Cloak). Behind them, **the Novice's Rune Staff** lies on the altar (a `spellbook` site, which teaches Tiwaz), as map 2's first spellbook lay among the Stymphalian Birds. Deeper in, on the temple's steps, stands **Aun the Old**: the Yngling king who gave Odin nine sons for a longer life, in battle 8 Barrow Kings and a brood of 100 Draugar (`name` and `line` as Hrimgrimnir's: `aun` is told the first time he is seen). Neither the altar nor Aun can be reached past the gate's kings, so the staff always comes first.
+- **Uppsala** (`faction: 'norse'`): Village Hall, Tavern, the Hof's first floor, Longhouse and Hunting Lodge, with 10 Shieldmaidens. Its guild is Hladir's (Tiwaz, Isa, Haste, then Thurisaz, Slow). A Wayside Shrine of Isa stands by the road, for a hero with the staff.
+- **Heid** (`HEID_RECRUIT`, the roster's Heid without her specialty, which the roster gives by her id) is the part's recruit, hired at a Tavern of ours for 2500 gold, as Paser and Ianthe were. **`uppsala-joins`** is told when Uppsala opens its gates (`CHAPTER3.uppsala`, beside Eudora's line in `joinTown`). In it Heid has read the winter in the bones and the stars: it isn't the gods' doing, someone is singing it.
+- **Opens** `LONG_WINTER_UNLOCKS[1]`: the Hof's two floors, the Boar Pen (line 5), the market, the Storehouse, the Ski Track, the first upgrades of lines 1–4 and the Bifrost Stone. Played fresh, Hervor waits at the top of the pass with about what a rider brings, and no staff. Ridden on, she keeps all she has; the jarl's grant is 2500 gold, 5 wood and 5 ore.
+- **Neutrals:** 16 Winter Wolves below the pass, 20 Draugar at the ford, 6 Trolls at the sawmill in the north-west grove, 7 at the ore pit in the west woods, 9 at the chest in the south-west pines, 28 Winter Wolves on the river's ice, 30 by the chest in the south-east grove, and 35 Draugar at the gold mine beyond the mounds. Each mound sends out 8 Draugar (and more each week).
+- **Sites:** sawmill, ore pit, gold mine, Mercenary Camp, Watchtower, the Shrine of Isa, a runestone (Standing Stone) in the temple's yard, the Temple at Uppsala itself (+1 Power, once for each hero), and a windmill (gems). Three chests (1500, 2000, 1500), three campfires, nine piles.
+- **Loot:** the Norse catalog (`itemCatalog/norse.ts`) was in, so the fixed drops are the gray **Volva set**, the mystic's, for Heid, as Abu drops the Scale set on Paser's side. The Hood comes from the pass wolves, the Seidr Cord from the ford draugr, the Wraps from the grove trolls, the Leggings from the mound draugr, the Cloak from the gate's kings and the Bark Shoes from Aun.
+- **Narration:** `part-uppsala`, `uppsala-joins`, `aun` and `uppsala-won`. The last is the part's `won`: Eirik Bloodaxe raises his banner at Avaldsnes, leading into part 3. They are recorded Nov 11 (`narration/lines.json` refreshed).
+- **Engine, fixed on the way:** a `defeat` goal whose monster drops gear into a full bag left the piece lying where it stood (an `item`, not `gone`), so the part was never won. `checkGoal` now counts a target that is no longer a monster as beaten. And a fight on a road through the snow (`=` is dirt) was a dirt battle, drawn as a brown plain. `groundAt` now gives snow for a road beside snow or ice, so skiers glide there too (the north only: no other chapter's road touches snow).
+- **The balance bot** (`test/partBot.ts`) gained `casts`: the hero casts as Auto does once they have a book (Uppsala's lesson is runes; the older tables play without it and are unchanged). Each `Fight` records what was cast. Its battles now know their ground (`fieldOf`), and it no longer rides to a shrine without a book (there it would stand all part). Hladir's table is the same with both changes.
+
+**Balance (Nov 11), on the real rules** (`test/uppsalaBalance.test.ts`; `BALANCE_SEEDS=24` prints the table). The bot plays Hladir, rides on over the pass with what it earned and plays Uppsala as a player who knows where they're going (`goalFirst`, as Abu's table did), carving runes. Nekhen → Abu, chapter 2's part 2, is played the same way beside it. 24 seeds each:
+
+| | Part days | Aun's fight cost | Worst first-week fight | Runes carved |
+|---|---|---|---|---|
+| Uppsala, rusher | 7 to 13 (mean 12) | 8 to 22% of the army (mean 13%) | 14% | 20 of 24 runs, all in Aun's fight |
+| Uppsala, steady | 17 to 18 | 4 to 16% (mean 8%) | 14% | 20 of 24 |
+| Uppsala, careful | 21 to 22 | 1 to 9% (mean 5%; 2 to 14% before the temple moved) | 17% | 20 of 24 |
+| Abu (same bot, casting), rusher / steady / careful | 17–18 / 17–21 / 23–31 | 9–32% / 6–22% / 3–18% (means 15 / 15 / 12%) | 4% / 0 / 0 | – |
+| Hladir, rusher / steady / careful (unchanged) | 14 / 14 / 16–17 | 10–18% / 10–18% / 0–6% | 10% | – |
+
+So a steady player frees the temple in two and a half weeks (Hladir's 14 days, Abu's 17), and a rusher who rides straight for Aun after the week-4 hire does it in under two. Every run picks up the staff before Aun and casts from it after. In 20 of 24 a rune (Tiwaz) is carved in Aun's fight; in the other four the battle AI casts Haste instead. **Short of the target:** a steady player's fight with Aun costs 8% on the whole, under the 10–25% hoped for. The bot's army grows in weekly steps (about 1100, 1500, 2000), and a steady player reaches Aun after the week-5 hire at 1.7 to 1.9 to 1. A bigger host pushed the careful player past par (below). The test asserts what was measured (rusher 10% or more on the whole, steady 8%, careful's worst first-week fight 20% or less), not the design's numbers.
+
+Tried and dropped:
+- **The temple in the far south-east, past the mounds** (the first layout): the bot cleared the west first, missed the week-4 hire at Hladir (three days' ride away) and fought Aun at twice his strength on day 19–26, for 2–7%.
+- **Aun at 6 Barrow Kings and 60 Draugar** (682): a rusher took him on day 7, before the week-3 hire was even spent.
+- **Aun at 112 Draugar:** a careful player waited for week 6, to day 29–31, past par. **At 75:** a steady player beat him at 1.8 to 1 or more, for 5% or less.
+- **Other hosts for Aun** (12 or 16 Barrow Kings with fewer Draugar, Winter Wolves or Trolls for the brood): at the same strength they cost much the same (6–14% at 1.6 to 1). The Norse army's hunters, its Haste and its runes deal with slow undead.
+- **A paved temple yard** (rough ground): a point or two dearer, but the battle was drawn as a brown plain in the north, so the yard is snow.
+- **The grove's pines** closed round the sawmill and its trolls, so neither could be reached. One pine was opened (the test now walks every object from the hero).
+
+**Look, in the running game** (Nov 11): the land grows south through the pass, the ring fort is drawn from the Norse town picture, and the Tavern offers Heid on her white horse. The battle with Aun is on snow, with the Ski Bowmen on skis. **Art gaps** (nearest drawn picture reused): the king's mounds are the Egyptian `tomb` lair, the altar is the Greek spellbook altar, the Shrine of Isa is the Greek shrine. The temple has its own picture (a visitable site, below).
+
+### Part 3 as built: The Bloodaxe (Nov 11)
+
+`src/level/bloodaxe.ts` (40 × 32), laid under Uppsala at (0, 54) in `longWinter.ts`, so the chapter's land is **40 × 86** (the sea fills the 8 columns east of Hladir and Uppsala, never walked). Uppsala's south fells open at (18–19, 52–53), by the river's last bend, and nothing else of the parts before changes. The road comes down from the pass to a crossroads, east to **Kaupang** on its frozen bay (gate (30, 63)) and west and south through the coast road's gap into **Avaldsnes**'s land: a basin on the western sea behind a ridge of fells with two ways in, the coast gap in the north and the east gap, where a track runs back up to the Kaupang road. The `opening` flies from below the temple's yard over the pass to the crossroads; Kaupang and Avaldsnes stay in the fog. Par 35 days, as the Red Land.
+
+- **Eirik Bloodaxe** (`rival`, the roster's Eirik without his specialty, which the roster gives by his id): a Knight lord (`mind: 'lord'`), Attack 3, Defense 3, Power 1, Knowledge 1, wearing three green Raider pieces (Seax, Raider Helm, Raider Mail; his base stats lowered by them, as Sethi's), with 60 Shieldmaidens, 24 Hunters, 12 Berserkers, 6 Dwarves and 2 War Boars, purse 3000. He rides alone (`heroes: 1`): no captain hired, so Heid can't end up in his service. His build order is Sethi's, in Norse ids.
+- **Avaldsnes** (`faction: 'norse'`, gate (4, 78)): halls, Fort, Citadel, Tavern, Shipwright, Mead Hall and the dwellings of lines 1–4; garrison 50 Shieldmaidens, 30 Hunters, 14 Berserkers, 8 Dwarves. **New, `rival.holds`** (validated): a lord's town whose garrison his heroes never take along (`outfit` in `lord/towns.ts`). Sethi and Apepi ride off with their garrisons on day 1; Eirik's huscarls stay behind the ring fort's walls, so Avaldsnes is a siege whenever it is stormed, with him home or away.
+- **The race for Kaupang:** neutral, `race: true`, never handed over. Village Hall, Tavern, Marketplace, **Shipwright**, Longhouse and Hunting Lodge, and no walls (it never had any); garrison 30 Shieldmaidens, 16 Hunters, 4 Dwarves. Its Shipwright is the one nearest Avaldsnes that sells the Ram (`soldOn(11)` is the Ram), so the race also wins the part's machine; Hladir’s Shipwright sells it too, days back north. Taken by Eirik, the narrator tells `kaupang-lost` (`raceLost` in `rival.ts`), as Eudora's loss was told.
+- **Opens** `LONG_WINTER_UNLOCKS[2]` as drafted: the Shipwright and its Ram, the Castle, the Treasury, the Shield Hall (line 6), the Iron Pen, the second upgrades of lines 1–4, the Gate of the Nine Worlds. No recruits of its own: the Taverns offer two of the Norse roster a week (Eirik and Gunnhild never). Hervor and Heid ride on. **The jarls' grant:** 3000 gold, 5 wood and ore, 2 of each rare. **Played fresh**, Hervor comes down from the pass with a rune staff (Tiwaz, Haste) and 90 Shieldmaidens, 45 Hunters, 24 Berserkers, 12 Dwarves and 4 War Boars, 14,000 gold; Hladir stands as a rider leaves it (halls, walls, lines 1–5, the first upgrades), Uppsala is ours and the old land's mines fly our banner.
+- **Neutrals:** 24 Winter Wolves below the pass, 30 Draugar at the crossroads, 7 Trolls at the sawmill, 26 Draugar at the ore pit, 9 Trolls at the gold mine, 40 Winter Wolves on the bay's ice, 45 at the crystal mine, 10 Trolls at the coast gap, 50 Draugar at the east gap, two Frost Giants with 20 Winter Wolves on the fell by a chest, 40 Draugar in Avaldsnes's basin, and a barrow (draugr lair) on the way. Sites: watchtower, Mercenary Camp, Standing Stone, a Shrine of Thurisaz; three chests, three campfires, nine piles; Eirik's own gold mine and ore pit behind his ridge.
+- **Loot:** the green Raider set for Hervor: Raider Bracers (pass wolves), Oarsman Belt (crossroads draugr), Raider Greaves (coast-gap trolls), Longship Boots (east-gap draugr); its helm and mail are on Eirik and come with him when he is beaten (spoils), the Seax too. Two Skald pieces for Heid: the Skald Cap (gold-mine trolls) and the Saga Sash (crystal wolves).
+- **Narration** (recorded Nov 11 except `bloodaxe-won` (still to record: the ElevenLabs credits ran out); `narration/lines.json` refreshed): `part-bloodaxe`; `eirik`, told once the first time he stands on ground we have seen (`rivalSighted` in `adventure.ts`, after our step or his night; the hero stops to look, as at Hrimgrimnir; `rival.seen` saved); `kaupang-lost`; `eirik-flees` when he leaves a lost battle for Avaldsnes; and `bloodaxe-won`, the part's `won`: he has fled north to Gunnhild, Heid hears her singing, Hervor rides for Halogaland. Beaten with no town left, his card is "Eirik Bloodaxe flees north", not "rides no more": part 4 brings him back with `comesBack`.
+- **Engine, fixed on the way:** a hero with a full bag couldn't buy a war machine even with the machine's slot empty (`cantBuyMachine` now needs bag room only for a machine it replaces). The balance bot, finding Hladir's Shipwright "selling" a Ram it couldn't buy, rode there and back every day. **The bot** (`partBot.ts`, `wise` only) now spends the night in the garrison of the town it stands in when the rival is near and strong, and leads it out in the morning, as a person would (the Red Land's tables are only printed with BALANCE_SEEDS, and its asserted probes are unchanged).
+- **Uppsala's temple** (a visitable site, Nov 11): object kind `temple` (`src/logic/objects.ts`), `{ id: 'uppsala-temple', kind: 'temple', x: 26, y: 8, look: 'uppsalaTemple' }`, named "Temple at Uppsala" (a bare temple is "Temple"). It is a great temple 3 × 3 tiles: (x, y) is its door, the front middle, and `objectFootprint` blocks the other 8 tiles (x−1..x+1, y−2..y), so a hero rides to the door from the yard (the row before it, the altar at (26, 9) beside it) and never through it. Visiting gives **+1 Power, once for each hero** (`ONCE_PER_HERO`; a second visit says "You have already been here."): "The priests of Odin cut a rune over your hero." Lords value it as a Mercenary Camp or Watchtower (`siteValue`); the balance bot leaves it alone (with the extra Power the battle AI cast Haste over the runes). The grid's tiles 25–27 × 6–8 are open snow, not fells, since the footprint blocks them, and no cover is drawn there. It stands in the yard just behind the gate's kings (24, 9), Aun (29, 10) on the steps beside it, the runestone (28, 7) at its side; it is drawn with the Norse `uppsalaTemple` sprite, feet at the door tile, in the fog until seen like any site. It began as a `landmarks` picture on `MapDef` (a picture with nothing to visit); that mechanism was removed once the temple became a site. At first it stood at (30, 8), at the map's east edge.
+
+**Balance (Nov 11), on the real rules** (`test/bloodaxeBalance.test.ts`; `BALANCE_SEEDS=24` prints the table). The bot plays Hladir and Uppsala, rides on over the south fells and plays the part as the Red Land's bot does (`wise`, `goalFirst`, carving runes) against Eirik as a lord; the same ride-ons are also played AI against AI (`lordBot.ts`, the lord mind on both sides). 24 seeds × 3 styles:
+
+| | Rides on (day), rider | Eirik after his first night | Bot won | Part days (won) | Avaldsnes siege | Replayed: Ram / by hand | Worst first-week fight | AI v AI won |
+|---|---|---|---|---|---|---|---|---|
+| Rusher | 20–26, 1195–1654 | ×0.67–0.93 | 9 of 24 | 8–33 (mean 23) | 18–32% (mean 23%) | 14–40% / 28–49% | 21% | 23 of 24 (1 stalled) |
+| Steady | 30–31, 1758–2241 | ×0.49–0.63 | **22 of 24** | 8–40 (**mean 17**) | 10–24% (**mean 16%**) | 11–24% / 16–30% | 15% | 24 of 24 |
+| Careful | 37, 2164–2636 | ×0.42–0.51 | 11 of 24 | 8–43 (mean 22) | 8–100% (mean 21%) | 8–100% / 16–45% | 7% | 24 of 24 |
+
+The race: ridden straight from Uppsala, Kaupang is ours on part day 3 (4 for a careful rider) in every run; left alone, Eirik takes it on day 5 (or, against a strong rider, stays home). AI against AI he took it in 20 of 72 runs (part days 5–8). So a steady player wins in two and a half weeks (Uppsala's 17–18 days), the siege costs a real share (16% on the whole), the Ram makes it a third cheaper than storming by hand, and every steady bot bought one at Kaupang or Hladir. AI against AI the part is won 71 of 72.
+
+**Short of the target:** the rusher and the careful bot win only 9 and 11 of 24 (never lost in the AI runs). Both take Avaldsnes (the rusher on day 7, while Eirik is out) and then cannot finish him: he holds or retakes Kaupang, which the bot leaves empty, comes back each week as a lord does, and twice caught a careful bot at an unwalled town's gate. That is the partBot's tempo, the Red Land's own finding (0 of 72 there), not the map: the lord mind, which garrisons and hunts, wins 71 of 72. The tests assert what was measured (AI v AI all won but one in 24, steady 90% won with a mean within 22 days, the siege 10–25% on the whole and the Ram cheaper, the race, the first week), not "all won" for the partBot. Tried and dropped:
+- **Eirik taking Avaldsnes's garrison along** (the lord's default): the town stood empty, the bot walked in for 0%, and Eirik opened at ×1.4 a rusher's army and beat it at a gate. Hence `holds`.
+- **Eirik with 110/50/26/12/6 and 70/30/16/8/4 and two banners:** he grew on our empty towns' dwellings and won most runs; one banner and 60/24/12/6/2 leave him at ×0.5–0.9.
+- **Avaldsnes at 60/36/16/10:** the careful bot never stormed it (it waits for twice the walls); 50/30/14/8 keeps the steady siege at 16%.
+
+**Look, in the running game:** the battle with the Ram was checked in `dev/battle.html` (citadel walls, snow, a Ram): the Ram stands by the attacker's line, the gate falls at the end of round 3 and the berserkers go through (`shots/bloodaxe-siege-*.png`). The harness draws the Greek stone castle, not the ring fort. **Art gaps** (nearest picture reused): the barrow is the `tomb` lair; Kaupang and Avaldsnes are drawn from the Norse town picture; the rams' attack frames (ram2, ram3) were generated on a 96 px canvas and the log is already cut at the frame's edge in the frames themselves (bbox reaches x 96 on frames 3–6, x 0 on 1–2), so no canvas or dx change in `addnorse_rams.py` or `build_assets.py` can bring it back: they need generating again on a wider canvas (about 128 × 96, the still at dx −12).
+
+### Part 4 as built: Halogaland (Nov 11)
+
+`src/level/halogaland.ts` (40 × 54), laid at (32, 0) in `longWinter.ts` round the land won, as the Delta was: over the sea east of Hladir and Uppsala and on east, north of Kaupang's bay. The chapter's land is **72 × 86** (the sea south-east of the Bloodaxe, never walked). Its west is **the frozen sound**, four tiles of ice from the north fells down to Kaupang's bay, with the shore road beside it. Three ways in, each cut through the old land's edge and none forced: Hladir's east pines at (31, 7), Uppsala's at (31, 38), and the fells north of Kaupang's bay ((36–37, 54–56), ice, so the bay runs on north into the sound). Each alone reaches every town and site (tested). The `opening` (`apart`) shows only where each starts. Regions: **Trondenes** on the north road; **Angantyr's barrow** in a yard of fells on the north-west headland, one way in from the east; **Bjarkoy**, Gunnhild's capital, on its island in the north-east, reached by a causeway road over the ice; **Mimir's Well** in a ring of fells in the middle (one way up, from the south-west), the Dragon's Hoard east of it; **Vagar** on the Vagar road in the south; **Steigen** in its basin in the south-east (the west road and a north gap), the treasure barrow below it. Par 45 days, as the Delta and Othrys. Snow, ice and pine only; the northern lights are in the words, not the picture (no cheap way in the ground code).
+
+- **Gunnhild** (`rival`, the roster's Gunnhild without her specialty, which the roster gives by her id): the **first Cleric lord** (`mind: 'lord'`), Attack 2, Defense 2, Power 4, Knowledge 5, Wisdom 2, Mysticism 1, the rune staff with Isa, Tiwaz, Thurisaz and Slow, an Iron Ram; wearing three purple Allfather pieces (Hat, Cloak, Armrings; her base stats lowered by them, as Eirik's), which are ours when she is beaten, for Heid. Army 35 Spear Maidens, 18 Ski Bowmen, 9 Bear Warriors, 5 Dwarf Guards, 2 War Boars; purse 5000. `heroes: 2`. Her line `gunnhild` is told the first time she is seen (`rival.line`, new; Eirik's stays as it was).
+- **Eirik as her captain** (`rival.captains`, new, validated): heroes out of the story who ride with the lord from the part's start, never hired at a Tavern. Played fresh he always rides (part 3 was won). Ridden on, he rides only if the Bloodaxe left him alive: beaten and fled (in its rival's `fallen`) or still riding; if his banner fell with no town (H3's seven days, `fallen` emptied) he is gone (`rivalSideFromDef`, `rideOn`; tested both ways). His return, `eirik-returns`, is told the first time he is seen (`rival.captainLine`, `rival.captainSeen`, saved). Beaten here he is gone for good, as any captain (`comesBack` brings back only the lord). Army 20 Shieldmaidens, 10 Hunters, 5 Berserkers, 2 Dwarves, a War Boar.
+- **Bjarkoy** (gate (65, 10)): the halls to the City Hall, Fort, Citadel, Castle, Tavern, Marketplace, the Hof's two floors, Shipwright, Mead Hall, Storehouse, lines 1–5 and the first upgrades of lines 1–4. Not the Shield Hall: she builds it on the way to the Dragon's Hoard (`goalStep`). Garrison 50 Spear Maidens, 30 Ski Bowmen, 14 Bear Warriors, 8 Dwarf Guards, 3 War Boars, held behind its walls (`holds`). **Steigen** (gate (65, 38)): halls, Fort, Tavern, Mead Hall, lines 1–4; 40 / 20 / 8 / 4. Her ore pit and sawmill are in Steigen's basin, her gold mine on Bjarkoy.
+- **The race:** **Trondenes** (the part's `town`, raced) and **Vagar** (raced; Marketplace and Shipwright). Neither is ever handed over. Garrisons 50 / 24 / 8 Dwarves and 40 / 30 / 10 Berserkers.
+- **Opens** `LONG_WINTER_UNLOCKS[3]`: the rest of the tree (Capitol, the Shield Hall's upgrades, the Dragon's Hoard and its upgrades, the Boar Pen's last upgrade, Bifrost); nothing Norse is off. The Shipwright sells the Iron Ram (`soldOn(12)`). No recruits of its own: the Taverns offer two of the roster a week. **The jarls' grant:** 4000 gold, 10 wood and ore, 3 of each rare. **Played fresh**, Hervor comes up the ice from Kaupang's bay with a rune staff (Tiwaz, Haste, Isa, Thurisaz), a Ram and 150 Spear Maidens, 75 Ski Bowmen, 38 Bear Warriors, 18 Dwarf Guards, 9 War Boars and 3 Valkyries (about 3400), 20,000 gold; Hladir stands as a rider leaves the Bloodaxe (the Castle, Shipwright, Shield Hall and second upgrades too), Uppsala, Kaupang and Avaldsnes are ours and the old land's mines fly our banner.
+- **Sites.** **Mimir's Well** (`sanctum`, look `mimirsWell`, named "Mimir's Well"): Epic to Legendary, once a week. **Skoll** stands beside it: one wolf, Skoll himself (as Hrimgrimnir is one giant), and a pack of 560 Winter Wolves (`name`, `line: 'skoll'`), the strongest guard on the map. **Angantyr's barrow** (`bank`, look `angantyrBarrow`, "Angantyr's Barrow"): 3000 gold, 3 gems and **Tyrfing** (hand-placed, nowhere else), behind 8 Barrow Kings and 70 Draugar; opening it tells `tyrfing` (a keep's `line`, new: `lootKeep`). The **treasure barrow** (look `treasureBarrow`): 5000 gold, 4 crystal, 4 gems and the Shield of Tyr, behind 10 Barrow Kings. A bank's empty and full-bag words now name what it is ("The barrow stands empty", `bankKind`). The **Ram of the Sea-Kings** is dropped by the frost giants at the old boat sheds on the shore (3 Frost Giants, 28 Winter Wolves). **Outer dwellings:** the Dragon's Hoard (1 Frost Dragon a week, 3 Frost Giants and 22 wolves; a forge to the lord mind, `FORGES`) and the Boar Pen (3 War Boars a week, 7 Trolls). An Arena (8 Trolls), two learning stones, a draugr barrow (lair) on the road to Steigen, a watchtower, a Mercenary Camp, stables, a Standing Stone, Shrines of Isa and Thurisaz; four chests, three campfires, twelve piles; every kind of mine (66 objects). New looks `boarPen`, `dragonHoard` (dwellings), `treasureBarrow`, `angantyrBarrow` (banks), `mimirsWell` (sanctum), so the map's Norse pictures pick themselves (`NORSE_LOOK_ART`).
+- **Loot:** the purple Jarl set for Hervor on the way: the Helm (the north landing's draugr), Byrnie (the Hoard's giants), Bracers (the Arena's trolls), Greaves (the Boar Pen's trolls), Boots (the causeway trolls), the Gold-Studded Belt (the Steigen road's draugr). The Allfather pieces come with Gunnhild (spoils).
+- **The goal:** `overthrow`: Bjarkoy and Steigen taken and Gunnhild beaten; Eirik then leaves the field. **The ending** is the chapter's `ending`, `longWinter-won`: her song stops mid-verse, Skoll lifts his head and loses the sun's scent, the sun comes up over the fjord. Halogaland has no `won` line of its own (as the Delta). The end card is "Chapter 3 complete", the ending, the march, and, there being no chapter 4 yet, "Chapter 4 is being made, and comes to the full game as a free update." (the Delta's said the same of chapter 3 before it had a part).
+- **Narration** (recorded Nov 11; `narration/lines.json` refreshed): `part-halogaland`, `gunnhild`, `eirik-returns`, `skoll`, `tyrfing`, `longWinter-won`.
+- **Engine, fixed on the way.** *A lord's Taverns offered our campaign heroes:* Gunnhild could hire Heid if we never hired her (and Hervor, had she fallen). A chapter now names its campaign heroes (`ChapterDef.heroes`, `NORSE_CAMPAIGN`: Hervor, Heid), and a lord's Taverns never offer them, nor the map's `captains` (`lordBarred` in `heroes.ts`; static, so the balance runs see it too; tested over eight weeks at both her towns). Only chapter 3 names them, so chapters 1 and 2 are unchanged (Apepi may still hire Paser in their runs). *The Cleric lord's Isa:* the battle AI valued Isa by Spell Power rounds capped at 3, so a specialist's long Isa counted for nothing more. It now counts Spell Power plus the specialty's rounds, up to 5 (`ISA_ROUNDS` in `battleCasts.ts`); in her first fight the lord mind's first cast is Isa (tested). *The balance bot* (`partBot.ts`) rode each day to a Shipwright selling an Iron Ram it couldn't buy (its bag full, the Ram it had going to the bag): it no longer rides for a machine it can't take. And against a lord with captains, a wise bot strong enough for the capital rides there before retaking a lesser town (it never reached Bjarkoy, chasing Eirik's raids on its empty towns). The Bloodaxe's tables are unchanged by both (Eirik rides alone).
+- **The lord mind's stalls, fixed (Nov 11, fix-up).** At 24 seeds AI against AI stalled 3 of 67 (two with Bjarkoy holding out, one with Hladir hers). Traced day by day, our side was stuck, not beaten, for two reasons, both in the lord mind and both on Gunnhild's side too:
+  - *An opened bank it couldn't empty.* Angantyr's barrow, its gold taken, keeps Tyrfing while the bag is full (`lootKeep`), and the lord still valued it at a keep's 2500 (`siteValue` in `lord/targets.ts`). The main hero rode onto it every morning and stood there (a visit ends his day) for the last two weeks of the part, 50,000 gold and more unspent, while Bjarkoy's garrison grew. Such a bank is now worth nothing to him until his bag has room.
+  - *Seven slots full of one line at several levels.* A stack raised in one town keeps its slot beside one hired at that level in the next (`upgradeSlot`), so the main hero's slots filled (two Valkyrie stacks, Dwarves at three levels) and he could take nothing more: a runner's hand-over found no room (`gives`), a garrison stayed in its town (`moveAll` is all or nothing), gold piled up to 100,000, and he never reached the 1.5 to 1 a capital needs, though the side as a whole was two or three times Bjarkoy. Now his like stacks are joined when he hires (`joinLike` in `army.ts`, before hiring and after raising); at a meeting the leading army takes the strongest seven companies of both, the other keeping the rest and at least one (`strongestTo`, `lord/companies.ts`); at a gate he takes what of the garrison fits beside his own (`moveFitting`), never leaving one of his own behind (a trained company stays with him: `rarity.test.ts`).
+  - Tried and dropped: hiring a second time after joining (the Bloodaxe's rusher lost 2 of 24 AI against AI, the rival lords' armies grew with it), and the gate's hero taking the strongest seven of his and the garrison's (it left a trained company in the town).
+  - **The other parts, AI against AI, the same starts before and after:** the Bloodaxe 70 → 71 of 72 won (none lost); the Delta, 16 seeds, fresh 14 / 0 / 2 → 15 / 0 / 1, ridden on 8 / 1 / 6 of 15 → 10 / 1 / 5 of 16 (the Red Land is played by the lord mind too, so one more run reaches it); Othrys, 8 seeds, fresh 3 / 0 / 5 → 6 / 0 / 2, ridden on 1 of 1 won both ways. (The Delta's printed table throws at BALANCE_SEEDS, before and after: its Ammit probe, `ammitCost`, checks only `gone`, and Ammit's object can be something else by then; the counts are from the same runs without the probe.)
+- **Look, in the running game** (Nov 11, fix-up): Gunnhild rides the map as her own rider (`hero_gunnhild`: crowned, in black, the red rune staff) and Eirik as his: the map picks a rival hero's picture by his id (`heroArt('rival', id)`, `heroArtId`), as for Sethi and Apepi, so drawing her was all it needed (`shots/fix-gunnhild-1.png`). Skoll fights alone at the head of his pack, his 560 wolves in three packs of about 187 (`shots/fix-skoll-battle.png`).
+- **Art gaps** (nearest picture reused): Skoll and the Barrow Kings are the drawn neutrals; Trondenes, Vagar, Bjarkoy and Steigen are the Norse ring fort; no northern lights. **Greek pictures still drawn on the Norse maps** (all four parts; each on a green grass island, two plainly Greek), by site kind and the sprite it draws, for an art pass: `mine` gold (`mine-gold`), wood (`mine-wood`), ore (`mine-ore`), gems (`mine-gems`), mercury (`mine-mercury`, the domed alchemist's house: Halogaland's `halo-lab`), sulfur (`mine-sulfur`), crystal (`mine-crystal`); `stables` (`stables`, the red-roofed farm: `halo-stables`); `mercCamp` (`mercCamp`, the red and white tents); `watchtower` (`watchtower`); `windmill` (`windmill`, Hladir and Uppsala); `standingStone` (`standingStone`); `learningStone` (`learningStone`, Halogaland); `arena` (borrows `keep`, the Greek ruin: `halo-arena`). Chests, campfires and resource piles are the shared ones and read as Norse enough. Drawn Norse already: altar, rune shrine, barrow (lair), the treasure barrow and Angantyr's (banks), Mimir's Well (sanctum), the Boar Pen and the Dragon's Hoard (dwellings), the Uppsala temple (`temple` site, look `uppsalaTemple`).
+
+**Balance (Nov 11), on the real rules** (`test/halogalandBalance.test.ts`; `BALANCE_SEEDS=24` prints the tables, `HALO_OUT` keeps them in a file). The bot plays Hladir, Uppsala and the Bloodaxe, rides on north and plays the part as the Bloodaxe's bot does (`wise`, `goalFirst`, carving runes) against Gunnhild as a lord; every Bloodaxe win is also played AI against AI (`lordBot.ts`, 70 days), and the part's fresh start too. 24 seeds × 3 styles. Re-measured after the fix-up (Nov 11: Skoll one wolf, the temple moved, the lord mind's stalls fixed):
+
+| | Bloodaxe won, rider at ride-on | Bot won Halogaland | Part days (won) | Her towns' fights | Worst first-week fight |
+|---|---|---|---|---|---|
+| Rusher | 10 of 24, 992–3311 | 5 of 10 | 8–18 (mean 13) | 0–46% (mean 11%) | 1% |
+| Steady | 22 of 24, 1625–3606 | **4 of 22** | 9–53 (mean 22) | 0–44% (mean 7%) | 8% |
+| Careful | 14 of 24, 1422–3018 | 1 of 14 | 13 | 0–24% (mean 4%) | 3% |
+
+| AI v AI | Won / lost / stalled | Won on part day | Dragon's Hoard (part day) | First strike (part day) | Trondenes ours/hers (day) | Vagar ours/hers (day) |
+|---|---|---|---|---|---|---|
+| Fresh | 24 / 0 / 0 of 24 | 16 to 51 | never | 4 | 0/24 (6) | 24/0 (2) |
+| Ridden on | 46 / 0 / 0 of 46 | 13 to 69 | 11 to 27 | 5 to 18 | 10/36 (4–9) | 14/32 (4–9) |
+
+- **AI against AI: 70 of 70 won, none lost, none stalled** (the asserted test allows `floor(runs / 24)`, 2 here; it passes at 24 seeds). Before the fix-up 64 of 67, 3 stalled at 70 days, our side stuck at Angantyr's barrow or with its slots full (above, "The lord mind's stalls").
+- **Skoll** (our strongest hero at part day 20, AI v AI, spells on), one wolf with 560 Winter Wolves: fresh 23 to 42% of 3520 to 4160 (one 69% of 2610), the first four's mean 30%: on target; ridden on 13 to 63% of 3710 to 7560, and lost (100%) by heroes under 3300. The asserted probe is the fresh mean, 25 to 40%. (Skoll as 9 Skoll with 230 wolves cost 24 to 46% before the fix-up; against the stronger side it makes now it cost only 12 to 54%, the mean 22, so the pack carries a little more than the nine did. One wolf with 470 cost 16 to 31% (one 73%), the mean 22.)
+- **The race,** a straight ride against Gunnhild alone: Vagar ours on part day 3 to 5, hers on 6 to 9; Trondenes, far from Avaldsnes, ours on 4 to 5, hers on 4. Close (within 0 to 4 days); Trondenes is lost by a day when the rider starts at Avaldsnes. AI v AI she takes Trondenes in most runs.
+- **First week:** safe for every style (8% at worst). **Par 45:** AI v AI wins come between day 13 and 69, the middle about 34.
+- **Short of the target: the steady bot wins 4 of 22, not most.** The partBot is one hero (Heid not hired) and leaves the towns it takes empty: Eirik and Gunnhild ride back into them, and she comes back each week while she holds one, so most runs stall. When it rides straight at Bjarkoy (the new capital-first rule) it wins in under two weeks. The lord mind, which garrisons and hunts, wins 70 of 70, so this is the bot's tempo against a two-banner lord, as the Bloodaxe's rusher and careful rows and the Red Land's were. Her towns' fights are cheap for the bot (7% for the steady one), against the 10–25% hoped for; with Gunnhild's army ×2 and Bjarkoy's garrison ×1.5 (the first try) the bot lost every run, its old towns stormed while it idled.
+- **Tuned:** Gunnhild's army from 120/60/30/16/8 + 2 Valkyries (the first guess) to 35/18/9/5/2 and Eirik's from 60/30/16/6/3 to 20/10/5/2/1 (riders bring only 1000 to 4200, against the Delta's 8800); Bjarkoy's garrison ×0.6; the neutrals ×0.55; her purse 8000 → 5000; the Shield Hall taken out of Bjarkoy (the Hoard came on part day 7 to 13; now 11 to 31 in the game); Skoll 4 Skoll and 120 wolves (1 to 13% at day 20) → 9 and 230 → (fix-up) Skoll alone with 560; fresh Hervor 3600 → 2240 → 3400 (at 2240 the fresh AI start stalled 3 of 3).
+- **Left:** a person's playtest (the bot doesn't garrison); the Norse site pictures above; the six lines recorded.
 
 ## The day card
 
@@ -1198,10 +1364,20 @@ Decided with the user on Nov 8, 2026, after the Black Banner's part card ("it's 
 | `abu-won` | Part 2 won: told on its victory card as the chapter rides on east (`MapDef.won`; recorded Nov 9) | the victory card, without the story |
 | `part-redLand` | Part 3 opens: the Red Land, Sethi and Nubt, the race for Gebtu, Set's storms (recorded Nov 9) | the brief and goal |
 | `twoLands-won` | Chapter 2's ending card (`CHAPTERS.twoLands.ending`; recorded Nov 9) | the ending card, without the story |
+| `part-hladir` | Chapter 3's part 1 opens: the Fimbulwinter, the frozen fjord, Hrimgrimnir, Hervor and the berserkers' rage (recorded Nov 11) | the brief and goal |
+| `hrimgrimnir` | A hero of ours first sees Hrimgrimnir on the ice (the map monster's `line`; recorded Nov 11) | none |
+| `hladir-won` | Part 1 won: the ice breaks, the sun still won't rise, Hervor rides south for Uppsala (`MapDef.won`; recorded Nov 11) | the victory card, without the story |
+
+**Chapter 3's first lines (Nov 11, to record):** the scripts as `lines.ts` has them, for the voice:
+- `part-hladir` (Hladir): [grand, storytelling] It is the third winter with no summer… the Fimbulwinter, the great winter before the end of the world. [grim] The fjord is frozen, the ships can't sail, and the steadings are starving. [ominous] At the fjord's mouth the frost giant Hrimgrimnir sits on the ice with his wolves… and no ship has passed him in three winters. [proud] But Hladir has a shieldmaiden! Hervor, whose father and his eleven brothers were berserkers. [wry] Wound a berserker, and he only hits harder… [resolute] Raise the hall's warriors, and drive the giant off the ice!
+- `hrimgrimnir` (Hrimgrimnir): [ominous] There, out on the ice… Hrimgrimnir! [awed] Tall as a mast, with frost in his beard, and he answers every blow that's struck at him. [grim] His wolves circle, hungry. [eager] Good! Let him strike the berserkers… every wound only makes them angrier!
+- `hladir-won` (The ice breaks): [triumphant] Hrimgrimnir falls, and the ice at the fjord's mouth cracks like thunder! [joyful] The longships can sail again, and Hladir eats tonight. [uneasy] But the sun still won't climb above the hills… [mysterious] and the winter isn't ending. [resolute] Over the mountains, the great temple at Uppsala keeps the old lore. Hervor rides south to ask who is keeping the sun away!
 
 (`nekhen-won`, Nekhen's ending while it was the last part, was cut when Abu was built, Nov 8: no part of chapter 1 has a won line of its own between parts, and `part-abu` opens on the sluice swinging open. It was never recorded.)
 
 **All 19 lines are recorded (Nov 9):** the last ten (`blackBanner-won`, `part-othrys`, `othrys-won`, and chapter 2's seven) in one take each, about 10,400 credits. The untouched takes are in `dev/narration-audition/raw/`; the game's copies are 64 kbps mono. `abu-won`, `othrys-won` and `redLand-won` dipped 5–6 dB in their quiet middles, so their game copies are evened out with ffmpeg `dynaudnorm=f=300:g=9:m=3:p=0.9` (now within ~4 dB).
+
+**Chapter 3's lines (Nov 11):** 17 of the 18 recorded in one take each, about 15,760 credits; `part-hladir`, `aun`, `uppsala-won`, `part-halogaland`, `skoll` and `tyrfing` are evened out with dynaudnorm. `bloodaxe-won` is still to record: the account ran out of credits (its first two attempts failed on quota, uncharged). Record it with the steps below once there are credits.
 
 **Writing a line:** lively tags (`[warm, storytelling]`, `[grim]`, `[wry]`…), "!" and "…", a change of mood every sentence or two, never [whispers]; the test checks those. `part-blackBanner`'s script must stay word for word what was recorded.
 
@@ -1361,6 +1537,120 @@ Lords' kits, all from the fighter's pieces, each with at most one piece of a set
 - Apepi: Electrum Khopesh and Kushite Shield (blue), Medjay Helm and Ankh Amulet (green), Falcon Cuirass (purple).
 
 Engine notes: rings fit either hand. Set progress shows on the Gear tab while nothing is picked. The Marketplace's "Sell gear" opens a sell room. A lair's door is the tile below it, and its groups are `<lair>@w<week>`. Spoils lying on the ground are `spoils@<day>-<n>`. A lord beaten by monsters loses his gear. Lair groups also grow 10% a week while they stand. A lair counts weeks from its part's first day.
+
+## Norse gear (Nov 11)
+
+The Norse catalog (`src/logic/itemCatalog/norse.ts`; its gray sets' armor is in `items.ts`, as the Greeks' and Egypt's are) is built like Egypt's, slot for slot: the same numbers and set bonuses as `kemet.ts`, with Norse names (plain A to Z letters). A Norse hero's map drops from it (`lootFaction` gives `norse`). Part 1's fixed drops are the gray Hide set, with the Bronze set's stats.
+
+| Grade | Fighter set | Mystic set |
+|---|---|---|
+| Gray | Hide set | Volva set |
+| Green | Raider set | Skald set |
+| Blue | Tyr set | Runemaster set |
+| Purple | Jarl set | Allfather set |
+
+Set bonuses are the contract's table (see Loot above), as Egypt's. Armor, in slot order helm, cuirass, bracers, belt, greaves, boots:
+
+**Hide set** (gray fighter)
+
+| Slot | Piece (id) | Gives |
+|---|---|---|
+| helm | Iron Cap (`ironCap`) | +1 Defense |
+| cuirass | Hide Jerkin (`hideJerkin`) | +1 Defense |
+| bracers | Hide Bracers (`hideBracers`) | +1 Attack |
+| belt | Studded Belt (`studdedBelt`) | +1 Morale |
+| greaves | Fur Greaves (`furGreaves`) | +1 Defense |
+| boots | Fur Boots (`furBoots`) | +1 Attack |
+
+**Volva set** (gray mystic)
+
+| Slot | Piece (id) | Gives |
+|---|---|---|
+| helm | Volva Hood (`volvaHood`) | +1 Knowledge |
+| cuirass | Volva Cloak (`volvaCloak`) | +1 Spell Power |
+| bracers | Volva Wraps (`volvaWraps`) | +1 Spell Power |
+| belt | Seidr Cord (`seidrCord`) | +1 Luck |
+| greaves | Volva Leggings (`volvaLeggings`) | +1 Knowledge |
+| boots | Bark Shoes (`barkShoes`) | +1 Knowledge |
+
+**Raider set** (green fighter)
+
+| Slot | Piece (id) | Gives |
+|---|---|---|
+| helm | Raider Helm (`raiderHelm`) | +1 Defense, +1 Sight |
+| cuirass | Raider Mail (`raiderMail`) | +1 Defense, +50 gold |
+| bracers | Raider Bracers (`raiderBracers`) | +1 Attack, +1 Sight |
+| belt | Oarsman Belt (`oarsmanBelt`) | +1 Morale, +50 gold |
+| greaves | Raider Greaves (`raiderGreaves`) | +1 Defense, +1 Sight |
+| boots | Longship Boots (`longshipBoots`) | +1 Attack, +1 tile |
+
+**Skald set** (green mystic)
+
+| Slot | Piece (id) | Gives |
+|---|---|---|
+| helm | Skald Cap (`skaldCap`) | +1 Spell Power, +1 Sight |
+| cuirass | Skald Coat (`skaldCoat`) | +1 Knowledge, +50 gold |
+| bracers | Skald Armbands (`skaldArmbands`) | +1 Knowledge, +1 Sight |
+| belt | Saga Sash (`sagaSash`) | +1 Luck, +50 gold |
+| greaves | Skald Leggings (`skaldLeggings`) | +1 Spell Power, +1 Sight |
+| boots | Wanderer Shoes (`wandererShoes`) | +1 Spell Power, +1 tile |
+
+**Tyr set** (blue fighter)
+
+| Slot | Piece (id) | Gives |
+|---|---|---|
+| helm | Tyr Helm (`tyrHelm`) | +2 Defense |
+| cuirass | Tyr Byrnie (`tyrByrnie`) | +2 Defense |
+| bracers | Tyr Bracers (`tyrBracers`) | +2 Attack |
+| belt | Fenrir Belt (`fenrirBelt`) | +1 Morale, +1 Defense |
+| greaves | Tyr Greaves (`tyrGreaves`) | +1 Attack, +1 Defense |
+| boots | Wolfskin Boots (`wolfskinBoots`) | +1 Attack, +1 tile |
+
+**Runemaster set** (blue mystic)
+
+| Slot | Piece (id) | Gives |
+|---|---|---|
+| helm | Runemaster Hood (`runemasterHood`) | +2 Spell Power |
+| cuirass | Runemaster Robe (`runemasterRobe`) | +2 Knowledge |
+| bracers | Runemaster Wraps (`runemasterWraps`) | +1 Knowledge, +1 Spell Power |
+| belt | Rune Cord (`runeCord`) | +1 Luck, +1 Spell Power |
+| greaves | Runemaster Leggings (`runemasterLeggings`) | +1 Knowledge, +1 Spell Power |
+| boots | Runemaster Boots (`runemasterBoots`) | +1 Knowledge, +1 tile |
+
+**Jarl set** (purple fighter)
+
+| Slot | Piece (id) | Gives |
+|---|---|---|
+| helm | Jarl’s Helm (`jarlHelm`) | +2 Defense, +1 Morale |
+| cuirass | Jarl’s Byrnie (`jarlByrnie`) | +2 Defense, +1 Attack |
+| bracers | Jarl’s Bracers (`jarlBracers`) | +2 Attack, +1 Defense |
+| belt | Gold-Studded Belt (`goldStuddedBelt`) | +2 Morale, +1 Attack |
+| greaves | Jarl’s Greaves (`jarlGreaves`) | +2 Defense, +1 Attack |
+| boots | Jarl’s Boots (`jarlBoots`) | +2 Attack, +1 tile |
+
+**Allfather set** (purple mystic)
+
+| Slot | Piece (id) | Gives |
+|---|---|---|
+| helm | Allfather’s Hat (`allfatherHat`) | +2 Spell Power, +1 Luck |
+| cuirass | Allfather’s Cloak (`allfatherCloak`) | +2 Knowledge, +1 Spell Power |
+| bracers | Allfather’s Armrings (`allfatherArmrings`) | +2 Knowledge, +1 Luck |
+| belt | Raven Belt (`ravenBelt`) | +2 Luck, +1 Knowledge |
+| greaves | Allfather’s Leggings (`allfatherLeggings`) | +2 Spell Power, +1 Knowledge |
+| boots | Sleipnir Boots (`sleipnirBoots`) | +2 Knowledge, +1 tile |
+
+**Pieces never in a set** (one weapon, one shield, one amulet and two rings per grade):
+
+| Grade | Weapon | Shield | Amulet | Rings |
+|---|---|---|---|---|
+| Gray | Hand Axe (`handAxe`, +1 Attack) | Linden Shield (`lindenShield`, +1 Defense) | Bone Charm (`boneCharm`, +1 Luck) | Bone Ring (`boneRing`, +1 Knowledge); Iron Ring (`ironRing`, +1 Morale) |
+| Green | Seax (`seax`, +1 Attack, +1 Sight) | Painted Shield (`paintedShield`, +1 Defense, +50 gold) | Hammer Amulet (`hammerAmulet`, +1 Spell Power, +1 Sight) | Amber Ring (`amberRing`, +1 Morale, +50 gold); Raven Ring (`ravenRing`, +1 Luck, +1 Sight) |
+| Blue | Bearded Axe (`beardedAxe`, +2 Attack) | Boss Shield (`bossShield`, +2 Defense) | Valknut Amulet (`valknutAmulet`, +2 Knowledge) | Runestone Ring (`runestoneRing`, +2 Spell Power); Ring of Freyr (`ringOfFreyr`, +1 Defense, +1 Morale) |
+| Purple | Sea-King’s Sword (`seaKingsSword`, +2 Attack, +1 Morale) | Shield of Tyr (`shieldOfTyr`, +2 Defense, +1 Attack) | Mjolnir Pendant (`mjolnirPendant`, +2 Luck, +1 Spell Power) | Draupnir Ring (`draupnirRing`, +2 Knowledge, +1 Luck); Fenrir Ring (`fenrirRing`, +2 Spell Power, +1 Knowledge) |
+
+**Tyrfing** (`tyrfing`, weapon, Legendary, +4 Attack, +1 Defense, +1 Morale): Hervor's family sword, cursed, kept by the draugr in Angantyr's barrow (part 4's prize, as the Crook and Flail is Egypt's and the Helm of Kronos Othrys's). Hand-placed, never random, and in no set; same six points as the other chapters' orange pieces, weighted to Attack as a sword should be. **Spellbook, rams:** the Novice's Rune Staff (`noviceRuneStaff`) and the three rams have their own icons, and so do the three runes (`dev/pixel/ui/spells/`, `spells64/`); the rams have their own battle pictures (`ram`, `ram2`, `ram3` in `units.json`).
+
+**Icons** are 64 px PixelLab (`create_image_pixen`, selective outline, painterly, warm light from the left), described in `dev/pixel/ui/items/catalog-looks.json` (`norse-looks.json` holds the Norse ones) and wired by `build_ui.py` into `src/art/pixel/ui.ts`.
 
 ## Not yet
 

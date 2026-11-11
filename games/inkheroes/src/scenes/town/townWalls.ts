@@ -1,4 +1,4 @@
-import type { TownFaction } from '../../logic/creatures';
+import type { TownPeople } from './townKit';
 import type { PieceId } from './townKit';
 import type { Pixels } from '../battle/pixelScenery';
 import { TOWN_TEX } from './townTex';
@@ -110,7 +110,7 @@ function stamp(out: Pixels, src: Pixels, p: WallPiece): void {
 }
 
 /** The back and front walls drawn into stage-sized buffers, from the pieces' pixels (`px` of a texture key). */
-export function cityWalls(px: (key: string) => Pixels, faction: TownFaction = 'crown'): { back: Pixels; front: Pixels } {
+export function cityWalls(px: (key: string) => Pixels, faction: TownPeople = 'crown'): { back: Pixels; front: Pixels } {
   const blank = (): Pixels => ({ data: new Uint8ClampedArray(STAGE.w * STAGE.h * 4), w: STAGE.w, h: STAGE.h });
   const pieces = wallPieces();
   const draw = (list: readonly WallPiece[]): Pixels => {

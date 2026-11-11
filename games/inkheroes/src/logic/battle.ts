@@ -1,15 +1,15 @@
 import type { Army } from './army';
 import type { Action, BattleEvent, BattleHero, BattleState, Side, Stack, Step } from './battleTypes';
 import { creature, type CreatureId, type MachineId } from './creatures';
-import { hexAt, reachable, rowOf, route, type Hex, COLS, ROWS } from './hex';
+import { hexAt, hexBeyond, reachable, rowOf, route, type Hex, COLS, ROWS } from './hex';
 import { adjacent, around, bodyFn, covers, facesTarget, footprintAt, headsOver, occupiedHexes, shotDistance, sizeOf, touching } from './footprint';
 import { roll, rollInt } from './rng';
-import { heal, rollDamage, speedOf } from './damage';
+import { heal, rollDamage, speedOf, type StrikeCtx } from './damage';
 import { afflict, poisonTick, wound } from './battleTraits';
 import { castSpell } from './battleSpells';
 import { activeStack, alive, isStone, onGround, playerSide, stackById, targetable, update, winnerOf } from './battleCore';
 import { UNTIMED_EFFECTS } from './spells';
-import { aimFor, batter, growRamps, moatFor, MOAT_DAMAGE, nearestFree, PART_HEX, raiseRamp, raiseWalls, standing, strikeByHand, strikesLeft, TOWERS, wallsAgainst, type Fortification, type Siege, type SiegePart } from './siege';
+import { aimFor, batter, BESIDE_GATE, growRamps, moatFor, MOAT_DAMAGE, nearestFree, PART_HEX, raiseRamp, raiseWalls, standing, strikeByHand, strikesLeft, TOWERS, wallsAgainst, type Fortification, type Siege, type SiegePart } from './siege';
 
 export { activeStack, alive, isStone, onGround, playerSide, stackById, targetable, update, winnerOf };
 
@@ -22,6 +22,11 @@ export interface BattleSide {
   readonly machine?: MachineId;
   /** The companies up on a town's towers, place by place (the defender of a siege). */
   readonly towers?: Army;
+}
+
+/** The ground a battle is fought on, where it matters to the rules: on snow, skiers glide. */
+export interface BattleField {
+  readonly snow?: boolean;
 }
 
 /** A battle at a fortified town: its walls, and the side the player plays. */
@@ -51,7 +56,7 @@ const OBSTACLES = { min: 3, max: 7, firstCol: 3, lastCol: COLS - 4, siegeLastCol
  * machine, if they have one, and the defender's companies take their towers;
  * a unit whose row runs into the wall there stands on the nearest row it fits.
  */
-export function createBattle(attacker: BattleSide, defender: BattleSide, seed: number, siege?: SiegeSetup): Step {
+export function createBattle(attacker: BattleSide, defender: BattleSide, seed: number, siege?: SiegeSetup, field: BattleField = {}): Step {
   const stacks: Stack[] = [];
   const walls: Siege | undefined = siege ? raiseWalls(siege.fort, siege.me) : undefined;
   [attacker, defender].forEach((side, s) => {
@@ -70,6 +75,7 @@ export function createBattle(attacker: BattleSide, defender: BattleSide, seed: n
         hex, shots: c.shots ?? 0, retaliationsLeft: c.retaliations ?? 1, slot: i,
         acted: false, waited: false, defending: false, moraleUsed: false, effects: [],
         ...(side.hero?.speed ? { pace: side.hero.speed } : {}),
+        ...(field.snow && c.skis ? { skiing: true } : {}),
       });
     });
     if (!walls) return;
@@ -90,7 +96,7 @@ export function createBattle(attacker: BattleSide, defender: BattleSide, seed: n
   const { obstacles, seed: next } = placeObstacles(seed, new Set(stacks.flatMap(occupiedHexes)), !!walls);
   // The army's make-up adds to its hero's morale (a hero-less monster side has none).
   const heroes = [attacker, defender].map((side) => (side.hero ? { ...side.hero, morale: side.hero.morale + (side.armyMorale ?? 0) } : null));
-  const state: BattleState = { round: 1, stacks, obstacles, heroes: [heroes[0]!, heroes[1]!], active: null, cast: [false, false], seed: next, winner: null, ...(walls ? { siege: walls } : {}) };
+  const state: BattleState = { round: 1, stacks, obstacles, heroes: [heroes[0]!, heroes[1]!], active: null, cast: [false, false], seed: next, winner: null, ...(walls ? { siege: walls } : {}), ...(field.snow ? { snow: true } : {}) };
   return advance(state, [{ type: 'round', round: 1 }]);
 }
 
@@ -270,7 +276,7 @@ export function act(state: BattleState, action: Action): Step {
   if (!me) throw new Error('no active stack');
   if (action.type === 'flee') return flee(state, me.side);
   const held = state.held;
-  if (held && !HELD_ACTIONS.includes(action.type)) throw new Error('only a strike from here, Defend or Wait now');
+  if (held && !HELD_ACTIONS.includes(action.type) && !(action.type === 'shoot' && me.skiing)) throw new Error('only a strike from here, Defend or Wait now');
   if (action.type === 'cast') return castSpell(state, me.side, action.spell, action.target);
   const events: BattleEvent[] = [];
   let s: BattleState = held ? unhold(state) : state;
@@ -279,8 +285,8 @@ export function act(state: BattleState, action: Action): Step {
       const steps = moves(s).get(action.to);
       if (steps === undefined || action.to === me.hex) throw new Error('cannot move there');
       s = moveTo(s, me, action.to, events);
-      // The player's move that ends beside an enemy leaves the turn open for a strike.
-      if (action.hold && canStrikeHere(s, me.id)) return { state: { ...s, held: { stack: me.id, from: me.hex, moved: steps } }, events };
+      // The player's move that ends beside an enemy leaves the turn open for a strike; a skier's, for a shot.
+      if (action.hold && (canStrikeHere(s, me.id) || canShootAfterMove(s, me.id))) return { state: { ...s, held: { stack: me.id, from: me.hex, moved: steps } }, events };
       break;
     }
     case 'attack': {
@@ -297,9 +303,16 @@ export function act(state: BattleState, action: Action): Step {
     case 'shoot': {
       const target = stackById(s, action.target);
       if (!isEnemy(me, target) || !canShoot(s, me)) throw new Error('cannot shoot');
-      s = strike(s, me.id, target.id, { ranged: true, distance: shotDistance(me, target), moved: 0 }, false, events);
-      // A tower's stores don't run out.
-      if (me.tower === undefined) s = update(s, me.id, (x) => ({ ...x, shots: x.shots - 1 }));
+      // A shooter that shoots twice does, if it stood still this turn (after a skier's move, once).
+      const shots = creature(me.creature).shootsTwice && !held ? 2 : 1;
+      for (let i = 0; i < shots; i++) {
+        const now = stackById(s, me.id);
+        const t = stackById(s, target.id);
+        if (i > 0 && (!alive(now) || !alive(t) || !canShoot(s, now))) break;
+        s = strike(s, me.id, t.id, { ranged: true, distance: shotDistance(now, t), moved: 0 }, false, events);
+        // A tower's stores don't run out.
+        if (me.tower === undefined) s = update(s, me.id, (x) => ({ ...x, shots: x.shots - 1 }));
+      }
       break;
     }
     case 'catapult': {
@@ -348,6 +361,12 @@ function canStrikeHere(s: BattleState, id: number): boolean {
   const me = stackById(s, id);
   if (!alive(me) || isStone(me) || creature(me.creature).machine) return false;
   return s.stacks.some((o) => isEnemy(me, o) && onGround(o) && adjacent(me, o));
+}
+
+/** Whether stack `id`, a skier on snow, could shoot from where its move took it. */
+function canShootAfterMove(s: BattleState, id: number): boolean {
+  const me = stackById(s, id);
+  return !!me.skiing && alive(me) && !isStone(me) && canShoot(s, me);
 }
 
 /** How many ramps the active stack's workers still have to begin: a siege ramp's, in its first round only. */
@@ -431,17 +450,57 @@ export function struckBy(state: BattleState, me: Stack, target: Stack, from: Hex
   return [target, ...state.stacks.filter((o) => o.id !== target.id && isEnemy(me, o) && onGround(o) && touching(hexes, occupiedHexes(o)))];
 }
 
-/** Whether `def` would answer a melee strike from `att` (a guardian answers every one). */
+/** Whether `def` would answer a melee strike from `att` (a guardian answers every one; Isa's ice answers none). */
 export function answers(att: Stack, def: Stack): boolean {
-  return (def.retaliationsLeft > 0 || !!creature(def.creature).guardian) && !isStone(def) && !creature(att.creature).noRetaliation;
+  const iced = def.effects.some((e) => e.kind === 'isa');
+  return (def.retaliationsLeft > 0 || !!creature(def.creature).guardian) && !isStone(def) && !iced && !creature(att.creature).noRetaliation;
 }
 
-/** A melee strike: every blow lands first, then each stack struck that still can answers once. */
+/** A melee strike: every blow lands first (a breather's burns the unit behind its target too), then each stack struck that still can answers once. */
 function melee(s: BattleState, a: number, d: number, from: Hex, moved: number, events: BattleEvent[]): BattleState {
   const struck = struckBy(s, stackById(s, a), stackById(s, d), from).map((x) => x.id);
   const ctx = { ranged: false, distance: 1, moved };
+  const behind = breathOn(s, stackById(s, a), stackById(s, d), from);
   const hit = struck.reduce((st, id) => strike(st, a, id, ctx, false, events), s);
-  return struck.reduce((st, id) => answer(st, a, id, events), hit);
+  const burnt = behind && !struck.includes(behind.id) ? breathe(hit, a, behind.id, ctx, events) : hit;
+  return struck.reduce((st, id) => answer(st, a, id, events), burnt);
+}
+
+/**
+ * The enemy a breather's strike from head hex `from` also burns: the one in
+ * the hex behind its target, on the line from the breather's hex that
+ * touches the target through the hex it strikes. A wide target's own hexes
+ * are passed through; a wide breather breathes from the hex that touches.
+ */
+export function breathOn(state: BattleState, me: Stack, target: Stack, from: Hex): Stack | undefined {
+  if (!creature(me.creature).breath) return undefined;
+  const mine = footprintAt(from, sizeOf(me.creature), me.side) ?? [from];
+  const theirs = occupiedHexes(target);
+  const contact = mine.find((h) => touching([h], theirs));
+  if (contact === undefined) return undefined;
+  const struck = theirs.find((t) => touching([contact], [t]))!;
+  let a = contact;
+  let b: Hex | null = struck;
+  while (b !== null && theirs.includes(b)) {
+    const next = hexBeyond(a, b);
+    a = b;
+    b = next;
+  }
+  if (b === null) return undefined;
+  const at = b;
+  return state.stacks.find((o) => o.id !== target.id && isEnemy(me, o) && onGround(o) && covers(o, at));
+}
+
+/** The breath's burn on `d`: a blow of its own, never answered, that afflicts as the strike does. */
+function breathe(s: BattleState, a: number, d: number, ctx: StrikeCtx, events: BattleEvent[]): BattleState {
+  const att = stackById(s, a);
+  const def = stackById(s, d);
+  if (!alive(att) || !alive(def)) return s;
+  const r = rollDamage(s, att, def, ctx, s.seed);
+  const after: BattleEvent[] = [];
+  const w = wound({ ...s, seed: r.seed }, d, r.damage, after);
+  events.push({ type: 'breath', stack: a, target: d, damage: w.damage, kills: w.kills }, ...after);
+  return after.some((e) => e.type === 'rebirth') ? w.state : afflict(w.state, att, d, w.damage, events);
 }
 
 function answer(s: BattleState, a: number, d: number, events: BattleEvent[]): BattleState {
@@ -471,7 +530,17 @@ function strike(s: BattleState, a: number, d: number, ctx: { ranged: boolean; di
   events.push({ type: 'strike', stack: a, target: d, damage: w.damage, kills: w.kills, lucky: r.lucky, retaliation, ranged: ctx.ranged, ...(w.soaked ? { soaked: w.soaked } : {}) }, ...after);
   // A stack that rose from this wound comes back clean.
   const next = after.some((e) => e.type === 'rebirth') ? w.state : afflict(w.state, att, d, w.damage, events);
-  return ctx.ranged ? next : petrify(next, att, d, events);
+  return ctx.ranged ? next : thunder(petrify(next, att, d, events), a, d, events);
+}
+
+/** Thurisaz: a melee strike on a stack bearing Thor's rune brings lightning down on the striker. */
+function thunder(s: BattleState, a: number, d: number, events: BattleEvent[]): BattleState {
+  const rune = stackById(s, d).effects.find((e) => e.kind === 'thurisaz');
+  if (!rune || !alive(stackById(s, a))) return s;
+  const after: BattleEvent[] = [];
+  const w = wound(s, a, rune.dose ?? 0, after);
+  events.push({ type: 'lightning', stack: d, target: a, damage: w.damage, kills: w.kills }, ...after);
+  return w.state;
 }
 
 /** A petrifying strike that landed may turn its living target to stone (a roll only when it could). */
@@ -524,8 +593,9 @@ export function advance(s: BattleState, events: BattleEvent[]): Step {
   for (;;) {
     const next = pickNext(s);
     if (next === null) {
-      const before = s;
-      s = newRound(s);
+      // A ram's gate falls as its round ends.
+      const before = ramBlow(s, events);
+      s = newRound(before);
       events.push({ type: 'round', round: s.round }, ...rampGrowth(before, s));
       continue;
     }
@@ -578,6 +648,21 @@ function pickNext(s: BattleState): Stack | null {
   if (fresh.length) return fresh[0]!;
   const waiting = live.sort((a, b) => speedOf(a) - speedOf(b) || tie(a, b));
   return waiting[0] ?? null;
+}
+
+/**
+ * A battering ram at work: at the end of its round (round 3 for the Ram, 2
+ * for the finer), the gate falls; the finest cracks the wall beside the gate
+ * too. It works by itself, while it stands and the gate does.
+ */
+function ramBlow(s: BattleState, events: BattleEvent[]): BattleState {
+  const siege = s.siege;
+  const ram = s.stacks.find((x) => x.side === 0 && alive(x) && creature(x.creature).ram);
+  const spec = ram ? creature(ram.creature).ram : undefined;
+  if (!siege || !ram || !spec || s.round < spec.round || !standing(siege, 'gate')) return s;
+  const parts: SiegePart[] = ['gate', ...(spec.towers ? BESIDE_GATE.filter((p) => standing(siege, p)) : [])];
+  events.push({ type: 'ram', stack: ram.id, parts });
+  return { ...s, siege: parts.reduce((sg, p) => batter(sg, p, sg.parts[p] ?? 0), siege) };
 }
 
 /** A ramp event for each ramp that grew between `before` and `after` (a new round's start), from the side's workers. */

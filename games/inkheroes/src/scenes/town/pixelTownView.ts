@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { MAP_COVER } from '../../art/pixel/map';
 import { SCENERY, type SceneryArt } from '../../art/pixel/scenery';
 import { BUILDINGS, type BuildingId } from '../../logic/buildings';
-import type { TownFaction } from '../../logic/creatures';
+import type { TownPeople } from './townKit';
 import { nearest, PX_TEX } from '../battle/pixelAssets';
 import { DriftingScenery } from '../battle/driftingScenery';
 import { HORIZON_Y, type Pixels } from '../battle/pixelScenery';
@@ -22,7 +22,7 @@ export { TOWN_TEX };
 
 const TERRAIN = 'grass';
 /** The scenery the country behind a city is drawn from: the Greek one's grass, Egypt's desert. */
-const terrainOf = (faction: TownFaction): string => (faction === 'kemet' ? 'sand' : TERRAIN);
+const terrainOf = (faction: TownPeople): string => townKit(faction).terrain;
 const SEED = CITY_SEED;
 /** A clear day over the town (the battle's grass sky is a sunset, too orange for half a screen of it). */
 const TOWN_SKY: readonly (readonly [number, string])[] = [[420, '#4f82bd'], [220, '#6e9dcf'], [90, '#9dbfdc'], [24, '#cfd3c4']];
@@ -32,12 +32,12 @@ const LIFT = 0x262018;
 const RISE = { px: 10, ms: 700 } as const;
 
 /** The grass scenery under the town's sky (the countryside and the pictures on the town's screens). */
-export function townScenery(faction: TownFaction = 'crown'): SceneryArt {
+export function townScenery(faction: TownPeople = 'crown'): SceneryArt {
   return { ...SCENERY[terrainOf(faction)]!, sky: TOWN_SKY };
 }
 
 /** Loads the grass scenery for the town's countryside and the map's art (the town's sprites and paving with it, grass and trees, faces, icons, font). */
-export function loadTownArt(scene: Phaser.Scene, faction: TownFaction = 'crown'): Promise<void> {
+export function loadTownArt(scene: Phaser.Scene, faction: TownPeople = 'crown'): Promise<void> {
   for (const t of new Set([TERRAIN, terrainOf(faction)])) {
     const atlas = PX_TEX.scenery(t);
     if (!scene.textures.exists(atlas)) scene.load.image(atlas, SCENERY[t]!.url);
@@ -72,7 +72,7 @@ export interface TownViewOpts {
   /** What the town's people call a building (none: BUILDINGS' Greek names). */
   readonly nameOf?: (building: BuildingId) => string;
   /** Whose city this is (none: the Greek one). */
-  readonly faction?: TownFaction;
+  readonly faction?: TownPeople;
 }
 
 /**
@@ -91,7 +91,7 @@ export class PixelTownView {
   private readonly country: DriftingScenery;
   private readonly smoke: ChimneySmoke[] = [];
   private readonly flying: FlyingFlags;
-  private readonly faction: TownFaction;
+  private readonly faction: TownPeople;
   private readonly kit: TownKit;
 
   constructor(private readonly scene: Phaser.Scene, built: readonly BuildingId[], area: { w: number; h: number }, private readonly opts: TownViewOpts) {
@@ -164,7 +164,7 @@ export class PixelTownView {
   private paintGround(out: Pixels, area: { x: number; y: number; w: number; h: number }): void {
     paintCity(out, area, {
       paving: texturePixels(this.scene, TOWN_TEX.pavingOf(this.faction)),
-      grass: texturePixels(this.scene, MAP_TEX.ground(this.kit.garden)),
+      grass: texturePixels(this.scene, this.kit.groundUrl ? TOWN_TEX.groundOf(this.faction) : MAP_TEX.ground(this.kit.garden)),
     }, this.bare.map((b) => b.plot), this.faction);
   }
 

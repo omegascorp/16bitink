@@ -292,21 +292,22 @@ describe('the end of chapter 2', () => {
     expect(upcoming({ ...opened(), prompts: [] }, 2)).toEqual(['redLand-won', 'part-delta']);
   });
 
-  it('plays the "Chapter 2 complete" card (now the Delta’s) as chapter 1’s, generalised: days, towns, heroes, and the next chapter being made', () => {
+  it('plays the "Chapter 2 complete" card (now the Delta’s) as chapter 1’s, generalised: days, towns, heroes, and the next chapter (its first part built)', () => {
     const adv = { ...opened(40), status: 'won' as const };
     const end = chapterEnd(chapterById('twoLands'), adv, false, () => true);
     expect(end.title).toBe('Chapter 2 complete');
-    expect(end.next).toBeUndefined();
+    // Chapter 3 is named, with its teaser: its first part is built, so an owner rides on into it.
+    expect(end.next?.id).toBe('longWinter');
     expect(end.body[0]).toMatch(/Two Lands are one/);
     expect(end.body[1]).toBe('40 days on the march, 2 towns under your banner, one hero riding.');
-    expect(end.body.join(' ')).toMatch(/Chapter 3 is being made/);
+    expect(end.body.join(' ')).toMatch(/Chapter 3, The Long Winter, sails north to the Norse kingdoms.*It waits for you now\./);
     // Heard from the narrator: the card leaves the story out.
     expect(chapterEnd(chapterById('twoLands'), adv, true, () => true).body[0]).toMatch(/days on the march/);
     // Chapter 1's card still points on to chapter 2.
     const one = chapterEnd(chapterById('borderMarch'), adv, true, () => false);
     expect(one).toMatchObject({ title: 'Chapter 1 complete', next: { id: 'twoLands' } });
     expect(one.body.join(' ')).toMatch(/Chapter 2, The Two Lands, crosses to Egypt.*It is part of the full game\./);
-    expect(CHAPTERS.map((c) => c.ending)).toEqual(['chapter-won', 'twoLands-won']);
+    expect(CHAPTERS.map((c) => c.ending)).toEqual(['chapter-won', 'twoLands-won', 'longWinter-won']);
   });
 
   it('keeps its other parts as they were', () => {

@@ -62,7 +62,7 @@ export type TavernSide = 'player' | 'lord';
 
 /**
  * The story's villains on a campaign map: every rival lord of its chapter's
- * parts (Kassander, Lykaon). The player's Taverns never offer them; they stay
+ * parts (Kassander, Lykaon), and those the chapter names (Eirik, Gunnhild). The player's Taverns never offer them; they stay
  * in the roster for custom maps, and a lord's Taverns may hire them.
  */
 export function storyVillains(def: MapDef): Set<string> {
@@ -70,7 +70,13 @@ export function storyVillains(def: MapDef): Set<string> {
   const parts = chapter ? partsOf(chapter) : [];
   // A map not among the chapter's parts (a custom map) has no story villains.
   if (!parts.some((m) => m.id === def.id)) return new Set();
-  return new Set(parts.flatMap((m) => (m.rival ? [m.rival.hero.id] : [])));
+  // And the chapter's own (the Norse name theirs before their parts are built).
+  return new Set([...parts.flatMap((m) => (m.rival ? [m.rival.hero.id] : [])), ...(chapter?.villains ?? [])]);
+}
+
+/** Whom a lord's Taverns never offer on `def`: its chapter's campaign heroes (static, so the balance runs see them too) and the captains the map gives him. */
+export function lordBarred(def: MapDef): Set<string> {
+  return new Set([...(chapterOf(def)?.heroes ?? []), ...(def.rival?.captains ?? []).map((h) => h.id)]);
 }
 
 /** A number for hero `id` at `town` in `week`, from the game's seed: the offer takes the lowest. */
@@ -88,6 +94,8 @@ function offerRank(seed: number, week: number, townId: string, id: string): numb
 export function weekOffer(adv: Adventure, def: MapDef, town: Pick<Town, 'id' | 'faction'>, side: TavernSide = 'player'): HeroDef[] {
   const taken = heroesInPlay(adv, def);
   if (side === 'player') for (const id of storyVillains(def)) taken.add(id);
+  // A lord never hires the chapter's own heroes (Heid, never hired by us), nor the captains its story brings him (Eirik).
+  if (side === 'lord') for (const id of lordBarred(def)) taken.add(id);
   const week = weekOf(adv.day);
   const ours = playerTowns(adv);
   const at = ours.findIndex((t) => t.id === town.id);

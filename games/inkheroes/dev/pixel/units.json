@@ -1759,6 +1759,906 @@
     152
    ],
    "scale": 0.82
+  },
+  "valkyrie": {
+   "name": "Valkyrie",
+   "src": "pixel/src/valkyrie.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a valkyrie in a winged helmet with a round shield and spear on a white winged horse",
+   "attack": "spear charge attack: the winged horse beats its wings once and surges forward to the right as the rider thrusts the spear hard to the right, then settles back to the starting pose",
+   "strike": 4,
+   "face": [
+    61,
+    31
+   ],
+   "flies": true,
+   "walk": "flying in place loop: big slow wing beats, the white horse's legs tucked, body bobs up and down a little, ends back at the starting pose"
+  },
+  "valkyrie2": {
+   "name": "Battle Valkyrie",
+   "src": "pixel/src/valkyrie2.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a valkyrie in a winged helmet and steel breastplate with a round shield and spear on a white winged horse in barding",
+   "attack": "spear charge attack: the winged horse beats its wings once and surges forward to the right as the rider thrusts the spear hard to the right, then settles back to the starting pose",
+   "strike": 4,
+   "face": [
+    61,
+    31
+   ],
+   "flies": true,
+   "walk": "flying in place loop: big slow wing beats, the white horse's legs tucked, body bobs up and down a little, ends back at the starting pose"
+  },
+  "valkyrie3": {
+   "name": "Valkyrie of Odin",
+   "src": "pixel/src/valkyrie3.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a valkyrie in gold mail and a gold winged helmet with a spear of light on a white winged horse",
+   "attack": "spear charge attack: the winged horse beats its wings once and surges forward to the right as the rider thrusts the spear hard to the right, then settles back to the starting pose",
+   "strike": 4,
+   "face": [
+    66,
+    31
+   ],
+   "flies": true,
+   "walk": "flying in place loop: big slow wing beats, the white horse's legs tucked, body bobs up and down a little, ends back at the starting pose"
+  },
+  "valkyrie4": {
+   "name": "Valkyrie Captain",
+   "src": "pixel/src/valkyrie4.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a valkyrie captain in gold armour with a crimson cloak and a glowing spear on a white winged horse",
+   "attack": "spear charge attack: the winged horse beats its wings once and surges forward to the right as the rider thrusts the spear hard to the right, then settles back to the starting pose",
+   "strike": 4,
+   "face": [
+    62,
+    31
+   ],
+   "flies": true,
+   "walk": "flying in place loop: big slow wing beats, the white horse's legs tucked, body bobs up and down a little, ends back at the starting pose"
+  },
+  "dragon": {
+   "name": "Frost Dragon",
+   "src": "pixel/src/dragon.png",
+   "canvas": [
+    224,
+    160
+   ],
+   "foot": 6,
+   "dx": -24,
+   "subject": "a frost dragon with four legs and two wings, pale blue scales",
+   "attack": "frost breath attack: the dragon rears its head back, then blasts a long jet of white-blue frost far to the right from its open mouth, then closes its mouth and settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    140,
+    58
+   ],
+   "flies": true,
+   "walk": "flying in place loop: the dragon's two big wings beat slowly up and down, body bobs a little, legs hang, ends back at the starting pose"
+  },
+  "dragon2": {
+   "name": "Ice Dragon",
+   "src": "pixel/src/dragon2.png",
+   "canvas": [
+    224,
+    160
+   ],
+   "foot": 6,
+   "dx": -24,
+   "subject": "an ice dragon with four legs and two wings, bright ice-blue scales and frosted wings",
+   "attack": "frost breath attack: the dragon rears its head back, then blasts a long jet of white-blue frost far to the right from its open mouth, then closes its mouth and settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    140,
+    58
+   ],
+   "flies": true,
+   "walk": "flying in place loop: the dragon's two big wings beat slowly up and down, body bobs a little, legs hang, ends back at the starting pose"
+  },
+  "dragon3": {
+   "name": "F\u00e1fnir's Kin",
+   "src": "pixel/src/dragon3.png",
+   "canvas": [
+    224,
+    160
+   ],
+   "foot": 6,
+   "dx": -24,
+   "subject": "an ice-blue dragon with four legs and two wings, a crown of dark horns and glowing rune scars",
+   "attack": "frost breath attack: the dragon rears its head back, then blasts a long jet of white-blue frost far to the right from its open mouth, then closes its mouth and settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    140,
+    58
+   ],
+   "flies": true,
+   "walk": "flying in place loop: the dragon's two big wings beat slowly up and down, body bobs a little, legs hang, ends back at the starting pose"
+  },
+  "troll": {
+   "name": "Troll",
+   "src": "pixel/src/troll.png",
+   "canvas": [
+    128,
+    120
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a hulking brown troll with a big wooden club",
+   "attack": "club smash attack: raises the big wooden club high overhead and smashes it down forward to the right, then lifts it back to the starting pose",
+   "strike": 5,
+   "face": [
+    71,
+    39
+   ],
+   "walk": "lumbering walk in place loop: heavy steps, shoulders sway, club dragged low, stays in the same spot, ends back at the starting pose"
+  },
+  "frostGiant": {
+   "name": "Frost Giant",
+   "src": "pixel/src/frostGiant.png",
+   "canvas": [
+    144,
+    120
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a blue-skinned frost giant in furs with a huge ice axe",
+   "attack": "axe smash attack: raises the huge ice axe overhead and brings it down forward to the right, then lifts it back to the starting pose",
+   "strike": 4,
+   "face": [
+    69,
+    33
+   ],
+   "walk": "lumbering walk in place loop: heavy steps, shoulders sway, axe held low, stays in the same spot, ends back at the starting pose"
+  },
+  "skoll": {
+   "name": "Sk\u00f6ll",
+   "src": "pixel/src/skoll.png",
+   "canvas": [
+    176,
+    120
+   ],
+   "foot": 6,
+   "dx": -12,
+   "subject": "a huge dark grey wolf with a shaggy mane",
+   "attack": "bite attack: crouches, leaps forward to the right with jaws snapping wide, then lands back in the starting pose",
+   "strike": 3,
+   "face": [
+    123,
+    39
+   ],
+   "walk": "prowling in place loop: four legs stride in rhythm, head low, tail swings, stays in the same spot, ends back at the starting pose"
+  },
+  "draugr": {
+   "name": "Draugr",
+   "src": "pixel/src/draugr.png",
+   "canvas": [
+    96,
+    104
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "an undead norse draugr warrior with grey-blue skin, rusted mail and a rusty axe",
+   "attack": "axe chop attack: raises the rusty axe and chops down forward to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    44,
+    26
+   ]
+  },
+  "barrowKing": {
+   "name": "Barrow King",
+   "src": "pixel/src/barrowKing.png",
+   "canvas": [
+    112,
+    120
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "an undead norse jarl in a rusted crown and rotted royal mail with a long rusted sword",
+   "attack": "sword slash attack: raises the long sword and slashes down forward to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    60,
+    25
+   ]
+  },
+  "valkyrie5": {
+   "name": "Valkyrie of F\u00f3lkvangr",
+   "src": "pixel/src/valkyrie5.png",
+   "canvas": [
+    128,
+    112
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a radiant valkyrie in white and gold armour with a halo and a blazing spear on a glowing white winged horse",
+   "attack": "spear charge attack: the winged horse beats its wings once and surges forward to the right as the rider thrusts the spear hard to the right, then settles back to the starting pose",
+   "strike": 4,
+   "face": [
+    61,
+    31
+   ],
+   "flies": true,
+   "walk": "flying in place loop: big slow wing beats, the white horse's legs tucked, body bobs up and down a little, ends back at the starting pose"
+  },
+  "dragon4": {
+   "name": "Elder Dragon",
+   "src": "pixel/src/dragon4.png",
+   "canvas": [
+    224,
+    160
+   ],
+   "foot": 6,
+   "dx": -24,
+   "subject": "an elder steel-blue dragon with four legs and two wings, a spine beard and scarred wings",
+   "attack": "frost breath attack: the dragon rears its head back, then blasts a long jet of white-blue frost far to the right from its open mouth, then closes its mouth and settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    139,
+    58
+   ],
+   "flies": true,
+   "walk": "flying in place loop: the dragon's two big wings beat slowly up and down, body bobs a little, legs hang, ends back at the starting pose"
+  },
+  "dragon5": {
+   "name": "N\u00ed\u00f0h\u00f6ggr",
+   "src": "pixel/src/dragon5.png",
+   "canvas": [
+    224,
+    160
+   ],
+   "foot": 6,
+   "dx": -24,
+   "subject": "the black-blue dragon N\u00ed\u00f0h\u00f6ggr with four legs and two wings, bone horns and pale glowing eyes",
+   "attack": "frost breath attack: the dragon rears its head back, then blasts a long jet of white-blue frost far to the right from its open mouth, then closes its mouth and settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    133,
+    59
+   ],
+   "flies": true,
+   "walk": "flying in place loop: the dragon's two big wings beat slowly up and down, body bobs a little, legs hang, ends back at the starting pose"
+  },
+  "wolfWinter": {
+   "name": "Winter Wolf",
+   "src": "pixel/src/wolfWinter.png",
+   "canvas": [
+    112,
+    96
+   ],
+   "foot": 6,
+   "dx": -6,
+   "subject": "a snarling white winter wolf",
+   "attack": "bite attack: crouches, leaps forward to the right with jaws snapping, then lands back in the starting pose",
+   "strike": 3,
+   "face": [
+    75,
+    50
+   ],
+   "walk": "trotting in place loop: four legs trot in rhythm, head low, tail streams, stays in the same spot, ends back at the starting pose"
+  },
+  "shieldmaiden": {
+   "name": "Shieldmaiden",
+   "src": "pixel/src/shieldmaiden.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse shieldmaiden with a hand axe and a round painted shield",
+   "attack": "axe swing attack: raises the axe overhead and chops down hard forward to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    42,
+    34
+   ]
+  },
+  "shieldmaiden2": {
+   "name": "Spear Maiden",
+   "src": "pixel/src/shieldmaiden2.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse shieldmaiden in an iron helmet and mail with a spear and a round painted shield",
+   "attack": "spear thrust attack: draws the spear back, lunges forward thrusting the spear hard to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    42,
+    34
+   ]
+  },
+  "shieldmaiden3": {
+   "name": "Jarl's Shieldmaiden",
+   "src": "pixel/src/shieldmaiden3.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse jarl shieldmaiden in a helmet, mail and a red cloak with a Dane axe and a round painted shield",
+   "attack": "axe swing attack: raises the axe overhead and chops down hard forward to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    42,
+    34
+   ]
+  },
+  "shieldmaiden4": {
+   "name": "Lagertha's Guard",
+   "src": "pixel/src/shieldmaiden4.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse shieldmaiden in a gilded winged helmet and white fur mantle with a Dane axe and a round gold-rimmed shield",
+   "attack": "axe swing attack: raises the axe overhead and chops down hard forward to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    42,
+    34
+   ]
+  },
+  "shieldmaiden5": {
+   "name": "Einherjar",
+   "src": "pixel/src/shieldmaiden5.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a golden armoured norse warrior maiden with a golden glow, a golden axe and a round shield with a golden raven",
+   "attack": "axe swing attack: raises the axe overhead and chops down hard forward to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    42,
+    34
+   ]
+  },
+  "berserker": {
+   "name": "Berserker",
+   "src": "pixel/src/berserker.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse berserker in a fur pelt with a big bearded axe",
+   "attack": "axe swing attack: raises the axe overhead and chops down hard forward to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    46,
+    30
+   ]
+  },
+  "berserker2": {
+   "name": "Bear Warrior",
+   "src": "pixel/src/berserker2.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse berserker in a bear-head hood with bronze arm rings and a big axe",
+   "attack": "axe swing attack: raises the axe overhead and chops down hard forward to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    46,
+    30
+   ]
+  },
+  "berserker3": {
+   "name": "Berserker of Odin",
+   "src": "pixel/src/berserker3.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse berserker in a bear-head hood with raven tattoos holding two axes",
+   "attack": "twin axe attack: raises both axes and chops down and forward to the right with a roar, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    46,
+    30
+   ]
+  },
+  "berserker4": {
+   "name": "\u00dalfhe\u00f0inn",
+   "src": "pixel/src/berserker4.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse berserker in a wolf pelt over a bear-head hood holding two axes",
+   "attack": "twin axe attack: raises both axes and chops down and forward to the right with a roar, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    46,
+    30
+   ]
+  },
+  "berserker5": {
+   "name": "Chosen of Odin",
+   "src": "pixel/src/berserker5.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse berserker with glowing eyes, ravens on his shoulders and two golden rune axes",
+   "attack": "twin axe attack: raises both axes and chops down and forward to the right with a roar, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    46,
+    30
+   ]
+  },
+  "dwarf": {
+   "name": "Dwarf",
+   "src": "pixel/src/dwarf.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a short broad bearded dwarf smith with a heavy hammer",
+   "attack": "hammer smash attack: heaves the heavy hammer up and smashes it down hard forward to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    46,
+    40
+   ]
+  },
+  "dwarf2": {
+   "name": "Dwarf Guard",
+   "src": "pixel/src/dwarf2.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a short broad bearded dwarf in an iron helmet and iron mail with a heavy hammer",
+   "attack": "hammer smash attack: heaves the heavy hammer up and smashes it down hard forward to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    46,
+    40
+   ]
+  },
+  "dwarf3": {
+   "name": "Rune-Forged Dwarf",
+   "src": "pixel/src/dwarf3.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a short broad bearded dwarf in iron plate with glowing runes and a glowing rune hammer",
+   "attack": "hammer smash attack: heaves the heavy hammer up and smashes it down hard forward to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    46,
+    40
+   ]
+  },
+  "dwarf4": {
+   "name": "Dwarf Lord",
+   "src": "pixel/src/dwarf4.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a short broad dwarf lord in a horned golden helm and fur cloak with a glowing rune hammer",
+   "attack": "hammer smash attack: heaves the heavy hammer up and smashes it down hard forward to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    46,
+    40
+   ]
+  },
+  "dwarf5": {
+   "name": "Son of Ivaldi",
+   "src": "pixel/src/dwarf5.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a short broad dwarf master smith in gold and rune plate with a great golden rune hammer",
+   "attack": "hammer smash attack: heaves the heavy hammer up and smashes it down hard forward to the right, then recovers to the starting pose; feet stay in place",
+   "strike": 4,
+   "face": [
+    46,
+    40
+   ]
+  },
+  "hunter": {
+   "name": "Hunter",
+   "src": "pixel/src/hunter.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse hunter in a hooded fur cloak drawing a yew bow",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; feet stay in place",
+   "strike": 5,
+   "face": [
+    46,
+    37
+   ],
+   "shot": [
+    68,
+    46
+   ]
+  },
+  "hunter2": {
+   "name": "Ski Bowman",
+   "src": "pixel/src/hunter2.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse ski bowman on skis in a fur hood drawing a bow",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; the skis stay planted in place",
+   "strike": 5,
+   "face": [
+    37,
+    36
+   ],
+   "walk": "gliding on skis in place loop: pushes with the legs, skis slide, body leans forward, stays in the same spot, ends back at the starting pose",
+   "idle": "idle breathing loop: stands on skis, chest rises and falls gently, bow held ready, skis stay planted, ends back at the starting pose",
+   "shot": [
+    70,
+    41
+   ]
+  },
+  "hunter2Foot": {
+   "name": "Ski Bowman",
+   "src": "pixel/src/hunter2Foot.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse ski bowman with skis strapped to his back in a fur hood drawing a bow",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; feet stay in place",
+   "strike": 5,
+   "face": [
+    44,
+    33
+   ],
+   "shot": [
+    66,
+    44
+   ]
+  },
+  "hunter3": {
+   "name": "Archer of Ullr",
+   "src": "pixel/src/hunter3.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse archer on skis with a rune-carved bow and a fur hood",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; the skis stay planted in place",
+   "strike": 5,
+   "face": [
+    37,
+    36
+   ],
+   "walk": "gliding on skis in place loop: pushes with the legs, skis slide, body leans forward, stays in the same spot, ends back at the starting pose",
+   "idle": "idle breathing loop: stands on skis, chest rises and falls gently, bow held ready, skis stay planted, ends back at the starting pose",
+   "shot": [
+    70,
+    41
+   ]
+  },
+  "warBoar": {
+   "name": "War Boar",
+   "src": "pixel/src/warBoar.png",
+   "canvas": [
+    152,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a huge boar in norse war barding: mail, iron plates and a painted rune shield",
+   "attack": "tusk charge attack: lowers its head and tusks, lunges forward to the right and gores with the tusks, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    100,
+    59
+   ],
+   "walk": "trotting in place loop: four legs trot heavily, head low, tail flicks, stays in the same spot, ends back at the starting pose"
+  },
+  "warBoar2": {
+   "name": "Iron Boar",
+   "src": "pixel/src/warBoar2.png",
+   "canvas": [
+    152,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a huge boar in full mail and iron plates with a rune shield and an iron helmet",
+   "attack": "tusk charge attack: lowers its head and tusks, lunges forward to the right and gores with the tusks, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    103,
+    62
+   ],
+   "walk": "trotting in place loop: four legs trot heavily, head low, tail flicks, stays in the same spot, ends back at the starting pose"
+  },
+  "warBoar3": {
+   "name": "Boar of Freyr",
+   "src": "pixel/src/warBoar3.png",
+   "canvas": [
+    152,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a huge boar with shining golden bristles and gold rune-carved tusk caps in iron armour",
+   "attack": "tusk charge attack: lowers its head and tusks, lunges forward to the right and gores with the tusks, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    103,
+    62
+   ],
+   "walk": "trotting in place loop: four legs trot heavily, head low, tail flicks, stays in the same spot, ends back at the starting pose"
+  },
+  "warBoar4": {
+   "name": "Hildisv\u00edni",
+   "src": "pixel/src/warBoar4.png",
+   "canvas": [
+    152,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a huge boar in gold-plated armour and a gold helmet with a purple caparison and golden bristles",
+   "attack": "tusk charge attack: lowers its head and tusks, lunges forward to the right and gores with the tusks, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    103,
+    62
+   ],
+   "walk": "trotting in place loop: four legs trot heavily, head low, tail flicks, stays in the same spot, ends back at the starting pose"
+  },
+  "warBoar5": {
+   "name": "Gullinbursti",
+   "src": "pixel/src/warBoar5.png",
+   "canvas": [
+    152,
+    112
+   ],
+   "foot": 6,
+   "dx": -8,
+   "subject": "a huge golden-bristled boar in gold armour with glowing gold runes",
+   "attack": "tusk charge attack: lowers its head and tusks, lunges forward to the right and gores with the tusks, then settles back to the starting pose",
+   "strike": 3,
+   "face": [
+    102,
+    62
+   ],
+   "walk": "trotting in place loop: four legs trot heavily, head low, tail flicks, stays in the same spot, ends back at the starting pose"
+  },
+  "hunter4": {
+   "name": "Huntsman of Skadi",
+   "src": "pixel/src/hunter4.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse huntsman on skis in a white wolf-fur hood with a rune bow",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; the skis stay planted in place",
+   "strike": 5,
+   "face": [
+    37,
+    36
+   ],
+   "walk": "gliding on skis in place loop: pushes with the legs, skis slide, body leans forward, stays in the same spot, ends back at the starting pose",
+   "idle": "idle breathing loop: stands on skis, chest rises and falls gently, bow held ready, skis stay planted, ends back at the starting pose",
+   "shot": [
+    70,
+    41
+   ]
+  },
+  "hunter4Foot": {
+   "name": "Huntsman of Skadi",
+   "src": "pixel/src/hunter4Foot.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse huntsman with skis strapped to his back in a white wolf-fur hood with a rune bow",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; feet stay in place",
+   "strike": 5,
+   "face": [
+    44,
+    33
+   ],
+   "shot": [
+    66,
+    44
+   ]
+  },
+  "hunter5": {
+   "name": "Archer of \u00dddalir",
+   "src": "pixel/src/hunter5.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse archer on skis with a golden rune yew bow and golden-trimmed leather",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; the skis stay planted in place",
+   "strike": 5,
+   "face": [
+    37,
+    36
+   ],
+   "walk": "gliding on skis in place loop: pushes with the legs, skis slide, body leans forward, stays in the same spot, ends back at the starting pose",
+   "idle": "idle breathing loop: stands on skis, chest rises and falls gently, bow held ready, skis stay planted, ends back at the starting pose",
+   "shot": [
+    70,
+    41
+   ]
+  },
+  "hunter5Foot": {
+   "name": "Archer of \u00dddalir",
+   "src": "pixel/src/hunter5Foot.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse archer with skis strapped to his back with a golden rune yew bow and golden-trimmed leather",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; feet stay in place",
+   "strike": 5,
+   "face": [
+    44,
+    33
+   ],
+   "shot": [
+    66,
+    44
+   ]
+  },
+  "hunter3Foot": {
+   "name": "Archer of Ullr",
+   "src": "pixel/src/hunter3Foot.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": -4,
+   "subject": "a norse archer with skis strapped to his back with a rune-carved bow and a fur hood",
+   "attack": "archery attack: draws the bowstring back to the cheek, holds, releases the arrow to the right, then recovers; feet stay in place",
+   "strike": 5,
+   "face": [
+    40,
+    33
+   ],
+   "shot": [
+    68,
+    42
+   ]
+  },
+  "ram": {
+   "name": "Ram",
+   "src": "pixel/src/ram.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": 0,
+   "subject": "a viking battering ram: a long thick log with a round iron cap hung under a timber frame with a plank shed roof on four wheels, no crew",
+   "idle": "idle loop: the machine stands still, the log sways very slightly on its chains, ends back at the starting pose",
+   "attack": "ramming: the log swings back on its chains, then drives forward hard to the right as if hitting a gate, then swings back to the starting pose; the frame and wheels stay still",
+   "strike": 3,
+   "face": [
+    48,
+    56
+   ]
+  },
+  "ram2": {
+   "name": "Iron Ram",
+   "src": "pixel/src/ram2.png",
+   "canvas": [
+    128,
+    96
+   ],
+   "foot": 6,
+   "dx": -12,
+   "subject": "a viking battering ram: an iron-shod log with a boar-head iron cap under a heavy timber frame with an iron-studded roof on iron-banded wheels, no crew",
+   "idle": "idle loop: the machine stands still, the log sways very slightly on its chains, ends back at the starting pose",
+   "attack": "ramming: the log swings back on its chains, then drives forward hard to the right as if hitting a gate, then swings back to the starting pose; the frame and wheels stay still",
+   "strike": 3,
+   "face": [
+    48,
+    56
+   ]
+  },
+  "ram3": {
+   "name": "Ram of the Sea-Kings",
+   "src": "pixel/src/ram3.png",
+   "canvas": [
+    128,
+    96
+   ],
+   "foot": 6,
+   "dx": -12,
+   "subject": "a viking battering ram: a log carved as a longship dragon prow with gold fittings under a dark timber frame with a gold-trimmed roof on gold-rimmed wheels, no crew",
+   "idle": "idle loop: the machine stands still, the log sways very slightly on its chains, ends back at the starting pose",
+   "attack": "ramming: the log swings back on its chains, then drives forward hard to the right as if hitting a gate, then swings back to the starting pose; the frame and wheels stay still",
+   "strike": 3,
+   "face": [
+    48,
+    56
+   ],
+   "strip": [
+    [
+     97,
+     91,
+     81
+    ],
+    5
+   ]
   }
  },
  "heroes": {
@@ -2398,6 +3298,360 @@
     160
    ],
    "scale": 0.87
+  },
+  "hervor": {
+   "name": "Hervor",
+   "src": "pixel/src/hero_hervor.png",
+   "canvas": [
+    132,
+    139
+   ],
+   "foot": 5,
+   "dx": -8,
+   "subject": "a norse shieldmaiden, a young woman with a red-blonde braid in mail with a round painted shield and a raised sword, on a dark brown horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "sword attack: the rider swings the sword down and across in a slash to the right, then raises it back to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    46,
+    29
+   ],
+   "animCanvas": [
+    152,
+    160
+   ],
+   "scale": 0.87,
+   "walkLock": [
+    0,
+    -4,
+    -10,
+    -14,
+    -14,
+    -9,
+    -4,
+    2
+   ]
+  },
+  "eirik": {
+   "name": "Eirik Bloodaxe",
+   "src": "pixel/src/hero_eirik.png",
+   "canvas": [
+    132,
+    139
+   ],
+   "foot": 5,
+   "dx": -8,
+   "subject": "a norse warrior king with a black beard in an iron helmet and a red cloak holding a bearded battle axe, on a black horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "axe attack: the rider swings the battle axe forward to the right in a heavy chop, then lifts it back to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    56,
+    25
+   ],
+   "animCanvas": [
+    152,
+    160
+   ],
+   "scale": 0.87,
+   "walkLock": [
+    0,
+    -4,
+    -10,
+    -16,
+    -16,
+    -13,
+    -6,
+    -1
+   ]
+  },
+  "einar": {
+   "name": "Einar",
+   "src": "pixel/src/hero_einar.png",
+   "canvas": [
+    132,
+    139
+   ],
+   "foot": 5,
+   "dx": -8,
+   "subject": "a norse archer with a blond braided beard in a fur-trimmed coat holding a huge longbow with a quiver, on a brown horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "archery attack: the rider draws the bowstring back to the cheek, holds, releases an arrow to the right, then lowers the bow to the starting pose; the horse stays in place",
+   "strike": 4,
+   "face": [
+    50,
+    19
+   ],
+   "animCanvas": [
+    152,
+    160
+   ],
+   "scale": 0.87,
+   "walkLock": [
+    0,
+    -1,
+    -6,
+    -12,
+    -16,
+    -16,
+    -12,
+    -6
+   ],
+   "strip": [
+    [
+     90,
+     90,
+     89
+    ],
+    12
+   ]
+  },
+  "sigurd": {
+   "name": "Sigurd",
+   "src": "pixel/src/hero_sigurd.png",
+   "canvas": [
+    132,
+    139
+   ],
+   "foot": 5,
+   "dx": -8,
+   "subject": "a young fair-haired norse hero in mail with a blue cloak holding a bright great sword upright, on a grey horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "sword attack: the rider swings the great sword down and forward to the right in a slash, then raises it back to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    53,
+    30
+   ],
+   "animCanvas": [
+    152,
+    160
+   ],
+   "scale": 0.87,
+   "walkLock": [
+    0,
+    -4,
+    -10,
+    -14,
+    -14,
+    -10,
+    -3,
+    2
+   ]
+  },
+  "harald": {
+   "name": "Harald Hardrada",
+   "src": "pixel/src/hero_harald.png",
+   "canvas": [
+    132,
+    139
+   ],
+   "foot": 5,
+   "dx": -8,
+   "subject": "a tall norse king with a long moustache and a gold circlet in a purple and gold coat holding a gold-hilted sword, on a white horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "sword attack: the rider swings the sword down and forward to the right in a slash, then raises it back to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    50,
+    22
+   ],
+   "animCanvas": [
+    152,
+    160
+   ],
+   "scale": 0.87,
+   "walkLock": [
+    0,
+    -4,
+    -9,
+    -14,
+    -15,
+    -15,
+    -11,
+    -5
+   ]
+  },
+  "heid": {
+   "name": "Heid",
+   "src": "pixel/src/hero_heid.png",
+   "canvas": [
+    132,
+    139
+   ],
+   "foot": 5,
+   "dx": -8,
+   "subject": "an old norse seeress with long grey hair in a hooded blue-grey cloak holding a tall iron-topped staff, on a pale grey horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spell casting: the rider raises the staff to the sky, its iron top flashes with blue light, then lowers it to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    41,
+    32
+   ],
+   "animCanvas": [
+    152,
+    160
+   ],
+   "scale": 0.87,
+   "walkLock": [
+    0,
+    -1,
+    -4,
+    -7,
+    -11,
+    -9,
+    -5,
+    -1
+   ]
+  },
+  "gunnhild": {
+   "name": "Gunnhild",
+   "src": "pixel/src/hero_gunnhild.png",
+   "canvas": [
+    132,
+    139
+   ],
+   "foot": 5,
+   "dx": -8,
+   "subject": "a norse sorceress queen with black hair and a silver crown in a dark red dress with a raven on her shoulder holding a carved staff, on a chestnut horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spell casting: the rider raises the staff to the sky, the rune on it flashes with red light, the raven spreads its wings, then she lowers it to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    59,
+    23
+   ],
+   "animCanvas": [
+    152,
+    160
+   ],
+   "scale": 0.87,
+   "walkLock": [
+    0,
+    0,
+    -3,
+    -6,
+    -8,
+    -7,
+    -4,
+    0
+   ]
+  },
+  "thorbjorg": {
+   "name": "Thorbjorg",
+   "src": "pixel/src/hero_thorbjorg.png",
+   "canvas": [
+    132,
+    139
+   ],
+   "foot": 5,
+   "dx": -8,
+   "subject": "a small young norse seeress in a blue cloak and a white-furred black hood holding a brass-topped staff, on a small brown pony",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spell casting: the rider raises the staff to the sky, the bead on it flashes with white light, then lowers it to the starting pose; the pony stays in place",
+   "strike": 3,
+   "face": [
+    50,
+    40
+   ],
+   "animCanvas": [
+    152,
+    160
+   ],
+   "scale": 0.87,
+   "walkLock": [
+    0,
+    -4,
+    -8,
+    -13,
+    -14,
+    -13,
+    -9,
+    -2
+   ],
+   "strip": [
+    [
+     129,
+     113,
+     80
+    ],
+    12
+   ]
+  },
+  "brynhild": {
+   "name": "Brynhild",
+   "src": "pixel/src/hero_brynhild.png",
+   "canvas": [
+    132,
+    139
+   ],
+   "foot": 5,
+   "dx": -8,
+   "subject": "a norse valkyrie with golden hair and a winged helmet in mail with a round shield and a spear, on a white horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spear attack: the rider thrusts the spear forward to the right, then draws it back to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    56,
+    23
+   ],
+   "animCanvas": [
+    152,
+    160
+   ],
+   "scale": 0.87,
+   "walkLock": [
+    0,
+    -3,
+    -6,
+    -10,
+    -13,
+    -10,
+    -7,
+    -2
+   ],
+   "strip": [
+    [
+     80,
+     66,
+     52
+    ],
+    12
+   ]
+  },
+  "egil": {
+   "name": "Egil",
+   "src": "pixel/src/hero_egil.png",
+   "canvas": [
+    132,
+    139
+   ],
+   "foot": 5,
+   "dx": -8,
+   "subject": "a big dark-bearded norse skald in a hooded grey fur cloak holding a tall rune-carved staff and a scroll, on a stocky brown horse",
+   "walk": "galloping in place loop: the horse gallops, the rider sways with the stride, stays in the same spot, ends back at the starting pose",
+   "attack": "spell casting: the rider raises the rune staff to the sky, the runes on it flash with blue light, then lowers it to the starting pose; the horse stays in place",
+   "strike": 3,
+   "face": [
+    50,
+    28
+   ],
+   "animCanvas": [
+    152,
+    160
+   ],
+   "scale": 0.87,
+   "walkLock": [
+    0,
+    -4,
+    -8,
+    -11,
+    -13,
+    -10,
+    -5,
+    0
+   ]
   }
  },
  "defaults": {

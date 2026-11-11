@@ -1,16 +1,17 @@
 import type Phaser from 'phaser';
-import type { TownFaction } from '../../logic/creatures';
+import type { TownPeople } from './townKit';
 import { townKit, type PieceId } from './townKit';
 
 /** The town's textures: each building's sprite and the streets' paving (a people's own are prefixed, the Greek city's are as they were). */
 export const TOWN_TEX = {
-  piece: (a: PieceId, faction: TownFaction = 'crown') => `${townKit(faction).tex}-${a}`,
+  piece: (a: PieceId, faction: TownPeople = 'crown') => `${townKit(faction).tex}-${a}`,
   paving: 'pxt-paving',
-  pavingOf: (faction: TownFaction = 'crown') => `${townKit(faction).tex}-paving`,
+  groundOf: (faction: TownPeople = 'crown') => `${townKit(faction).tex}-ground`,
+  pavingOf: (faction: TownPeople = 'crown') => `${townKit(faction).tex}-paving`,
 } as const;
 
 /** Queues the town's sprites and paving not loaded yet; their keys (filter them NEAREST once loaded). */
-export function queueTownArt(scene: Phaser.Scene, faction: TownFaction = 'crown'): string[] {
+export function queueTownArt(scene: Phaser.Scene, faction: TownPeople = 'crown'): string[] {
   const kit = townKit(faction);
   const keys = (Object.keys(kit.art) as PieceId[]).map((a) => {
     const key = TOWN_TEX.piece(a, faction);
@@ -19,5 +20,7 @@ export function queueTownArt(scene: Phaser.Scene, faction: TownFaction = 'crown'
   });
   const paving = TOWN_TEX.pavingOf(faction);
   if (!scene.textures.exists(paving)) scene.load.image(paving, kit.paving);
-  return [...keys, paving];
+  const ground = TOWN_TEX.groundOf(faction);
+  if (kit.groundUrl && !scene.textures.exists(ground)) scene.load.image(ground, kit.groundUrl);
+  return kit.groundUrl ? [...keys, paving, ground] : [...keys, paving];
 }

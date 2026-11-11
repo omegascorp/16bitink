@@ -13,8 +13,11 @@ export interface Effect {
   readonly rounds: number;
   /** A ward: the damage it will still soak. */
   readonly left?: number;
-  /** Poison: the damage each tick takes. */
+  /** Poison: the damage each tick takes; Thurisaz: the lightning each melee strike on its stack brings down. */
   readonly dose?: number;
+  /** Tiwaz: the Attack it gives now, and the most it grows to. */
+  readonly bonus?: number;
+  readonly cap?: number;
 }
 
 /** One stack on the field. */
@@ -43,6 +46,8 @@ export interface Stack {
   readonly reborn?: boolean;
   /** Speed its hero's gear gives every company (set bonuses). */
   readonly pace?: number;
+  /** On its skis: a skier in a battle on snow (+2 Speed, and it may move and then shoot). */
+  readonly skiing?: boolean;
 }
 
 /** What a hero brings to a battle. */
@@ -91,6 +96,8 @@ export interface BattleState {
    * steps it took (the charge counts them).
    */
   readonly held?: { readonly stack: number; readonly from: Hex; readonly moved: number };
+  /** Fought on snow: skiers glide (src/logic/battle.ts). */
+  readonly snow?: boolean;
 }
 
 export type Action =
@@ -136,6 +143,12 @@ export type BattleEvent =
   | { readonly type: 'bash'; readonly stack: number; readonly part: SiegePart; readonly left: number }
   /** A walker in the moat. */
   | { readonly type: 'moat'; readonly stack: number; readonly damage: number; readonly kills: number }
+  /** A dragon's breath: its strike also burnt the unit behind its target. */
+  | { readonly type: 'breath'; readonly stack: number; readonly target: number; readonly damage: number; readonly kills: number }
+  /** Thurisaz: a melee strike on `stack` brought lightning down on the striker, `target`. */
+  | { readonly type: 'lightning'; readonly stack: number; readonly target: number; readonly damage: number; readonly kills: number }
+  /** A battering ram broke the gate at a round's end (the finest also the wall beside it: `parts`). */
+  | { readonly type: 'ram'; readonly stack: number; readonly parts: readonly SiegePart[] }
   /** A tower fell: the company on it stands on the ground at `to`. */
   | { readonly type: 'fall'; readonly stack: number; readonly to: Hex }
   | { readonly type: 'turn'; readonly stack: number }

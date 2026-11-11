@@ -24,7 +24,7 @@ export interface GroundSpec {
 
 type Rgb = readonly [number, number, number];
 
-const TERRAINS: readonly Terrain[] = ['water', 'swamp', 'sand', 'dirt', 'grass', 'rough', 'snow'];
+const TERRAINS: readonly Terrain[] = ['water', 'swamp', 'sand', 'dirt', 'grass', 'rough', 'snow', 'ice'];
 const WATER = 0;
 /** Patch cells, px: each takes the swatch from its own random spot. */
 const CELL = 64;
@@ -48,6 +48,10 @@ const SPARKLE: Rgb = [224, 242, 236];
 const BANK: Rgb = [92, 74, 48];
 const WET: Rgb = [150, 128, 88];
 const SNOW: readonly Rgb[] = [[236, 238, 240], [220, 228, 236], [198, 210, 226], [176, 190, 212]];
+/** A frozen fjord: blue-grey ice, lighter where snow has drifted on it, dark cracks and pale streaks. */
+const ICE: readonly Rgb[] = [[104, 138, 164], [124, 158, 182], [146, 176, 198], [174, 200, 216]];
+const ICE_CRACK: Rgb = [72, 100, 124];
+const ICE_GLINT: Rgb = [232, 244, 250];
 const ROAD_RIM: Rgb = [98, 78, 52];
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5] as const;
 
@@ -71,7 +75,7 @@ export function valueNoise(seed: number, x: number, y: number): number {
 const signed = (seed: number, x: number, y: number, scale: number): number => valueNoise(seed, x / scale, y / scale) * 2 - 1;
 
 /** A height order for terrains: the lower one of two that meet is shaded along their border. */
-const RANK: Readonly<Record<Terrain, number>> = { water: 0, swamp: 1, sand: 2, dirt: 3, grass: 4, rough: 5, snow: 6 };
+const RANK: Readonly<Record<Terrain, number>> = { water: 0, ice: 0.5, swamp: 1, sand: 2, dirt: 3, grass: 4, rough: 5, snow: 6 };
 
 /** The ground image's size, px: the map plus its border all round. */
 /** A block of ground pixels. */
@@ -217,6 +221,18 @@ function snowAt(seed: number, x: number, y: number): Rgb {
   return SNOW[Math.max(0, k)]!;
 }
 
+function iceAt(seed: number, x: number, y: number): Rgb {
+  // Drifts: broad soft patches of lighter ice; streaks run along the fjord in long thin bands.
+  const drift = valueNoise(seed + 21, x / 40, y / 26) * 0.75 + valueNoise(seed + 22, x / 9, y / 6) * 0.25;
+  const k = Math.min(ICE.length - 1, Math.floor(drift * 1.2 * ICE.length + bayer(x, y) - 1));
+  // A crack where the noise crosses a narrow band (a wandering line), glints here and there.
+  const crack = Math.abs(valueNoise(seed + 23, x / 30, y / 30) - 0.5);
+  if (crack < 0.012) return ICE_CRACK;
+  if (valueNoise(seed + 24, x / 22, y / 3) > 0.86) return ICE[ICE.length - 1]!;
+  if (cellRandom(seed + 25, x, y) > 0.9985) return ICE_GLINT;
+  return ICE[Math.max(0, k)]!;
+}
+
 /** Water by its distance from the shore: foam, then shallows deepening to blue, dithered between bands, with ripples and sparkles. */
 function waterAt(seed: number, x: number, y: number, d: number): Rgb {
   let k = 0;
@@ -316,7 +332,7 @@ export function* groundSteps(spec: GroundSpec): Generator<number, Pixels> {
       if (t === WATER) c = waterAt(seed, x, y, toLand[i]!);
       else {
         const s = swatchFor[t];
-        c = s ? swatchAt(s, seed + t * 101, x, y) : snowAt(seed, x, y);
+        c = s ? swatchAt(s, seed + t * 101, x, y) : TERRAINS[t] === 'ice' ? iceAt(seed, x, y) : snowAt(seed, x, y);
         // The lower ground darkens along a higher one's edge, as if the higher stood a little proud.
         const r = rankOf[t]!;
         let up = 0;

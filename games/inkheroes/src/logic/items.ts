@@ -2,6 +2,7 @@ import { creature, type MachineId } from './creatures';
 import type { Hero } from './hero';
 import { CROWN_ITEMS, CROWN_SETS } from './itemCatalog/crown';
 import { KEMET_ITEMS, KEMET_SETS } from './itemCatalog/kemet';
+import { NORSE_ITEMS, NORSE_SETS } from './itemCatalog/norse';
 
 /** What a hero wears: armor (always part of a set), and the pieces that never are. */
 export const SLOTS = ['helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots', 'weapon', 'shield', 'amulet', 'ring1', 'ring2', 'book', 'machine'] as const;
@@ -52,7 +53,7 @@ export interface ItemDef {
   /** A war machine: the unit that stands on the field for it. */
   readonly machine?: MachineId;
   /** The faction whose random drops it is found in (`src/logic/itemCatalog/`); hand-placed pieces leave it out. */
-  readonly faction?: 'crown' | 'kemet';
+  readonly faction?: 'crown' | 'kemet' | 'norse';
 }
 
 /** A set of six armor pieces, one per armor slot, all of one grade (`src/logic/itemCatalog/`). */
@@ -60,7 +61,7 @@ export interface SetDef {
   readonly id: string;
   readonly name: string;
   readonly quality: Quality;
-  readonly faction: 'crown' | 'kemet';
+  readonly faction: 'crown' | 'kemet' | 'norse';
   /** Who it suits: the fighter (Attack, Defense, Morale) or the mystic (Spell Power, Knowledge, Luck). */
   readonly role: 'fighter' | 'mystic';
   /** What wearing 2, 4 and 6 of its pieces adds (each on top of the last); gray sets give none. */
@@ -68,10 +69,10 @@ export interface SetDef {
 }
 
 /** The random-drop sets, every faction's. */
-export const CATALOG_SETS: readonly SetDef[] = [...CROWN_SETS, ...KEMET_SETS];
+export const CATALOG_SETS: readonly SetDef[] = [...CROWN_SETS, ...KEMET_SETS, ...NORSE_SETS];
 
 /** The gray sets' names, for a catalog without their SetDefs. */
-const GRAY_SET_NAMES: Readonly<Record<string, string>> = { bronze: 'Bronze set', linen: 'Linen set', faience: 'Faience set', scale: 'Scale set' };
+const GRAY_SET_NAMES: Readonly<Record<string, string>> = { bronze: 'Bronze set', linen: 'Linen set', faience: 'Faience set', scale: 'Scale set', hide: 'Hide set', volva: 'Volva set' };
 const setWords = (name: string): string => (/\bset$/i.test(name) ? name : `${name} set`);
 /** Every set's name ("Bronze set"): the catalog's, and the gray ones'. */
 export const SET_NAMES: Readonly<Record<string, string>> = { ...GRAY_SET_NAMES, ...Object.fromEntries(CATALOG_SETS.map((s) => [s.id, setWords(s.name)])) };
@@ -84,6 +85,7 @@ export const SET_TIERS = [2, 4, 6] as const;
 export const ITEMS = {
   ...CROWN_ITEMS,
   ...KEMET_ITEMS,
+  ...NORSE_ITEMS,
   bronzeHelm: { name: 'Bronze Helm', slot: 'helm', quality: 'gray', set: 'bronze', faction: 'crown', gives: { defense: 1 } },
   bronzeCuirass: { name: 'Bronze Cuirass', slot: 'cuirass', quality: 'gray', set: 'bronze', faction: 'crown', gives: { defense: 1 } },
   bronzeBracers: { name: 'Bronze Bracers', slot: 'bracers', quality: 'gray', set: 'bronze', faction: 'crown', gives: { attack: 1 } },
@@ -110,15 +112,33 @@ export const ITEMS = {
   captainsSash: { name: 'Captain’s Sash', slot: 'belt', quality: 'gray', set: 'scale', faction: 'kemet', gives: { morale: 1 } },
   scaleGreaves: { name: 'Scale Greaves', slot: 'greaves', quality: 'gray', set: 'scale', faction: 'kemet', gives: { defense: 1 } },
   chariotSandals: { name: 'Chariot Sandals', slot: 'boots', quality: 'gray', set: 'scale', faction: 'kemet', gives: { attack: 1 } },
+  // The Norse fighter's set (chapter 3, part 1): Hervor's, as the Bronze set is Rowan's.
+  ironCap: { name: 'Iron Cap', slot: 'helm', quality: 'gray', set: 'hide', faction: 'norse', gives: { defense: 1 } },
+  hideJerkin: { name: 'Hide Jerkin', slot: 'cuirass', quality: 'gray', set: 'hide', faction: 'norse', gives: { defense: 1 } },
+  hideBracers: { name: 'Hide Bracers', slot: 'bracers', quality: 'gray', set: 'hide', faction: 'norse', gives: { attack: 1 } },
+  studdedBelt: { name: 'Studded Belt', slot: 'belt', quality: 'gray', set: 'hide', faction: 'norse', gives: { morale: 1 } },
+  furGreaves: { name: 'Fur Greaves', slot: 'greaves', quality: 'gray', set: 'hide', faction: 'norse', gives: { defense: 1 } },
+  furBoots: { name: 'Fur Boots', slot: 'boots', quality: 'gray', set: 'hide', faction: 'norse', gives: { attack: 1 } },
+  // The Norse mystic's set: a volva's wool and seidr cord.
+  volvaHood: { name: 'Volva Hood', slot: 'helm', quality: 'gray', set: 'volva', faction: 'norse', gives: { knowledge: 1 } },
+  volvaCloak: { name: 'Volva Cloak', slot: 'cuirass', quality: 'gray', set: 'volva', faction: 'norse', gives: { power: 1 } },
+  volvaWraps: { name: 'Volva Wraps', slot: 'bracers', quality: 'gray', set: 'volva', faction: 'norse', gives: { power: 1 } },
+  seidrCord: { name: 'Seidr Cord', slot: 'belt', quality: 'gray', set: 'volva', faction: 'norse', gives: { luck: 1 } },
+  volvaLeggings: { name: 'Volva Leggings', slot: 'greaves', quality: 'gray', set: 'volva', faction: 'norse', gives: { knowledge: 1 } },
+  barkShoes: { name: 'Bark Shoes', slot: 'boots', quality: 'gray', set: 'volva', faction: 'norse', gives: { knowledge: 1 } },
   noviceSpellbook: { name: 'Novice’s Spellbook', slot: 'book', quality: 'gray', gives: { knowledge: 1 } },
   // Egypt's spellbook: the same grade as the Greeks' first.
   novicePapyrus: { name: 'Novice’s Papyrus', slot: 'book', quality: 'gray', gives: { knowledge: 1 } },
+  // The Norse spellbook: a staff the runes are cut on (chapter 3, part 2).
+  noviceRuneStaff: { name: 'Novice’s Rune Staff', slot: 'book', quality: 'gray', gives: { knowledge: 1 } },
   oracleSpellbook: { name: 'Oracle’s Spellbook', slot: 'book', quality: 'green', gives: { knowledge: 1, power: 1 } },
   alexandrianCodex: { name: 'Alexandrian Codex', slot: 'book', quality: 'blue', gives: { knowledge: 2, power: 1 } },
   // Othrys's prize (part 4): forged by the Titans, kept by the Gigantes on the summit. The chapter's first Legendary piece.
   kronosHelm: { name: 'Helm of Kronos', slot: 'helm', quality: 'gold', gives: { attack: 2, defense: 3, morale: 1 } },
   // The Delta's prize (chapter 2's part 4): the pharaohs' own crook and flail, kept by Ammit at the House of the Benben. Chapter 2's Legendary piece.
   crookAndFlail: { name: 'Crook and Flail', slot: 'weapon', quality: 'gold', gives: { attack: 3, defense: 2, morale: 1 } },
+  // Angantyr's barrow (chapter 3, part 4): Hervor's family sword, cursed, kept by the draugr. The chapter's Legendary piece.
+  tyrfing: { name: 'Tyrfing', slot: 'weapon', quality: 'gold', gives: { attack: 4, defense: 1, morale: 1 } },
   catapult: { name: 'Catapult', slot: 'machine', quality: 'gray', gives: {}, machine: 'catapult' },
   catapult2: { name: 'Bronze Catapult', slot: 'machine', quality: 'green', gives: {}, machine: 'catapult2' },
   catapult3: { name: 'Syracusan Catapult', slot: 'machine', quality: 'blue', gives: {}, machine: 'catapult3' },
@@ -126,6 +146,10 @@ export const ITEMS = {
   ramp: { name: 'Earth Ramp', slot: 'machine', quality: 'gray', gives: {}, machine: 'ramp' },
   ramp2: { name: 'Brick Ramp', slot: 'machine', quality: 'green', gives: {}, machine: 'ramp2' },
   ramp3: { name: 'Ramp of the Pyramid Builders', slot: 'machine', quality: 'blue', gives: {}, machine: 'ramp3' },
+  // The Norse war machine: a battering ram that breaks the gate (chapter 3, from part 3).
+  ram: { name: 'Ram', slot: 'machine', quality: 'gray', gives: {}, machine: 'ram' },
+  ram2: { name: 'Iron Ram', slot: 'machine', quality: 'green', gives: {}, machine: 'ram2' },
+  ram3: { name: 'Ram of the Sea-Kings', slot: 'machine', quality: 'blue', gives: {}, machine: 'ram3' },
 } as const satisfies Record<string, ItemDef>;
 
 export type ItemId = keyof typeof ITEMS;
@@ -135,7 +159,7 @@ export type Gear = Readonly<Partial<Record<Slot, ItemId>>>;
 export const itemDef = (id: ItemId): ItemDef => ITEMS[id];
 
 /** What the Blacksmith sells; finer machines are prizes. */
-export const SOLD_MACHINES = ['catapult', 'catapult2', 'ramp', 'ramp2'] as const satisfies readonly ItemId[];
+export const SOLD_MACHINES = ['catapult', 'catapult2', 'ramp', 'ramp2', 'ram', 'ram2'] as const satisfies readonly ItemId[];
 export type SoldMachine = (typeof SOLD_MACHINES)[number];
 
 /** A piece's grade. */
@@ -146,6 +170,8 @@ export const hasSpellbook = (h: Pick<Hero, 'gear'>): boolean => !!h.gear?.book;
 
 /** A machine in words: "Breaks walls: 2 stones a round", "A ramp where you choose, ready on round 3". */
 function machineSays(id: MachineId): string {
+  const ram = creature(id).ram;
+  if (ram) return `Breaks the gate at the end of round ${ram.round}${ram.towers ? ', and cracks the wall beside it' : ''}`;
   const ramp = creature(id).ramp;
   if (ramp) return `A ramp up the wall where you choose, ready on round ${ramp.ready}${ramp.second ? `, and a second on round ${ramp.second}` : ''}`;
   const { throws, crit } = creature(id).stones!;

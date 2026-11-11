@@ -2,7 +2,8 @@ import type { HeroDef, MapDef } from '../../level/types';
 import { soldOn } from '../../level/unlocks';
 import { dailyIncome, enterTown, heroTown, ourHeroes, playerTowns, townAt, withTown, type Adventure } from '../adventure';
 import { creature } from '../creatures';
-import { armyOf, isEmptyArmy, moveAll } from '../army';
+import { armyOf, isEmptyArmy, joinLike, moveAll } from '../army';
+import { moveFitting } from './companies';
 import { HERO_COST, hireHero, selectHero, tavernHeroes, withHero } from '../heroes';
 import { hireScore, strongestLine, type HireJob } from './recruits';
 import { maxMana, type Hero } from '../hero';
@@ -116,25 +117,29 @@ export function outfit(adv: Adventure, def: MapDef, id: string, memory: LordMemo
     if (best) a = { ...a, purse: pay(a.purse, creature(best).cost), hero: { ...a.hero, gear: { ...a.hero.gear, machine: best } } };
   }
   a = hireInto(a, heroTown(a)!, memory);
-  a = takeGarrison(a, memory, !!rules?.takeAll);
+  // A town the map's lord holds with its own garrison (Avaldsnes's huscarls) keeps it behind its walls.
+  if (def.rival?.holds !== town.id) a = takeGarrison(a, memory, !!rules?.takeAll);
   return a.hero.id === picked ? a : selectHero(a, picked);
 }
 
 /** The picked hero hires all `town` has with the spendable gold, then raises his stacks with what's left of it. */
 function hireInto(adv: Adventure, town: Town, memory: LordMemory): Adventure {
   const keep = adv.purse.gold - spendable(adv, memory);
-  const r = hireAll(town, adv.hero.army, adv.purse, keep);
+  const r = hireAll(town, joinLike(adv.hero.army), adv.purse, keep);
   const spare = { ...r.purse, gold: Math.max(0, r.purse.gold - keep) };
   const up = upgradeAll(r.town, [r.army], spare);
   const purse = { ...up.purse, gold: up.purse.gold + Math.min(keep, r.purse.gold) };
-  return withTown({ ...adv, purse, hero: { ...adv.hero, army: up.armies[0]! } }, r.town);
+  // Like stacks joined, before hiring and after raising (a stack raised to the level another already has), as a player
+  // drags one onto the other: a slot a repeated stack held is free for next week's recruits.
+  return withTown({ ...adv, purse, hero: { ...adv.hero, army: joinLike(up.armies[0]!) } }, r.town);
 }
 
 /** A town with no foe in reach gives its garrison to the hero riding out of it (the evening hires a new one with spare gold). */
 function takeGarrison(adv: Adventure, memory: LordMemory, always: boolean): Adventure {
   const town = heroTown(adv);
   if (!town || isEmptyArmy(town.garrison) || (!always && foeNear(adv, memory, town, DANGER_DAYS + 1))) return adv;
-  const r = moveAll(town.garrison, adv.hero.army);
+  // All of it when it fits; else what fits beside his own companies (a like one, or a free slot), the strongest first: the rest hold the walls.
+  const r = moveAll(town.garrison, adv.hero.army) ?? moveFitting(town.garrison, joinLike(adv.hero.army));
   return r ? withTown({ ...adv, hero: { ...adv.hero, army: r.dst } }, { ...town, garrison: r.src }) : adv;
 }
 

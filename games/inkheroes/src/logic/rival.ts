@@ -3,14 +3,14 @@ import { chestPiece, dropOf } from './loot';
 import { soldOn } from '../level/unlocks';
 import type { MapDef } from '../level/types';
 import {
-  calendar, checkGoal, dayOfWeek, DEFEND, fledHome, GATE, stormOf, townGuards, guardAt, lordSide, heroInGarrison, incomeOf, liveObjects, lyingItem, ourHeroes, playerArmy, RIVAL, rivalHero, rivalHeroes, revealAround, terrainView, toldPrompt, townAt, withTown, type Adventure, type Prompt,
+  calendar, checkGoal, dayOfWeek, DEFEND, fledHome, GATE, groundAt, stormOf, townGuards, guardAt, lordSide, heroInGarrison, incomeOf, liveObjects, lyingItem, ourHeroes, playerArmy, RIVAL, rivalHero, rivalHeroes, rivalSighted, revealAround, terrainView, toldPrompt, townAt, withTown, type Adventure, type Prompt,
 } from './adventure';
-import { CHAPTER1 } from '../narration/lines';
+import { CHAPTER1, CHAPTER3 } from '../narration/lines';
 import { armyMorale, armyOf, isEmptyArmy, splitMonster, type Army } from './army';
 import { survivors, type BattleSide, type SiegeSetup } from './battle';
 import type { BattleState } from './battleTypes';
 import { creature, strengthOf } from './creatures';
-import { dailyMp, toBattleHero, type Hero } from './hero';
+import { afterFight, dailyMp, toBattleHero, type Hero } from './hero';
 import { MINE_NAMES, type MapObject } from './objects';
 import { canStep, findPath, type PathStep } from './path';
 import { selectHero } from './heroes';
@@ -102,7 +102,8 @@ export function rivalTurn(adv: Adventure, def: MapDef): { adv: Adventure; report
 /** A lord's night (src/logic/lord): his whole side played as a player plays, a fight with us left for the player. */
 function lordTurn(adv: Adventure, def: MapDef): { adv: Adventure; report: RivalReport } {
   const r = playLord(adv, def, 'stop');
-  const after = r.fight ? { adv: r.adv, notes: [] } : sighted(r.adv, def);
+  const told = rivalSighted(raceLost(adv, r.adv), def);
+  const after = r.fight ? { adv: told, notes: [] } : sighted(told, def);
   const notes = [...r.notes, ...after.notes];
   return { adv: withNews(after.adv, def, notes, r.fight), report: { path: r.path, notes, ...(r.fight ? { fight: r.fight } : {}) } };
 }
@@ -145,6 +146,14 @@ export function headStart(adv: Adventure, def: MapDef): Adventure {
 function lostAlly(foe: Hero, town: Town): Prompt {
   if (town.id === CHAPTER1.eudora && foe.id === CHAPTER1.kassander) return toldPrompt('eudora-lost');
   return { kind: 'message', title: `${town.name} has fallen`, text: `${foe.name} reached ${town.name} before you, and it flies his banner now. Take it back from him!` };
+}
+
+/** Kaupang taken by Eirik before us (the race lost): told by the narrator, as Eudora was. */
+function raceLost(before: Adventure, after: Adventure): Adventure {
+  const was = before.towns.find((t) => t.id === CHAPTER3.kaupang);
+  const now = after.towns.find((t) => t.id === CHAPTER3.kaupang);
+  if (was?.owner !== 'neutral' || now?.owner !== 'rival' || after.rival?.hero?.id === undefined) return after;
+  return { ...after, prompts: [...after.prompts, toldPrompt('kaupang-lost')] };
 }
 
 /** The towns of the map both sides race for (`race` on the map's town): never handed over, fought for. */
@@ -400,7 +409,8 @@ export function stormSides(adv: Adventure, hero: Hero, town: Town): { attacker: 
 /** The rival's hero fights `army` (a monster, or the garrison of `town`, behind its walls) to the end, at once. */
 function fight(adv: Adventure, def: MapDef, hero: Hero, army: Army, id: string, town?: Town): { adv: Adventure; won: boolean; notes: string[] } {
   const sides = town ? stormSides(adv, hero, town) : { attacker: lordSide(adv, hero), defender: { hero: null, army } };
-  const end = autoBattle(sides.attacker, sides.defender, (adv.seed ^ (adv.day * 7919) ^ hashId(`rival:${id}`)) >>> 0, sides.siege);
+  const field = groundAt(def, hero.x, hero.y) === 'snow' ? { snow: true } : {};
+  const end = autoBattle(sides.attacker, sides.defender, (adv.seed ^ (adv.day * 7919) ^ hashId(`rival:${id}`)) >>> 0, sides.siege, undefined, field);
   const home = end.fled === 0 ? fledHome(adv, hero) : null;
   if (home) return { adv: home.adv, won: false, notes: [`${hero.name} was beaten back and fled to ${home.town.name} without his army.`] };
   if (end.winner !== 0) {
@@ -410,7 +420,7 @@ function fight(adv: Adventure, def: MapDef, hero: Hero, army: Army, id: string, 
   // The group's drop, by the same roll as ours (src/logic/loot.ts): with his bag full it lies where the group stood.
   const beaten = adv.objects.find((o) => o.id === id);
   const drop = beaten && dropOf(def, beaten, rivalHeroes(adv));
-  const fought = { ...hero, army: survivors(end, 0, hero.army) };
+  const fought = { ...afterFight(hero), army: survivors(end, 0, hero.army) };
   const got = drop ? gainItem(fought, drop) : null;
   const objects = adv.objects.map((o) => (o.id !== id ? o : drop && !got!.kept ? lyingItem(o, drop) : { ...o, gone: true }));
   return { adv: { ...withRival(adv, got?.hero ?? fought), objects }, won: true, notes: [] };

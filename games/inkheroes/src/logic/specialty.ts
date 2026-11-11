@@ -15,7 +15,8 @@ export type Specialty =
   | { readonly kind: 'gold'; readonly gold: number };
 
 /** The spells a specialty can be in, each with its own bonus. */
-export type SpecialtySpell = Extract<SpellId, 'cure' | 'slow' | 'lightningBolt' | 'ward' | 'rebirth' | 'curse'>;
+export type SpecialtySpell = Extract<SpellId, 'cure' | 'slow' | 'lightningBolt' | 'ward' | 'rebirth' | 'curse' | 'tiwaz' | 'isa' | 'thurisaz'>;
+const SPECIALTY_SPELLS: readonly SpecialtySpell[] = ['cure', 'slow', 'lightningBolt', 'ward', 'rebirth', 'curse', 'tiwaz', 'isa', 'thurisaz'];
 
 /** A line specialist's +1 Attack and +1 Defense from level 1, and another +1 every this many hero levels. */
 export const LINE_LEVELS = 4;
@@ -31,6 +32,12 @@ export const WARD_SHARE = 0.5;
 export const REBIRTH_SHARE = 0.5;
 /** A Thunderbolt specialist's bolt does this share more damage a hero level. */
 export const BOLT_SHARE = 0.05;
+/** A Thurisaz specialist's lightning strikes this share harder. */
+export const THURISAZ_SHARE = 0.5;
+/** An Isa specialist's ice lasts a round more every this many levels. */
+export const ISA_LEVELS = 5;
+/** A Tiwaz specialist's rune grows +1 higher every this many levels. */
+export const TIWAZ_LEVELS = 5;
 /** The gold specialist's gold a day. */
 export const SPECIALTY_GOLD = 350;
 
@@ -52,7 +59,13 @@ export function spellShare(spec: BattleSpecialty | undefined, spell: SpellId): n
   if (spell === 'ward') return WARD_SHARE;
   if (spell === 'rebirth') return REBIRTH_SHARE;
   if (spell === 'lightningBolt') return BOLT_SHARE * spec.level;
+  if (spell === 'thurisaz') return THURISAZ_SHARE;
   return 0;
+}
+
+/** What a Tiwaz specialist adds to the rune's cap. */
+export function tiwazCapBonus(spec: BattleSpecialty | undefined): number {
+  return spec?.kind === 'spell' && spec.spell === 'tiwaz' ? Math.floor(spec.level / TIWAZ_LEVELS) : 0;
 }
 
 /** Rounds a Slow or Curse specialist's spell lasts beyond Spell Power. */
@@ -60,6 +73,7 @@ export function extraRounds(spec: BattleSpecialty | undefined, spell: SpellId): 
   if (spec?.kind !== 'spell' || spec.spell !== spell) return 0;
   if (spell === 'slow') return Math.floor(spec.level / SLOW_LEVELS);
   if (spell === 'curse') return Math.floor(spec.level / CURSE_LEVELS);
+  if (spell === 'isa') return Math.floor(spec.level / ISA_LEVELS);
   return 0;
 }
 
@@ -78,6 +92,9 @@ export function specialtyText(spec: Specialty, spellName: (s: SpellId) => string
       if (spec.spell === 'curse') return `${spellName('curse')}: lasts a round more per ${CURSE_LEVELS} levels`;
       if (spec.spell === 'ward') return `${spellName('ward')}: soaks ${WARD_SHARE * 100}% more`;
       if (spec.spell === 'rebirth') return `${spellName('rebirth')}: brings back ${REBIRTH_SHARE * 100}% more`;
+      if (spec.spell === 'thurisaz') return `${spellName('thurisaz')}: strikes ${THURISAZ_SHARE * 100}% harder`;
+      if (spec.spell === 'isa') return `${spellName('isa')}: lasts a round more per ${ISA_LEVELS} levels`;
+      if (spec.spell === 'tiwaz') return `${spellName('tiwaz')}: grows +1 higher per ${TIWAZ_LEVELS} levels`;
       return `${spellName(spec.spell)}: +${BOLT_SHARE * 100}% damage per level`;
   }
 }
@@ -89,6 +106,6 @@ export function isSpecialty(v: unknown): v is Specialty {
   if (typeof v !== 'object' || v === null) return false;
   const s = v as Record<string, unknown>;
   if (s.kind === 'gold') return typeof s.gold === 'number';
-  if (s.kind === 'spell') return ['cure', 'slow', 'lightningBolt', 'ward', 'rebirth', 'curse'].includes(s.spell as string);
+  if (s.kind === 'spell') return (SPECIALTY_SPELLS as readonly unknown[]).includes(s.spell);
   return s.kind === 'line' && typeof s.line === 'string';
 }

@@ -254,10 +254,14 @@ export function inkBox(sheet: Pixels, x0: number, w: number, h: number): { l: nu
   return r > l ? { l, t, r, b } : null;
 }
 
-/** How a unit stands in a w × h picture: where its frame's top-left goes, so its figure is centred across with its feet `ground` rows up (lower if it is too tall, keeping its head in). */
+/**
+ * How a unit stands in a w × h picture: where its frame's top-left goes, so its figure is centred across with its feet `ground` rows up (lower if it is too tall, keeping its head in).
+ * One wider than the picture keeps its front in: units face right, so its head stays in view and its tail is cut (a Fafnir's Kin).
+ */
 export function pictureOffset(box: { l: number; t: number; r: number; b: number }, footY: number, w: number, h: number, ground = 8): { x: number; y: number } {
   const feet = Math.max(h - ground, footY - box.t + 3);
-  return { x: Math.floor(w / 2 - (box.l + box.r) / 2), y: feet - footY };
+  const centred = Math.floor(w / 2 - (box.l + box.r) / 2);
+  return { x: box.r - box.l > w - 6 ? w - 3 - box.r : centred, y: feet - footY };
 }
 
 /** A w × h picture: `scene` (or a plain dark fill) with the sprite frame at x0 of `sheet` (fw × fh) drawn over it at `at`, 1:1 and clipped. */
@@ -346,6 +350,8 @@ export const RIBBONS = {
   olympian: RIMS.gold,
   // Sacred Rites: the Nile's turquoise.
   rites: { light: [120, 222, 206, 255], mid: [32, 150, 140, 255], dark: [14, 72, 68, 255] },
+  // Rune Magic: the frost's pale blue.
+  runes: { light: [196, 228, 246, 255], mid: [104, 156, 196, 255], dark: [36, 64, 98, 255] },
   red: { light: [232, 104, 80, 255], mid: [168, 42, 32, 255], dark: [92, 20, 14, 255] },
 } as const satisfies Record<string, Rim>;
 

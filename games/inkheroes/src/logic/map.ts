@@ -3,7 +3,7 @@
  * (trees, mountains, rocks block; a road speeds travel). Maps are written as
  * rows of characters, one per tile (see TILE_CHARS).
  */
-export type Terrain = 'grass' | 'dirt' | 'rough' | 'sand' | 'snow' | 'swamp' | 'water';
+export type Terrain = 'grass' | 'dirt' | 'rough' | 'sand' | 'snow' | 'swamp' | 'water' | 'ice';
 export type Cover = 'none' | 'tree' | 'pine' | 'mountain' | 'rock' | 'road';
 
 export interface Grid {
@@ -19,6 +19,8 @@ export const TILE_CHARS: Readonly<Record<string, readonly [Terrain, Cover]>> = {
   b: ['water', 'road'], T: ['grass', 'tree'], P: ['grass', 'pine'], M: ['rough', 'mountain'], R: ['grass', 'rock'], '=': ['dirt', 'road'], '#': ['grass', 'road'],
   // The desert's dunes and boulders (chapter 2): mountain and rock cover on sand.
   D: ['sand', 'mountain'], k: ['sand', 'rock'],
+  // The north (chapter 3): pine forest, fells and boulders on snow, and a frozen fjord's ice ('i'), walked slowly.
+  p: ['snow', 'pine'], N: ['snow', 'mountain'], x: ['snow', 'rock'], i: ['ice', 'none'],
 };
 
 export function parseGrid(rows: readonly string[]): Grid {
@@ -42,7 +44,8 @@ export const inGrid = (g: Grid, x: number, y: number): boolean => x >= 0 && y >=
 export const tileIndex = (g: Grid, x: number, y: number): number => x + y * g.w;
 
 /** Movement points to leave a tile of each ground (H3). */
-export const TERRAIN_COST: Readonly<Record<Terrain, number>> = { grass: 100, dirt: 100, rough: 125, sand: 150, snow: 150, swamp: 175, water: Infinity };
+/** Ice is slow for everyone, the Norse too (their way over snow is no help on it). */
+export const TERRAIN_COST: Readonly<Record<Terrain, number>> = { grass: 100, dirt: 100, rough: 125, sand: 150, snow: 150, swamp: 175, water: Infinity, ice: 175 };
 export const ROAD_COST = 50;
 /** Movement points to a tile of plain ground: what a player counts, as points mean nothing on screen. */
 export const TILE_MP = 100;

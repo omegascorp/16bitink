@@ -47,7 +47,7 @@ export const INK = {
   good: [186, 226, 140, 255],
 } as const satisfies Record<string, Rgba>;
 
-/** Pieces not drawn yet borrow a drawn one's icon (Egypt's art is still to come). */
+/** Pieces not drawn yet borrow a drawn one's icon (none now: the runes, the rune staff and the rams have their own). */
 const SPELL_STAND_IN: Readonly<Partial<Record<SpellId, SpellId>>> = {};
 const ITEM_STAND_IN: Readonly<Partial<Record<ItemId, ItemId>>> = {};
 

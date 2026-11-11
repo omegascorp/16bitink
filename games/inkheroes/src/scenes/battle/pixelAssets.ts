@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
 import { BATTLE_BG, HERO_ART, OBSTACLE_ART, UNIT_ART, type Pose, type StillArt, type UnitArt } from '../../art/pixel/manifest';
 import { SCENERY } from '../../art/pixel/scenery';
-import { figureArt, type FigureArt } from './standIns';
+import { battleArtId, figureArt, type FigureArt } from './standIns';
 import type { BackdropSource } from './pixelBackdrop';
 import type { PixelBuffer, Rgba } from './pixelRaster';
 import { drawBadge } from './pixelRaster';
 import { loadUiFont } from './pixelFont';
+import type { Castle } from './castle';
 import { siegeArt } from './siegeView';
 import { loadUiArt, texturePixels } from './pixelUi';
 import { FACE, faceBox } from './pixelFaces';
@@ -78,7 +79,7 @@ export function nearest(scene: Phaser.Scene, key: string): void {
 }
 
 /** Loads what a battle needs and isn't loaded yet; resolves once every texture is in and filtered NEAREST. */
-export function loadBattleArt(scene: Phaser.Scene, creatures: readonly string[], terrain: string, siege = false): Promise<void> {
+export function loadBattleArt(scene: Phaser.Scene, creatures: readonly string[], terrain: string, siege: Castle | false = false): Promise<void> {
   const keys: string[] = [];
   const sheet = (key: string, url: string, art: UnitArt): void => {
     keys.push(key);
@@ -88,7 +89,8 @@ export function loadBattleArt(scene: Phaser.Scene, creatures: readonly string[],
     keys.push(key);
     if (!scene.textures.exists(key)) scene.load.image(key, url);
   };
-  for (const id of new Set(creatures)) {
+  // Each fighter's own art (its face for the turn order and card) and, a skier off snow, its picture on foot.
+  for (const id of new Set(creatures.flatMap((c) => [c, battleArtId(c, terrain)]))) {
     const art = unitArt(id);
     for (const pose of POSES) sheet(PX_TEX.unit(id, pose), art.url[pose], art);
   }
@@ -100,7 +102,7 @@ export function loadBattleArt(scene: Phaser.Scene, creatures: readonly string[],
   if (SCENERY[bg]) image(PX_TEX.scenery(bg), SCENERY[bg]!.url);
   else image(PX_TEX.bg(bg), BATTLE_BG[bg]!);
   for (const [kind, art] of Object.entries(OBSTACLE_ART)) image(PX_TEX.obstacle(kind), art.url);
-  if (siege) for (const { key, url } of siegeArt()) image(key, url);
+  if (siege) for (const { key, url } of siegeArt(siege)) image(key, url);
   keys.push(...loadUiArt(scene));
   makeCodeTextures(scene);
   const done = (): void => keys.forEach((k) => nearest(scene, k));

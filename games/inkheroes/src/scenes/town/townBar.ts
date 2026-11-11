@@ -4,6 +4,8 @@ import { calendar, type Adventure } from '../../logic/adventure';
 import type { TownHeroes } from '../../logic/heroes';
 import type { Town } from '../../logic/town';
 import { MAX_TOWERS } from '../../logic/siege';
+import type { TownFaction } from '../../logic/creatures';
+import { factionOf } from '../../logic/factions';
 import { income, towerPlaces, towersOf } from '../../logic/town';
 import { faceOf, heroArt, PX_TEX } from '../battle/pixelAssets';
 import { drawPortrait, drawSocket } from '../battle/pixelFrames';
@@ -14,6 +16,13 @@ import { armyRowW, armyRowOf } from '../hud/armySlots';
 import { PurseRow, PURSE_BAR_H, PURSE_ROW_W } from '../hud/purseRow';
 import type { RideHere } from '../../logic/rideHere';
 import { armiesW, armyH, BTN, buttonGrid, buttonsGridW, cellsW, GAP, HEAD_GAP, LINE, NARROW_ROUND, narrowButtonW, PAD, ROW_GAP, stripLayout, townButtons, type TownButton } from './stripLayout';
+
+/** The strip's icons a people draws for itself (the Greeks' are the plain ones): the Hall, the Fort and the town's crest (also the Portal's). */
+const PEOPLE_ICONS: Readonly<Partial<Record<TownFaction, Readonly<Partial<Record<'hall' | 'recruit' | 'town', IconName>>>>>> = {
+  norse: { hall: 'hallNorse', recruit: 'recruitNorse', town: 'townNorse' },
+  kemet: { hall: 'hallKemet', recruit: 'recruitKemet', town: 'townKemet' },
+};
+const iconOf = (base: 'hall' | 'recruit' | 'town', f: TownFaction): IconName => PEOPLE_ICONS[f]?.[base] ?? base;
 
 export type TownScreen = 'hall' | 'fort' | 'guild' | 'smith' | 'tavern' | 'store' | 'market' | 'sell' | 'portal';
 /** A slot of a row; `i` HEAD is the row's head (the crest or the hero's face): picking the hero there moves them with every company. */
@@ -84,6 +93,8 @@ export class TownBar {
   private readonly drag: ArmyDrag<SlotRef>;
   private readonly splitBtn: PixelButton;
   private slot = 0;
+  /** The people whose icons the strip wears (the first layout sets it). */
+  private faction: TownFaction | null = null;
   /** The heroes whose faces head the rows (garrison | gate), to redraw them when they change. */
   private faceFor = '|';
   private heroes: TownHeroes = {};
@@ -134,13 +145,13 @@ export class TownBar {
     for (const b of this.buttons) b.destroy();
     this.buttons.length = 0;
     const specs: Readonly<Record<TownButton, { label: string; icon: IconName; rim?: 'gold'; onClick(): void }>> = {
-      hall: { label: 'Hall', icon: 'hall', onClick: () => actions.open('hall') },
-      fort: { label: 'Fort', icon: 'recruit', onClick: () => actions.open('fort') },
+      hall: { label: 'Hall', icon: iconOf('hall', this.faction ?? 'crown'), onClick: () => actions.open('hall') },
+      fort: { label: 'Fort', icon: iconOf('recruit', this.faction ?? 'crown'), onClick: () => actions.open('fort') },
       guild: { label: 'Guild', icon: 'spell', onClick: () => actions.open('guild') },
       smith: { label: 'Smith', icon: 'smith', onClick: () => actions.open('smith') },
       tavern: { label: 'Tavern', icon: 'tavern', onClick: () => actions.open('tavern') },
       store: { label: 'Store', icon: 'store', onClick: () => actions.open('store') },
-      portal: { label: 'Portal', icon: 'town', onClick: () => actions.open('portal') },
+      portal: { label: 'Portal', icon: iconOf('town', this.faction ?? 'crown'), onClick: () => actions.open('portal') },
       ride: { label: 'Ride here', icon: 'auto', onClick: () => actions.ride() },
       leave: { label: 'Leave', icon: 'leave', rim: 'gold', onClick: () => actions.leave() },
     };
@@ -163,7 +174,7 @@ export class TownBar {
       img.setInteractive().on('pointerup', () => actions.pickSlot({ army: row(), i: HEAD }));
     };
     const crestFrame = new PixelImage(scene, drawSocket(slot, 'gold'));
-    const crestIcon = scene.add.image(slot / 2, slot / 2, UI_TEX.icon('town'));
+    const crestIcon = scene.add.image(slot / 2, slot / 2, UI_TEX.icon(iconOf('town', this.faction ?? 'crown')));
     tapHead(crestFrame.img, () => 'garrison');
     const crest = scene.add.container(0, 0, [crestFrame.img, crestIcon]).setDepth(depth + 1);
     // Each hero in the town heads their row: a plain face, and a lit one for when they're picked.
@@ -219,6 +230,13 @@ export class TownBar {
   /** Lays the strip out for town `t` on a `w` × `h` screen, with the Tavern's button when it `hires`, the Portal's with a hero `inside`; where its top lands. */
   layout(w: number, h: number, t: Town, hires = false, ride: RideHere | null = null, inside = false): number {
     this.ride = ride;
+    const faction = factionOf(t);
+    if (faction !== this.faction) {
+      // A town of another people: its icons, so the faces and buttons are made again.
+      this.faction = faction;
+      this.slot = 0;
+      this.buttonsKey = '';
+    }
     const names = townButtons(t.built, hires, !!ride, inside);
     const { narrow, slot, townW } = stripLayout(w, h, PURSE_BAR_H, names.length);
     if (slot !== this.slot) this.makeFaces(slot);

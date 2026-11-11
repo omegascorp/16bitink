@@ -7,6 +7,7 @@ import { commitProgress } from '../logic/accountSave';
 import { progressNote } from '../logic/runNote';
 import { endDay, startAdventure, type Adventure } from '../logic/adventure';
 import { openLand, partDays, rideOn } from '../logic/chapter';
+import { keepExploring, savedStanding } from '../logic/freePlay';
 import { rivalTurn, type RivalReport } from '../logic/rival';
 import { blotsFor, loadAdventure, loadProgress, recordWin, saveAdventure } from '../logic/save';
 
@@ -44,17 +45,16 @@ export class Session extends Phaser.Events.EventEmitter {
     return (scene.registry.get(KEY) as Session | undefined) ?? null;
   }
 
-  /** Chapter `chapter`'s saved game, read but not taken up: the part in play and its day (a part left won shows the next), or null with none to continue. */
-  static look(host: GameHost, chapter: ChapterDef = CHAPTERS[0]!): { def: MapDef; day: number } | null {
+  /** Chapter `chapter`'s saved game, read but not taken up: the part in play and its day (a part left won shows the next; `free`: the chapter won and played on), or null with none to continue. */
+  static look(host: GameHost, chapter: ChapterDef = CHAPTERS[0]!): { def: MapDef; day: number; free?: true } | null {
     const saved = loadAdventure(host.storage, inChapter(chapter), chapter.slot);
     if (!saved) return null;
     const def = inChapter(chapter)(saved.current.mapId)!;
-    if (saved.current.status === 'won') {
-      const next = nextMap(def);
-      return next ? { def: next, day: saved.current.day } : null;
-    }
-    const current = saved.current.status === 'lost' ? saved.dayStart : saved.current;
-    return current.status === 'playing' ? { def, day: current.day } : null;
+    const at = savedStanding(saved, nextMap(def));
+    if (!at) return null;
+    if (at.kind === 'ride') return { def: at.next, day: at.from.day };
+    const current = at.kind === 'free' ? at.save.current : at.current;
+    return { def, day: current.day, ...(current.freePlay ? { free: true as const } : {}) };
   }
 
   /** Throws chapter `chapter`'s saved game away (the menu's "start over"). */
@@ -62,29 +62,41 @@ export class Session extends Phaser.Events.EventEmitter {
     saveAdventure(host.storage, null, chapter.slot);
   }
 
-  /** The saved map in play in chapter `chapter`, if any (a part left on its victory card rides on into the next). */
+  /** The saved map in play in chapter `chapter`, if any (a part left on its victory card rides on into the next; the chapter's last part won plays on in free play). */
   static resume(scene: Phaser.Scene, host: GameHost, chapter: ChapterDef = CHAPTERS[0]!): Session | null {
     const saved = loadAdventure(host.storage, inChapter(chapter), chapter.slot);
     if (!saved) return null;
     const def = inChapter(chapter)(saved.current.mapId)!;
-    if (saved.current.status === 'won') {
-      const next = nextMap(def);
-      return next ? Session.open(scene, host, next, rideOn(saved.current, def, next), true) : null;
-    }
-    // Closed on the defeat card: come back to this morning, as "Replay the day" would.
-    const current = saved.current.status === 'lost' ? saved.dayStart : saved.current;
-    if (current.status !== 'playing') return null;
+    const at = savedStanding(saved, nextMap(def));
+    if (!at) return null;
+    if (at.kind === 'ride') return Session.open(scene, host, at.next, rideOn(at.from, def, at.next), true);
+    const save = at.kind === 'free' ? at.save : saved;
+    const current = at.kind === 'free' ? save.current : at.current;
     // A game saved before its part's way was shown sees it now.
     const lit = openLand(current, def);
-    const s = new Session(host, def, lit, openLand(saved.dayStart, def), openLand(saved.partStart ?? saved.dayStart, def));
+    const s = new Session(host, def, lit, openLand(save.dayStart, def), openLand(save.partStart ?? save.dayStart, def));
     s.wayToShow = lit.explored !== current.explored;
     s.scene = scene;
     scene.registry.set(KEY, s);
+    // A won game now in free play is saved so, at once.
+    if (at.kind === 'free') s.save();
     return s;
   }
 
   static begin(scene: Phaser.Scene, host: GameHost, def: MapDef): Session {
     return Session.open(scene, host, def, startAdventure(def));
+  }
+
+  /** The chapter's last part won, the player stays in the land (the chapter-done card's Keep exploring): play goes on in free play, the goal met for good. */
+  keepExploring(): void {
+    if (this.current.status !== 'won' || nextMap(this.def)) return;
+    this.dayStart = keepExploring(this.dayStart);
+    this.set(keepExploring(this.current));
+  }
+
+  /** In free play: the chapter's last part won, the land played on. */
+  get freePlay(): boolean {
+    return !!this.current.freePlay;
   }
 
   /** The chapter rides on from this part, won, into the next: the same land, opened further, with all that was won. */
@@ -163,6 +175,8 @@ export class Session extends Phaser.Events.EventEmitter {
   }
 
   private track(scene: Phaser.Scene, result: 'lose' | 'quit'): void {
+    // A day lost in free play is no loss of the part: it stays won.
+    if (result === 'lose' && this.current.freePlay) return;
     this.send({ type: 'level_end', level: this.def.id, n: this.def.n, name: this.def.name, result, seconds: this.seconds(), cause: result === 'lose' ? 'beaten' : undefined, progress: progressNote(this.current) });
   }
 

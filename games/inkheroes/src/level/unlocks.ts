@@ -33,6 +33,22 @@ export const TWO_LANDS_UNLOCKS: readonly (readonly BuildingId[])[] = [
   ['capitol', 'tiltyard2', 'tiltyard3', 'monastery3', 'seraphSpire', 'seraphSpire2', 'seraphSpire3', 'portal3'],
 ];
 
+/**
+ * Chapter 3, the Long Winter: the Norse, a fresh start again. Parts 1 and 2
+ * are the design's (docs/inkheroes-design.md, "The parts"); parts 3 and 4
+ * follow chapter 2's (part 3 built as drafted, Nov 11; part 4 for its map agent to change).
+ */
+export const LONG_WINTER_UNLOCKS: readonly (readonly BuildingId[])[] = [
+  // Part 1, Hladir: the halls and walls, the Tavern, the Mead Hall (the people's own), the four lowest dwellings. No Hof yet: Hervor finds her rune staff in part 2.
+  ['villageHall', 'townHall', 'fort', 'citadel', 'tavern', 'meadHall', 'guardhouse', 'archeryRange', 'griffinTower', 'barracks'],
+  // Part 2, Uppsala: the Hof, both floors (Rune Magic is the part's lesson), the Boar Pen (line 5); the market, the Storehouse, the Ski Track, the first upgrades of lines 1–4, the Bifrost Stone.
+  ['mageGuild1', 'mageGuild2', 'monastery', 'cityHall', 'marketplace', 'storehouse', 'stables', 'guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2', 'portal'],
+  // Part 3, the Bloodaxe: the ram and a rival, so the Shipwright; the Castle, the Treasury, the Shield Hall (line 6), the Iron Pen, the second upgrades of lines 1–4, the Gate of the Nine Worlds.
+  ['blacksmith', 'castle', 'treasury', 'tiltyard', 'monastery2', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3', 'portal2'],
+  // Part 4, Halogaland, the chapter's last part: the rest of the tree (the Capitol, the dragons, the last upgrades of lines 5 and 6, Bifrost).
+  ['capitol', 'tiltyard2', 'tiltyard3', 'monastery3', 'seraphSpire', 'seraphSpire2', 'seraphSpire3', 'portal3'],
+];
+
 /** The buildings a chapter's `k`th part (1-based) can build: all its parts before it opened, and what it adds. */
 export const openIn = (unlocks: readonly (readonly BuildingId[])[], k: number): Set<BuildingId> => new Set(unlocks.slice(0, k).flat());
 
@@ -67,9 +83,21 @@ export const TWO_LANDS_MACHINE_UNLOCKS: readonly (readonly SoldMachine[])[] = [
   [],
 ];
 
+/** Chapter 3's: the Shipwright sells the Ram from part 3 (the Bloodaxe's ring forts) and the Iron Ram from part 4; the Ram of the Sea-Kings is part 4's prize. */
+export const LONG_WINTER_MACHINE_UNLOCKS: readonly (readonly SoldMachine[])[] = [
+  [],
+  [],
+  ['ram'],
+  ['ram2'],
+];
+
 /** Where chapter 2's parts begin in the campaign's order (not shown: the player reads them as parts 1–4, src/level/maps.ts `partNumber`). */
 export const TWO_LANDS_FIRST = 5;
+/** Where chapter 3's parts begin. */
+export const LONG_WINTER_FIRST = 9;
 
 /** The machines on sale by map `n` (1-based, campaign-wide), lesser first: each chapter's own, opened part by part. */
-export const soldOn = (n: number): SoldMachine[] =>
-  n >= TWO_LANDS_FIRST ? TWO_LANDS_MACHINE_UNLOCKS.slice(0, n - TWO_LANDS_FIRST + 1).flat() : MACHINE_UNLOCKS.slice(0, n).flat();
+export const soldOn = (n: number): SoldMachine[] => {
+  if (n >= LONG_WINTER_FIRST) return LONG_WINTER_MACHINE_UNLOCKS.slice(0, n - LONG_WINTER_FIRST + 1).flat();
+  return n >= TWO_LANDS_FIRST ? TWO_LANDS_MACHINE_UNLOCKS.slice(0, n - TWO_LANDS_FIRST + 1).flat() : MACHINE_UNLOCKS.slice(0, n).flat();
+};

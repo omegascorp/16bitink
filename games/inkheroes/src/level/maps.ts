@@ -1,11 +1,12 @@
 import { ASHFORD, BLACK_BANNER, OTHRYS, THORNWOOD } from './borderMarch';
 import type { LineId } from '../narration/lines';
+import { NORSE_CAMPAIGN, NORSE_VILLAINS } from '../logic/roster/norse';
 import type { MapDef } from './types';
 
 /** Chapter 1's parts, in order: one land played straight through (chapter 1 is free and ships with the game). */
 export const MAPS: readonly MapDef[] = [ASHFORD, THORNWOOD, BLACK_BANNER, OTHRYS];
 
-export type ChapterId = 'borderMarch' | 'twoLands';
+export type ChapterId = 'borderMarch' | 'twoLands' | 'longWinter';
 
 /** A part as the campaign menu names it before its map is loaded (a paid one only comes to owners). */
 export interface PartName {
@@ -32,14 +33,20 @@ export interface ChapterDef {
   readonly paid: boolean;
   /** The parts built, named for the menu without their maps. */
   readonly parts: readonly PartName[];
+  /** The parts as designed, for the card of a chapter with none built yet. */
+  readonly planned?: readonly PartName[];
   /** What the chapter is, in a line or two, for a player who doesn't own it. */
   readonly pitch: string;
   /** Its saved game's own place in storage (none: the first, as it always was). */
   readonly slot?: string;
-  /** What the narrator tells when its last part built is won. */
-  readonly ending: LineId;
+  /** What the narrator tells when its last part built is won (none yet: a chapter with no part built). */
+  readonly ending?: LineId;
   /** What the chapter is, for the card that ends the chapter before it ("Chapter 2, The Two Lands, …"). */
   readonly teaser?: string;
+  /** Its story villains, besides its parts' rival lords: never offered at the player's Taverns (src/logic/heroes.ts). */
+  readonly villains?: readonly string[];
+  /** Its campaign heroes, ours by the story (Hervor, Heid): never offered at a lord's Taverns, hired or not (src/logic/heroes.ts). */
+  readonly heroes?: readonly string[];
 }
 
 const named = (m: MapDef): PartName => ({ id: m.id, n: m.n, name: m.name });
@@ -53,6 +60,18 @@ export const CHAPTERS: readonly ChapterDef[] = [
     ending: 'twoLands-won',
     teaser: 'crosses to Egypt: a new people, Neferet the priestess of Isis, and Sacred Rites that curse, ward and raise the fallen.',
     pitch: 'Egypt on the Nile, a new people, and Sacred Rites that curse, ward and raise the fallen.',
+  },
+  {
+    // Chapter 3 (docs/inkheroes-design.md, "Chapter 3: The Long Winter"): its four parts, the maps in src/level/longWinter.ts.
+    id: 'longWinter', n: 3, name: 'The Long Winter', first: 9, last: 12, paid: true, slot: 'longWinter',
+    parts: [{ id: 'hladir', n: 9, name: 'Hladir' }, { id: 'uppsala', n: 10, name: 'Uppsala' }, { id: 'bloodaxe', n: 11, name: 'The Bloodaxe' }, { id: 'halogaland', n: 12, name: 'Halogaland' }],
+    planned: [{ id: 'hladir', n: 9, name: 'Hladir' }, { id: 'uppsala', n: 10, name: 'Uppsala' }, { id: 'bloodaxe', n: 11, name: 'The Bloodaxe' }, { id: 'halogaland', n: 12, name: 'Halogaland' }],
+    // Halogaland's win ends the chapter: Gunnhild's song stops and the sun rises over the fjord.
+    ending: 'longWinter-won',
+    villains: NORSE_VILLAINS,
+    heroes: NORSE_CAMPAIGN,
+    teaser: 'sails north to the Norse kingdoms: a new people, Hervor the shieldmaiden, berserkers and Rune Magic, in a winter that won’t end.',
+    pitch: 'The Norse kingdoms in a winter that won’t end: a new people, berserkers and Rune Magic.',
   },
 ];
 
@@ -88,6 +107,9 @@ export const partsOf = (c: ChapterDef): readonly MapDef[] => (c.paid ? paid.filt
 
 /** Whether this player can play chapter `c` now. */
 export const isLoaded = (c: ChapterDef): boolean => partsOf(c).length > 0;
+
+/** Whether chapter `c` is still being made, with no part built yet (its card says so, for owners too). */
+export const comingSoon = (c: Pick<ChapterDef, 'parts'>): boolean => c.parts.length === 0;
 
 export function mapById(id: string): MapDef | undefined {
   return loadedMaps().find((m) => m.id === id);

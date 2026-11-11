@@ -33,6 +33,8 @@ export type CardPart = PartName & { readonly goal?: { readonly text: string } };
 const VIGNETTE_STAND_IN: Readonly<Record<string, { readonly id: string; readonly tint: number }>> = {
   // The Delta borrows Nekhen's river, greener, until its own is drawn.
   delta: { id: 'nekhen', tint: 0xc8f0b8 },
+  // Chapter 3's first part (not built yet) borrows Ashford's, frosted.
+  hladir: { id: 'ashford', tint: 0xc8dcff },
 };
 
 export interface ChapterCardSpec {
@@ -40,8 +42,8 @@ export interface ChapterCardSpec {
   /** The chapter's last part, built or not (campaign-wide), for "Part 1 of 4" (none: its last built). */
   readonly last?: number;
   readonly records: Readonly<Record<string, MapRecord>>;
-  /** The part in play, and how far into it (a game is saved). */
-  readonly playing: { readonly def: CardPart; readonly when: string } | null;
+  /** The part in play, and how far into it (a game is saved; `free`: the chapter won and played on, src/logic/freePlay.ts). */
+  readonly playing: { readonly def: CardPart; readonly when: string; readonly free?: boolean } | null;
   readonly onPlay: () => void;
   /** A chapter this player can't play now (the full game's): what it is, and the one way on (buy, or try the fetch again). */
   readonly locked?: { readonly pitch: string; readonly label: string };
@@ -103,7 +105,7 @@ export function chapterCard(scene: Phaser.Scene, owned: { destroy(): void }[], s
   // The list and the buttons: under the story, or in their own column beside it.
   const left = spec.wide ? CARD_W - PAD : 0;
   const room = w - left;
-  const states: PartState[] = spec.locked ? spec.parts.map(() => 'ahead') : partStates(spec.parts, spec.playing?.def.id ?? null, spec.records);
+  const states: PartState[] = spec.locked ? spec.parts.map(() => 'ahead') : partStates(spec.parts, spec.playing?.def.id ?? null, spec.records, !!spec.playing?.free);
   spec.parts.forEach((def, i) => {
     const state = states[i]!;
     const { says, ink } = STANDING[state];

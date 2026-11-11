@@ -2,7 +2,7 @@ import { MAP_COVER, type MapCover } from '../../art/pixel/map';
 import { TOWN_ART } from '../../art/pixel/town';
 import { cellRandom } from '../battle/pixelScenery';
 import type { BuildingId } from '../../logic/buildings';
-import type { TownFaction } from '../../logic/creatures';
+import type { TownPeople } from './townKit';
 import { spriteOf, townKit, type PieceId, type TownKit } from './townKit';
 
 type TownArt = PieceId;
@@ -84,11 +84,13 @@ const dwelling = (id: BuildingId & TownArt, has: Has): readonly (readonly [TownA
 
 /** The Portal's three levels, both peoples': on the free block behind the hall. */
 const PORTAL_PLOT: Plot = { a: 17, b: 9, n: 4 };
-/** The Temple of Osiris, Egypt's own: on a free plot before the hall's right flank. */
-const OSIRIS_PLOT: Plot = { a: 22, b: 14, n: 4 };
+/** A people's own building (Egypt's Temple of Osiris, the Norse Mead Hall): on a free plot before the hall's right flank. */
+const OWN_PLOT: Plot = { a: 22, b: 14, n: 4 };
 
 /** The city's plots for a set of drawings: the same ones for both peoples, Egypt's with the Temple of Osiris besides. */
-const lotsFor = (has: Has, faction: TownFaction): readonly Lot[] => [
+const lotsFor = (has: Has, faction: TownPeople): readonly Lot[] => {
+  const own = townKit(faction).own;
+  return [
   { plot: { a: 4, b: 4, n: 8 }, ladder: [['walls-castle', 'castle'], ['walls-citadel', 'citadel'], ['walls-fort', 'fort']] },
   { plot: { a: 2, b: 16, n: 3 }, ladder: dwelling('seraphSpire', has) },
   { plot: { a: 15, b: 2, n: 6 }, ladder: dwelling('monastery', has) },
@@ -106,12 +108,13 @@ const lotsFor = (has: Has, faction: TownFaction): readonly Lot[] => [
   { plot: { a: 27, b: 8, n: 5 }, ladder: one('stables') },
   // Behind the hall, between the walls and the guild: its arch rises over the square.
   { plot: PORTAL_PLOT, ladder: [['portal-3', 'portal3'], ['portal-2', 'portal2'], ['portal', 'portal']] },
-  ...(faction === 'kemet' ? [{ plot: OSIRIS_PLOT, ladder: one('templeOsiris') }] : []),
-];
+  ...(own ? [{ plot: OWN_PLOT, ladder: [[own.piece, own.building]] as const }] : []),
+  ];
+};
 
-const LOT_SETS = new Map<TownFaction, readonly Lot[]>();
+const LOT_SETS = new Map<TownPeople, readonly Lot[]>();
 /** The plots of a people's city. */
-export function lotsOf(faction: TownFaction = 'crown'): readonly Lot[] {
+export function lotsOf(faction: TownPeople = 'crown'): readonly Lot[] {
   let lots = LOT_SETS.get(faction);
   if (!lots) {
     const kit = townKit(faction);
@@ -157,7 +160,7 @@ const STREET_EVERY = 7;
 const isStreet = (i: number, j: number): boolean => i % STREET_EVERY === STREET_EVERY - 1 || j % STREET_EVERY === STREET_EVERY - 1;
 
 /** The city's houses: as many as fit in the blocks left between the plots and the streets, the same every time. */
-export function housePlots(faction: TownFaction = 'crown'): { art: TownArt; plot: Plot }[] {
+export function housePlots(faction: TownPeople = 'crown'): { art: TownArt; plot: Plot }[] {
   const kit = townKit(faction);
   const taken = new Uint8Array(CITY * CITY);
   for (const p of [...lotsOf(faction).map((l) => l.plot), FOUNTAIN]) mark(taken, p, 0);
@@ -191,12 +194,12 @@ export function housePlots(faction: TownFaction = 'crown'): { art: TownArt; plot
 export const isGarden = (i: number, j: number): boolean => Math.min(i, j, CITY - 1 - i, CITY - 1 - j) < VERGE;
 
 /** The plots nothing stands on yet, with the first building of their ladder (what tapping one offers). */
-export function emptyPlots(built: readonly BuildingId[], faction: TownFaction = 'crown'): { plot: Plot; building: BuildingId }[] {
+export function emptyPlots(built: readonly BuildingId[], faction: TownPeople = 'crown'): { plot: Plot; building: BuildingId }[] {
   return lotsOf(faction).filter((l) => !l.ladder.some(([, b]) => built.includes(b))).map((l) => ({ plot: l.plot, building: l.ladder[l.ladder.length - 1]![1] }));
 }
 
 /** What a town with `built` shows: its buildings, the houses and the fountain, back to front. */
-export function stagePieces(built: readonly BuildingId[], faction: TownFaction = 'crown'): StagePiece[] {
+export function stagePieces(built: readonly BuildingId[], faction: TownPeople = 'crown'): StagePiece[] {
   const kit = townKit(faction);
   const out: StagePiece[] = [];
   for (const lot of lotsOf(faction)) {
@@ -210,8 +213,8 @@ export function stagePieces(built: readonly BuildingId[], faction: TownFaction =
 
 /** The art that shows `building` on its own (a picture in the hall's ledger). */
 export function buildingArt(building: BuildingId): GreekArt;
-export function buildingArt(building: BuildingId, faction: TownFaction): TownArt;
-export function buildingArt(building: BuildingId, faction: TownFaction = 'crown'): TownArt {
+export function buildingArt(building: BuildingId, faction: TownPeople): TownArt;
+export function buildingArt(building: BuildingId, faction: TownPeople = 'crown'): TownArt {
   for (const lot of lotsOf(faction)) {
     const step = lot.ladder.find(([, b]) => b === building);
     if (step) return step[0];
@@ -270,17 +273,16 @@ export interface Tree {
 /** Egypt's canal: the street down the middle of the city (tile column i = CANAL_I), water from the back wall to the front. */
 export const CANAL_I = 13;
 /** Whether tile (i, j) is canal water in a town of `faction`. */
-export const isCanal = (i: number, j: number, faction: TownFaction = 'crown'): boolean => faction === 'kemet' && i === CANAL_I && j >= 0 && j < CITY;
+export const isCanal = (i: number, j: number, faction: TownPeople = 'crown'): boolean => townKit(faction).canal && i === CANAL_I && j >= 0 && j < CITY;
 
-const PALMS: readonly PieceId[] = ['palm-a', 'palm-b'];
 
 /** The city's trees, the same every time for `seed`: feet on the stage. Egypt's are date palms, and none grow in the canal. */
-export function cityTrees(bare: readonly Plot[], seed: number, faction: TownFaction = 'crown'): Tree[] {
+export function cityTrees(bare: readonly Plot[], seed: number, faction: TownPeople = 'crown'): Tree[] {
   const out: Tree[] = [];
   const kit = townKit(faction);
   // Palms are tall and thick-crowned: fewer of them make the same green.
-  const thin = faction === 'kemet' ? 0.4 : 1;
-  const palms = faction === 'kemet' ? PALMS.filter((p) => kit.art[p] && kit.art[p] !== townKit('crown').art[p]) : [];
+  const thin = kit.treeDensity;
+  const palms = kit.trees.filter((p) => kit.art[p] && kit.art[p] !== townKit('crown').art[p]);
   const onBare = (i: number, j: number): boolean => bare.some((p) => i > p.a && j > p.b && i < p.a + p.n - 1 && j < p.b + p.n - 1);
   for (let i = 0; i < CITY; i++) {
     for (let j = 0; j < CITY; j++) {

@@ -5,7 +5,7 @@ import type { SpellSchool } from './spells';
 
 /**
  * The peoples who hold towns (chapter 1 the Greeks, `crown`; chapter 2
- * Egypt, `kemet`). Every town builds from the one BUILDINGS tree under the
+ * Egypt, `kemet`; chapter 3 the Norse, `norse`). Every town builds from the one BUILDINGS tree under the
  * same ids, so saves and maps keep them; a people names the buildings its
  * own way and hires its own unit in each dwelling. Numbers in
  * docs/inkheroes-design.md.
@@ -40,7 +40,7 @@ export interface SiegeWords {
   readonly bare: string;
 }
 
-export const TOWN_FACTIONS = ['crown', 'kemet'] as const satisfies readonly TownFaction[];
+export const TOWN_FACTIONS = ['crown', 'kemet', 'norse'] as const satisfies readonly TownFaction[];
 export const isTownFaction = (v: unknown): v is TownFaction => typeof v === 'string' && (TOWN_FACTIONS as readonly string[]).includes(v);
 
 const GREEK_UNITS = Object.fromEntries(BUILDING_IDS.flatMap((b) => (BUILDINGS[b].dwelling ? [[b, BUILDINGS[b].dwelling!]] : [])));
@@ -99,6 +99,51 @@ export const FACTIONS: Readonly<Record<TownFaction, FactionDef>> = {
       card: 'Walls stop your army. A siege ramp rides with you as gear: at the start of the battle you choose a stretch of wall, its workers raise a ramp there that fills the moat, and in a round or two your army walks up it.',
       slot: 'No war machine: buy a siege ramp at a Workshop to get over town walls',
       bare: 'no siege ramp: strike the gate by hand',
+    },
+  },
+  norse: {
+    name: 'the Norse Kingdoms',
+    units: {
+      guardhouse: 'shieldmaiden', guardhouse2: 'shieldmaiden2', guardhouse3: 'shieldmaiden3',
+      archeryRange: 'hunter', archeryRange2: 'hunter2', archeryRange3: 'hunter3',
+      griffinTower: 'berserker', griffinTower2: 'berserker2', griffinTower3: 'berserker3',
+      barracks: 'dwarf', barracks2: 'dwarf2', barracks3: 'dwarf3',
+      monastery: 'warBoar', monastery2: 'warBoar2', monastery3: 'warBoar3',
+      tiltyard: 'valkyrie', tiltyard2: 'valkyrie2', tiltyard3: 'valkyrie3',
+      seraphSpire: 'dragon', seraphSpire2: 'dragon2', seraphSpire3: 'dragon3',
+    },
+    names: {
+      mageGuild1: 'Hof', mageGuild2: 'Hof, 2nd floor', blacksmith: 'Shipwright', stables: 'Ski Track',
+      guardhouse: 'Longhouse', guardhouse2: 'Muster Hall', guardhouse3: 'Jarl’s Hall',
+      archeryRange: 'Hunting Lodge', archeryRange2: 'Ski Lodge', archeryRange3: 'Ydalir',
+      griffinTower: 'Berserker Camp', griffinTower2: 'Bear Pit', griffinTower3: 'Odin’s Grove',
+      barracks: 'Dwarf Forge', barracks2: 'Deep Forge', barracks3: 'Eitri’s Forge',
+      monastery: 'Boar Pen', monastery2: 'Iron Pen', monastery3: 'Freyr’s Field',
+      tiltyard: 'Shield Hall', tiltyard2: 'Hall of the Chosen', tiltyard3: 'Valhalla’s Gate',
+      seraphSpire: 'Dragon’s Hoard', seraphSpire2: 'Gnitaheath', seraphSpire3: 'Root of Yggdrasil',
+      // Bifrost, the burning rainbow bridge between the worlds.
+      portal: 'Bifrost Stone', portal2: 'Gate of the Nine Worlds', portal3: 'Bifrost',
+    },
+    // The Norse order: the berserkers come out of the longhouse, the Ski Track stands by the hunters' lodge, the valkyries bring the slain to the mead hall, and the dragon comes after them.
+    needs: {
+      griffinTower: ['guardhouse'],
+      stables: ['archeryRange'],
+      tiltyard: ['monastery', 'meadHall'],
+      seraphSpire: ['tiltyard'],
+    },
+    says: {
+      mageGuild1: 'Teaches 3 level-1 runes and spells; sells a rune staff',
+      blacksmith: 'Sells battering rams, which break a town’s gate',
+      portal: 'Its store and those of your other towns with a Bifrost Stone are kept as one: a hero in any of them leaves or takes any piece',
+      portal3: 'A hero in town with movement left steps through to another town of yours with a Bifrost; it ends their day',
+    },
+    school: 'runes',
+    book: 'noviceRuneStaff',
+    siege: {
+      item: 'ram',
+      card: 'Walls stop your army. A battering ram rides with you as gear and works by itself: at the end of round 3 (round 2 for an Iron Ram) the gate falls, and your army pours through.',
+      slot: 'No war machine: buy a battering ram at a Shipwright to break town gates',
+      bare: 'no ram: strike the gate by hand',
     },
   },
 };

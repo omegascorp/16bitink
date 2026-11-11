@@ -1,10 +1,14 @@
 import Phaser from 'phaser';
-import { SIEGE_ART } from '../../art/pixel/siege';
+import { SIEGE_ART, type SiegePiece } from '../../art/pixel/siege';
+import { SIEGE_ART_NORSE } from '../../art/pixel/siege-norse';
 import { standing, TOWERS, WALLS, type Siege, type SiegePart } from '../../logic/siege';
 import { FIGURE_DEPTH } from './pixelFigure';
+import type { Castle } from './castle';
 import { rampArt, RampView, type RampLook } from './rampView';
 
-const tex = (key: string): string => `px-siege-${key}`;
+/** Each castle's pieces; the Greek one's textures keep their first names, the others' carry the castle's. */
+const ART: Readonly<Record<Castle, Readonly<Record<string, SiegePiece>>>> = { greek: SIEGE_ART, norse: SIEGE_ART_NORSE };
+const tex = (key: string, castle: Castle = 'greek'): string => (castle === 'greek' ? `px-siege-${key}` : `px-siege-${castle}-${key}`);
 
 /** Ground pieces of the wall, there in every state. */
 const FIXED = ['wallNorthInner', 'wallSouthInner', 'wallSouthEnd', 'farWall', 'nearWall'] as const;
@@ -24,11 +28,14 @@ const PART_AT: Readonly<Record<SiegePart, { x: number; y: number }>> = {
   keep: { x: 858, y: 230 }, towerNorth: { x: 689, y: 62 }, towerSouth: { x: 709, y: 520 },
 };
 
-export const partAt = (part: SiegePart): { x: number; y: number } => PART_AT[part];
+/** The Norse hall is lower and longer than the Greek keep: a stone lands on its roof. */
+const PART_AT_NORSE: Readonly<Record<SiegePart, { x: number; y: number }>> = { ...PART_AT, keep: { x: 890, y: 250 } };
+
+export const partAt = (part: SiegePart, castle: Castle = 'greek'): { x: number; y: number } => (castle === 'norse' ? PART_AT_NORSE : PART_AT)[part];
 
 /** The art a siege needs loaded: every piece, so a fall needs no load mid-battle. */
-export function siegeArt(): { key: string; url: string }[] {
-  return [...Object.entries(SIEGE_ART).map(([k, p]) => ({ key: tex(k), url: p.url })), ...rampArt()];
+export function siegeArt(castle: Castle = 'greek'): { key: string; url: string }[] {
+  return [...Object.entries(ART[castle]).map(([k, p]) => ({ key: tex(k, castle), url: p.url })), ...rampArt()];
 }
 
 /**
@@ -42,6 +49,7 @@ export class SiegeView {
   /** Every piece placed. */
   private readonly images: Phaser.GameObjects.Image[] = [];
   private readonly full: Siege['parts'];
+  private readonly art: Readonly<Record<string, SiegePiece>>;
   /** The bridge, hinged at the gatehouse. The door faces away from this view, so the bridge is what shows the gate open. */
   private readonly bridge: Phaser.GameObjects.Image;
   private gateUp = true;
@@ -51,9 +59,10 @@ export class SiegeView {
   /** Egypt's ramps against the wall, if the attackers raise any. */
   private readonly ramps: RampView;
 
-  constructor(private readonly scene: Phaser.Scene, private readonly layer: Phaser.GameObjects.Layer, siege: Siege, look: RampLook = 'earth') {
+  constructor(private readonly scene: Phaser.Scene, private readonly layer: Phaser.GameObjects.Layer, siege: Siege, look: RampLook = 'earth', private readonly castle: Castle = 'greek') {
+    this.art = ART[castle];
     this.full = siege.parts;
-    this.ramps = new RampView(scene, layer, look, (w) => FIGURE_DEPTH + Math.max(...Object.entries(SIEGE_ART).filter(([k]) => k.startsWith(`${w}-`) || k.startsWith(`${w}Inner-`)).map(([, p]) => p.foot)) - 1);
+    this.ramps = new RampView(scene, layer, look, (w) => FIGURE_DEPTH + Math.max(...Object.entries(this.art).filter(([k]) => k.startsWith(`${w}-`) || k.startsWith(`${w}Inner-`)).map(([, p]) => p.foot)) - 1);
     if (siege.moat) this.place('moat', GROUND_DEPTH);
     // The court lies over the moat's inner bank, so a breach opens on paving.
     this.place('court', GROUND_DEPTH);
@@ -72,8 +81,8 @@ export class SiegeView {
   }
 
   private place(key: string, depth?: number): Phaser.GameObjects.Image {
-    const p = SIEGE_ART[key]!;
-    const img = this.scene.add.image(p.x, p.y, tex(key)).setOrigin(0).setDepth(depth ?? FIGURE_DEPTH + p.foot);
+    const p = this.art[key]!;
+    const img = this.scene.add.image(p.x, p.y, tex(key, this.castle)).setOrigin(0).setDepth(depth ?? FIGURE_DEPTH + p.foot);
     this.layer.add(img);
     this.images.push(img);
     return img;
@@ -95,7 +104,7 @@ export class SiegeView {
 
   /** Workers' dust where a ramp is begun or grows. */
   rampDust(part: SiegePart): void {
-    this.dust({ x: PART_AT[part].x - 30, y: PART_AT[part].y + 20 });
+    this.dust({ x: partAt(part, this.castle).x - 30, y: partAt(part, this.castle).y + 20 });
   }
 
   /** Tells the view whether someone stands in the gateway. */
@@ -128,13 +137,14 @@ export class SiegeView {
   }
 
   private swap(part: string, key: string): void {
-    const p = SIEGE_ART[key]!;
-    this.parts.get(part)?.setTexture(tex(key)).setPosition(p.x, p.y);
+    const p = this.art[key]!;
+    this.parts.get(part)?.setTexture(tex(key, this.castle)).setPosition(p.x, p.y);
   }
 
   /** A stone flies from `from` to the part, and lands in a puff of dust. Resolves as it lands. */
   async hurl(from: { x: number; y: number }, part: SiegePart, stoneKey: string, miss: boolean): Promise<void> {
-    const to = miss ? { x: PART_AT[part].x - 46, y: PART_AT[part].y + 30 } : PART_AT[part];
+    const at = partAt(part, this.castle);
+    const to = miss ? { x: at.x - 46, y: at.y + 30 } : at;
     const stone = this.scene.add.image(from.x, from.y, stoneKey).setDepth(2000).setScale(2);
     this.layer.add(stone);
     await new Promise<void>((resolve) => this.scene.tweens.addCounter({
@@ -152,7 +162,7 @@ export class SiegeView {
 
   /** A blow by hand: dust at the part and a small shake, the stones still holding. */
   jolt(part: SiegePart): void {
-    this.dust(PART_AT[part]);
+    this.dust(partAt(part, this.castle));
     this.scene.cameras.main.shake(SHAKE.ms, SHAKE.strength);
   }
 

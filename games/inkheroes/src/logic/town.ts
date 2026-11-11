@@ -140,6 +140,8 @@ export const stockOf = (t: Town, id: CreatureId): number => t.stock[lineOf(id)] 
 
 /** Ankhs a town's temples make a week. */
 export const ankhsAWeek = (t: Pick<Town, 'built'>): number => t.built.reduce((n, b) => n + (BUILDINGS[b].ankhs ?? 0), 0);
+/** Morale a night in the town gives a hero of its side: its Mead Hall's (the Norse). */
+export const meadIn = (t: Pick<Town, 'built'>): number => Math.max(0, ...t.built.map((b) => BUILDINGS[b].mead ?? 0));
 
 /** Monday: every dwelling gains a week's growth (unhired units stay), and a temple makes its Ankh. */
 export function weekly(t: Town): Town {
@@ -253,7 +255,7 @@ export const spellbookSold = (t: Pick<Town, 'faction'>): ItemId => FACTIONS[fact
 export const BUILD_ORDER: readonly BuildingId[] = buildingIdsOf('crown');
 /** The buildings a town's hall lists, in order: every one its people build. */
 export const buildOrderOf = (t: Pick<Town, 'faction'>): readonly BuildingId[] => BUILD_ORDERS[factionOf(t)];
-const BUILD_ORDERS: Readonly<Record<TownFaction, readonly BuildingId[]>> = { crown: BUILD_ORDER, kemet: buildingIdsOf('kemet') };
+const BUILD_ORDERS: Readonly<Record<TownFaction, readonly BuildingId[]>> = { crown: BUILD_ORDER, kemet: buildingIdsOf('kemet'), norse: buildingIdsOf('norse') };
 
 /** The order a town grows in: income, the best troops, their growth, spells, then upgrades; whatever else there is comes last. */
 const plan = (f: TownFaction, first: readonly BuildingId[]): readonly BuildingId[] => [...new Set<BuildingId>([...first, ...BUILD_ORDERS[f]])];
@@ -269,6 +271,12 @@ export const BUILD_PLANS: Readonly<Record<TownFaction, readonly BuildingId[]>> =
   crown: plan('crown', CORE_PLAN),
   kemet: plan('kemet', [
     'townHall', 'archeryRange', 'griffinTower', 'citadel', 'barracks', 'mageGuild1', 'templeOsiris', 'blacksmith',
+    'guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2', 'cityHall', 'stables', 'monastery',
+    'castle', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3', 'tiltyard',
+  ]),
+  // The Norse: the berserkers early (their rage is the people's mark), the Mead Hall before the first ride out.
+  norse: plan('norse', [
+    'townHall', 'griffinTower', 'meadHall', 'archeryRange', 'citadel', 'barracks', 'mageGuild1', 'blacksmith',
     'guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2', 'cityHall', 'stables', 'monastery',
     'castle', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3', 'tiltyard',
   ]),

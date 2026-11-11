@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import type { TownFaction } from '../../logic/creatures';
+import type { TownPeople } from './townKit';
 import { townKit, type PieceId } from './townKit';
 import { putBuffer } from '../battle/pixelUi';
 import { puffPixels } from './townPictures';
@@ -16,7 +16,7 @@ export const CHIMNEYS: Partial<Record<PieceId, { readonly x: number; readonly y:
 };
 
 /** The flue of `art` in a people's city, if it has one. */
-export const chimneyOf = (art: PieceId, faction: TownFaction = 'crown'): { readonly x: number; readonly y: number } | undefined => (faction === 'kemet' ? townKit(faction).chimneys?.[art] : CHIMNEYS[art]);
+export const chimneyOf = (art: PieceId, faction: TownPeople = 'crown'): { readonly x: number; readonly y: number } | undefined => (faction === 'crown' ? CHIMNEYS[art] : townKit(faction).chimneys?.[art]);
 
 /** The puffs' radii as they swell, smallest first. */
 const RADII = [2, 3, 3, 4, 4, 5, 5, 6] as const;

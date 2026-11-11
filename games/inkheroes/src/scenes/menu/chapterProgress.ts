@@ -4,10 +4,12 @@ export type PartState = 'won' | 'now' | 'ahead';
 /**
  * Each part's state in this game: a chapter is one run, so what earlier
  * games won says nothing about this one. With no game in play the chapter
- * shows as won if all of it ever was, else ready to start from its first part.
+ * shows as won if all of it ever was, else ready to start from its first part;
+ * a game in free play (`free`) shows all of it won.
  */
-export function partStates(parts: readonly { readonly id: string }[], playing: string | null, won: Readonly<Record<string, unknown>>): PartState[] {
-  if (playing === null && parts.every((p) => p.id in won)) return parts.map(() => 'won');
+export function partStates(parts: readonly { readonly id: string }[], playing: string | null, won: Readonly<Record<string, unknown>>, free = false): PartState[] {
+  // In free play (the chapter's last part won, the land played on) every part is won.
+  if (free || (playing === null && parts.every((p) => p.id in won))) return parts.map(() => 'won');
   const now = Math.max(0, parts.findIndex((p) => p.id === playing));
   return parts.map((_, i) => (i < now ? 'won' : i === now ? 'now' : 'ahead'));
 }

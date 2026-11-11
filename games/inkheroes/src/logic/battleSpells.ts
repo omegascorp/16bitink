@@ -4,8 +4,9 @@ import { creature } from './creatures';
 import { heal, raise } from './damage';
 import { putEffect, wound } from './battleTraits';
 import { skillValue } from './skills';
-import { extraRounds, spellShare } from './specialty';
-import { BAD_EFFECTS, SPELLS, type SpellId } from './spells';
+import { extraRounds, spellShare, tiwazCapBonus } from './specialty';
+import { BAD_EFFECTS, SPELLS, TIWAZ, type SpellId } from './spells';
+import type { Effect } from './battleTypes';
 
 /** Why a hero can't cast `spell` on `target` now, or null when it can. */
 export function cantCast(state: BattleState, side: Side, spell: SpellId, target: Stack | null): string | null {
@@ -39,6 +40,14 @@ export function spellAmount(state: BattleState, side: Side, spell: SpellId): num
   return def.target === 'enemy' ? Math.floor(raw * (1 + skillValue(hero.skills, 'sorcery') + share)) : Math.floor(raw * (1 + share));
 }
 
+/** What a spell puts on its target: a ward its fill, Tiwaz its Attack and cap, Thurisaz its lightning, the rest their rounds. */
+function effectOf(kind: Effect['kind'], rounds: number, amount: number, hero: BattleHero): Effect {
+  if (kind === 'ward') return { kind, rounds: 1, left: amount };
+  if (kind === 'tiwaz') return { kind, rounds: 1, bonus: TIWAZ.base, cap: TIWAZ.cap + tiwazCapBonus(hero.specialty) };
+  if (kind === 'thurisaz') return { kind, rounds: 1, dose: amount };
+  return { kind, rounds };
+}
+
 /** The hero casts: it costs mana and the round's cast, but not the active unit's turn. */
 export function castSpell(state: BattleState, side: Side, spell: SpellId, targetId: number): Step {
   const target = stackById(state, targetId);
@@ -67,9 +76,9 @@ export function castSpell(state: BattleState, side: Side, spell: SpellId, target
     s = update(s, targetId, (x) => ({ ...x, effects: [] }));
   }
   if (def.effect) {
-    // A ward holds until it has soaked its fill; the rest last Spell Power rounds.
+    // A ward holds until it has soaked its fill; Tiwaz and Thurisaz the battle; the rest last Spell Power rounds.
     const rounds = Math.max(1, hero.power) + extraRounds(hero.specialty, spell);
-    s = putEffect(s, targetId, def.effect === 'ward' ? { kind: 'ward', rounds: 1, left: amount } : { kind: def.effect, rounds });
+    s = putEffect(s, targetId, effectOf(def.effect, rounds, amount, hero));
   }
   const events: BattleEvent[] = [{ type: 'spell', side, spell, target: targetId, amount, kills }, ...after];
   const won = winnerOf(s);

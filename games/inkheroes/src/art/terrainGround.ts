@@ -25,6 +25,7 @@ export const GROUND: Readonly<Record<Terrain, Ground>> = {
   snow: { base: '#a3a8ab', deep: '#6e7782', lit: '#d4d0c4' },
   swamp: { base: '#2b3622', deep: '#182014', lit: '#4a5a32' },
   water: { base: '#1c3242', deep: '#0e1b26', lit: '#4a7280' },
+  ice: { base: '#8fa6b4', deep: '#5d7484', lit: '#c8d8e0' },
 };
 
 /** The map's props' paints: foliage and rock. */
@@ -153,4 +154,4 @@ function swamp(ctx: CanvasRenderingContext2D, rng: Rng, x: number, y: number, si
 /** Water's own texture is painted with its banks (terrainWater.ts); under a battle it never shows. */
 const none: Texturer = () => undefined;
 
-export const TEXTURE: Readonly<Record<Terrain, Texturer>> = { grass, dirt, rough, sand, snow, swamp, water: none };
+export const TEXTURE: Readonly<Record<Terrain, Texturer>> = { grass, dirt, rough, sand, snow, swamp, water: none, ice: snow };

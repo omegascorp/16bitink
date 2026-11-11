@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getHost, getSound } from '../host';
-import { afterBattle, battleSides, DEFEND, gridOf, PORTAL, type BattleSetup } from '../logic/adventure';
+import { afterBattle, battleSides, DEFEND, groundAt, PORTAL, type BattleSetup } from '../logic/adventure';
 import { act, activeStack, alive, canShoot, conquer, createBattle, experienceFor, handOptions, moveHeadFor, occupiableHexes, playerSide, rampsToPlace, stackAt, strikeChoices, strikeFrom, targetable, type BattleSide, type SiegeSetup, type StrikeOption } from '../logic/battle';
 import { chooseAction } from '../logic/battleAi';
 import { cantCast, spellAmount } from '../logic/battleSpells';
@@ -20,7 +20,8 @@ import { BattleView, type ViewOpts } from './battle/battleView';
 import { unitInfo } from './battle/unitCard';
 import { backdropSource, loadBattleArt } from './battle/pixelAssets';
 import { texturePixels } from './battle/pixelUi';
-import { hexAtPx, hexPx, towerAtPx } from './battle/pixelLayout';
+import { castleOf } from './battle/castle';
+import { hexAtPx, hexPx, towerAtPx, towerFeetOf } from './battle/pixelLayout';
 import { crispText, toView } from './hidpi';
 import type { MapScene } from './MapScene';
 import { coverWhileLoading } from './LoadingScene';
@@ -111,11 +112,11 @@ export class BattleScene extends Phaser.Scene {
     this.pending = null;
     this.live = false;
     const { sides, terrain, heroes } = this.setup(data);
-    const start = createBattle(sides.attacker, sides.defender, sides.seed, sides.siege);
+    const start = createBattle(sides.attacker, sides.defender, sides.seed, sides.siege, terrain === 'snow' ? { snow: true } : {});
     this.state = this.sandbox && !this.sandbox.obstacles ? { ...start.state, obstacles: [] } : start.state;
     // The loading screen stays up until every fighter's poses and the ground are in and laid out.
     const cover = coverWhileLoading(this, 'the armies form up…');
-    void loadBattleArt(this, this.state.stacks.map((s) => s.creature), terrain, !!this.state.siege)
+    void loadBattleArt(this, this.state.stacks.map((s) => s.creature), terrain, this.state.siege ? castleOf(this.state) : false)
       .then(() => cover.laying('the armies take the field…'))
       .then(() => {
         if (this.sys.isActive()) this.begin(terrain, sides.seed, heroes);
@@ -130,9 +131,7 @@ export class BattleScene extends Phaser.Scene {
     const session = this.session!;
     const adv = session.adv;
     const sides = battleSides(adv, data.monsterId, session.def);
-    const g = gridOf(session.def);
-    const terrain = g.terrain[tileIndex(g, adv.hero.x, adv.hero.y)]!;
-    return { sides, terrain: terrain === 'water' ? 'grass' : terrain, heroes: [!!sides.attacker.hero, !!sides.defender.hero] };
+    return { sides, terrain: groundAt(session.def, adv.hero.x, adv.hero.y), heroes: [!!sides.attacker.hero, !!sides.defender.hero] };
   }
 
   /** Lays out the field and the bar, wires the input and starts the first turn. */
@@ -246,7 +245,7 @@ export class BattleScene extends Phaser.Scene {
       const second = (this.state.siege?.ramps?.length ?? 0) > 0;
       return `${creature(a.creature).name}: tap a lit stretch of wall to raise ${second ? 'the second ramp' : 'the ramp'} against it`;
     }
-    if (this.state.held) return `${creature(a.creature).plural} (${a.count}): strike an enemy beside them, or Defend`;
+    if (this.state.held) return `${creature(a.creature).plural} (${a.count}): ${a.skiing && canShoot(this.state, a) ? 'shoot an enemy' : 'strike an enemy beside them'}, or Defend`;
     const line = `${creature(a.creature).plural} (${a.count}): your move`;
     const sealed = this.state.siege && a.side === 0 && standing(this.state.siege, 'gate') && !this.state.stacks.some((s) => s.side === 0 && creature(s.creature).machine);
     return sealed && !creature(a.creature).flies ? `${line} · ${FACTIONS[factionOf(this.state.heroes[0] ?? undefined)].siege.bare}` : line;
@@ -332,7 +331,7 @@ export class BattleScene extends Phaser.Scene {
     const x = Math.floor(w.x);
     const y = Math.floor(w.y);
     // A company on a tower stands far above its hex: the figure itself is what's tapped.
-    const up = towerAtPx(x, y);
+    const up = towerAtPx(x, y, towerFeetOf(castleOf(this.state)));
     const held = up === null ? undefined : this.state.stacks.find((s) => s.tower === up && alive(s));
     return held ? held.hex : hexAtPx(x, y);
   }

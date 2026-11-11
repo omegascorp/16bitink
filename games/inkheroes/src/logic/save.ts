@@ -165,6 +165,8 @@ export function parseAdventure(raw: unknown, def: MapDef): Adventure | null {
     mapId: def.id, day, seed, purse: refundMachines(hero, p), hero: h, ...(others.length ? { others } : {}), towns: ts as Town[], objects: objs, explored, status, prompts: kept, lostStacks,
     ...(isInt(raw.begun, 2, day) ? { begun: raw.begun } : {}),
     ...(rival ? { rival } : {}), ...(fight ? { rivalFight: fight } : {}),
+    // Free play is kept only for a game still going (a won game's save turns to free play when resumed: src/logic/freePlay.ts).
+    ...(raw.freePlay === true && status !== 'won' ? { freePlay: true as const } : {}),
   }));
 }
 
@@ -250,9 +252,9 @@ function parseRival(raw: unknown, def: MapDef): RivalState | null | undefined {
 const lordHeroDef = (raw: Record<string, unknown>, def: MapDef): HeroDef => heroDefFor(raw, def, def.rival!.hero);
 
 /** A lord's other heroes, fog and memory in a save (null: unreadable). */
-function parseLord(raw: Record<string, unknown>, def: MapDef): Pick<RivalState, 'others' | 'explored' | 'memory' | 'fallen' | 'homeless'> | null {
+function parseLord(raw: Record<string, unknown>, def: MapDef): Pick<RivalState, 'others' | 'explored' | 'memory' | 'fallen' | 'homeless' | 'seen' | 'captainSeen'> | null {
   const g = gridOf(def);
-  const out: { others?: Adventure['hero'][]; explored?: string; memory?: LordMemory; fallen?: { hero: Adventure['hero']; day: number }[]; homeless?: number } = {};
+  const out: { others?: Adventure['hero'][]; explored?: string; memory?: LordMemory; fallen?: { hero: Adventure['hero']; day: number }[]; homeless?: number; seen?: true; captainSeen?: true } = {};
   if (raw.others !== undefined) {
     if (!Array.isArray(raw.others) || !raw.others.every(isObj)) return null;
     const others = raw.others.map((h) => parseHero(h as Record<string, unknown>, def, lordHeroDef(h as Record<string, unknown>, def)));
@@ -265,6 +267,8 @@ function parseLord(raw: Record<string, unknown>, def: MapDef): Pick<RivalState, 
   }
   if (isObj(raw.memory)) out.memory = parseMemory(raw.memory);
   if (isInt(raw.homeless, 1)) out.homeless = raw.homeless;
+  if (raw.seen === true) out.seen = true;
+  if (raw.captainSeen === true) out.captainSeen = true;
   if (raw.fallen !== undefined) {
     if (!Array.isArray(raw.fallen) || raw.fallen.length > 10) return null;
     const fallen = raw.fallen.map((f) => (isObj(f) && isObj(f.hero) && isInt(f.day, 1) ? { hero: parseHero(f.hero, def, lordHeroDef(f.hero, def)), day: f.day as number } : null));
@@ -317,8 +321,10 @@ function parseHero(raw: Record<string, unknown>, def: MapDef, h: HeroDef = def.h
   const skills = Object.fromEntries(SKILL_IDS.filter((k) => (raw.skills as Record<string, unknown>)[k]).map((k) => [k, (raw.skills as Record<string, Rank>)[k]]));
   // Their people come from the map; Ankhs from the save (a save from before Egypt has none).
   const ankhs = isInt(raw.ankhs, 1, MAX_ANKHS) ? raw.ankhs : 0;
+  // A Mead Hall's morale, still to spend in their next battle.
+  const mead = isInt(raw.mead, 1, 3) ? raw.mead : 0;
   const hero = {
-    id: h.id, name: h.name, heroClass: h.heroClass, x: raw.x, y: raw.y, ...(h.faction ? { faction: h.faction } : {}), ...(ankhs ? { ankhs } : {}),
+    id: h.id, name: h.name, heroClass: h.heroClass, x: raw.x, y: raw.y, ...(h.faction ? { faction: h.faction } : {}), ...(ankhs ? { ankhs } : {}), ...(mead ? { mead } : {}),
     attack: raw.attack as number, defense: raw.defense as number, power: raw.power as number, knowledge: raw.knowledge as number,
     mana: raw.mana, xp: raw.xp, level: Math.min(raw.level, levelFor(raw.xp)), skills, spells: [...new Set(raw.spells)], army, mp: raw.mp, visited: raw.visited as string[],
     ...bookFromFlag(raw, parseGear(raw)),

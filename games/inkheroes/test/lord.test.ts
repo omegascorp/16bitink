@@ -3,7 +3,7 @@ import { BLACK_BANNER, OTHRYS } from '../src/level/borderMarch';
 import type { MapDef } from '../src/level/types';
 import { DELTA } from '../src/level/twoLands';
 import { afterBattle, battleSides, checkGoal, endDay, frontRival, isSeen, rivalAt, rivalHeroes, startAdventure, stepHero, type Adventure } from '../src/logic/adventure';
-import { armyOf } from '../src/logic/army';
+import { armyOf, joinLike } from '../src/logic/army';
 import { autoBattle } from '../src/logic/autoBattle';
 import { goalOf, goalStep, keepFor, planBuild, savingTown } from '../src/logic/lord/build';
 import { gives } from '../src/logic/lord/day';
@@ -85,6 +85,27 @@ describe('the lord mind', () => {
     expect(r.to).toEqual(armyOf([{ creature: 'griffin', count: 10 }]));
     expect(r.from.filter((s) => s)).toEqual([{ creature: 'spearman', count: 10 }]);
     expect(gives(armyOf([{ creature: 'spearman', count: 10 }]), armyOf([]))).toBeNull();
+  });
+
+  it('gives the main hero the side’s strongest companies when his slots are full, like stacks joined, the weaker going back', () => {
+    // Seven slots full, two of them one line at one level (raised in one town beside a stack hired at that level in another).
+    const main = armyOf([{ creature: 'spearman', count: 30 }, { creature: 'spearman', count: 5 }, { creature: 'bowman', count: 20 }, { creature: 'wolf', count: 2 }, { creature: 'swordsman', count: 8 }, { creature: 'griffin', count: 6 }, { creature: 'monk', count: 4 }]);
+    const runner = armyOf([{ creature: 'lancer', count: 6 }, { creature: 'wolf', count: 1 }]);
+    const r = gives(runner, main)!;
+    expect(r.to.filter((s) => s)).toHaveLength(7);
+    expect(r.to).toContainEqual({ creature: 'lancer', count: 6 });
+    expect(r.to).toContainEqual({ creature: 'spearman', count: 35 });
+    // Nothing is lost, and the runner keeps at least one company to ride with.
+    const total = (as: readonly (typeof main)[]): number => as.reduce((n, a) => n + armyStrength(a), 0);
+    expect(total([r.to, r.from])).toBeCloseTo(total([main, runner]));
+    expect(r.from.some((s) => s)).toBe(true);
+    expect(armyStrength(r.to)).toBeGreaterThan(armyStrength(main));
+  });
+
+  it('joins like stacks, leaving the slots it frees empty', () => {
+    expect(joinLike(armyOf([{ creature: 'spearman', count: 3 }, null, { creature: 'bowman', count: 2 }, { creature: 'spearman', count: 4 }]))).toEqual(armyOf([{ creature: 'spearman', count: 7 }, null, { creature: 'bowman', count: 2 }]));
+    const plain = armyOf([{ creature: 'spearman', count: 3 }]);
+    expect(joinLike(plain)).toBe(plain);
   });
 
   it('plays the same way every time, and leaves Kassander\'s Black Banner and Sethi\'s rules alone', () => {

@@ -112,8 +112,8 @@ export function lairOfGroup(id: string): string | undefined {
   return at > 0 ? id.slice(0, at) : undefined;
 }
 
-/** The people whose pieces drop on `def`: chapter 2's Egyptian, else the Greeks'. */
-export const lootFaction = (def: Pick<MapDef, 'hero'>): 'crown' | 'kemet' => (def.hero.faction === 'kemet' ? 'kemet' : 'crown');
+/** The people whose pieces drop on `def`: chapter 3's Norse, chapter 2's Egyptian, else the Greeks'. */
+export const lootFaction = (def: Pick<MapDef, 'hero'>): 'crown' | 'kemet' | 'norse' => (def.hero.faction === 'norse' ? 'norse' : def.hero.faction === 'kemet' ? 'kemet' : 'crown');
 
 /** The grade a draw lands on in row `row` (1-based). */
 export function gradeOn(row: number, draw: number): Quality {
@@ -129,7 +129,7 @@ export function gradeOn(row: number, draw: number): Quality {
 const LOOSE_SLOTS: readonly Slot[] = ['weapon', 'shield', 'amulet', 'ring1', 'ring2'];
 
 /** The random pool of `faction` at `grade`: set armor, or the pieces never in a set. */
-function pool(faction: 'crown' | 'kemet', grade: Quality, loose: boolean): ItemId[] {
+function pool(faction: 'crown' | 'kemet' | 'norse', grade: Quality, loose: boolean): ItemId[] {
   return ITEM_IDS.filter((id) => {
     const d = itemDef(id);
     if (d.faction !== faction || d.quality !== grade) return false;
@@ -155,7 +155,7 @@ function weight(id: ItemId, held: readonly ItemId[]): number {
  * catalog has none, weighted toward what `heroes` hold. None when the
  * faction has no random pieces at all.
  */
-export function pickPiece(faction: 'crown' | 'kemet', grade: Quality, loose: boolean, draw: number, heroes: readonly Pick<Hero, 'gear' | 'bag'>[]): ItemId | undefined {
+export function pickPiece(faction: 'crown' | 'kemet' | 'norse', grade: Quality, loose: boolean, draw: number, heroes: readonly Pick<Hero, 'gear' | 'bag'>[]): ItemId | undefined {
   const held = holdings(heroes);
   // Legendary pieces are never random: a gold roll is the best random grade.
   for (let g = grade === 'gold' ? GRADES.length - 1 : GRADES.indexOf(grade); g >= 0; g--) {

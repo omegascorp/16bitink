@@ -1,9 +1,9 @@
 import type { MapDef } from '../level/types';
-import { gridOf, oldLordGone, openingPrompt, revealAround, rivalFromDef, type Adventure } from './adventure';
+import { gridOf, oldLordGone, openingPrompt, revealAround, rivalSideFromDef, type Adventure } from './adventure';
 import { lairsOut } from './lairs';
 import { armyOf } from './army';
 import { sightOf } from './hero';
-import { addTo, purse } from './resources';
+import { addTo } from './resources';
 import { headStart } from './rival';
 import { weekly, type Town } from './town';
 
@@ -36,9 +36,11 @@ export function rideOn(won: Adventure, from: MapDef, next: MapDef): Adventure {
       ...(spec.faction ? { faction: spec.faction } : {}),
     });
   });
-  const rival = newLord ? { hero: rivalFromDef(next), purse: purse(next.rival!.purse) } : adv.rival;
+  // His captains out of the story come only if the part before left them alive: beaten and fled (its `fallen`), or still riding.
+  const lived = (id: string): boolean => !!won.rival && [...(won.rival.hero ? [won.rival.hero] : []), ...(won.rival.others ?? []), ...(won.rival.fallen ?? []).map((f) => f.hero)].some((h) => h.id === id);
+  const rival = newLord ? rivalSideFromDef(next, lived) : adv.rival;
   // Nothing the last part left waiting is fought in the next.
-  const { rivalFight: _fight, ...rest } = adv;
+  const { rivalFight: _fight, freePlay: _free, ...rest } = adv;
   const opened: Adventure = {
     ...rest,
     mapId: next.id,

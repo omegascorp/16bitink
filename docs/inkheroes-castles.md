@@ -83,3 +83,14 @@ Ask for the surface only, and list what must not change. The sentence about stay
 - **The ground shadow is baked.** `install.py` darkens the court with the shadow the whole model casts. Only the keep's shadow is separate, because it stands alone and would be missed when it falls.
 - **A fort shows every tower.** A tower a town's level gives no place for still stands, unmanned, since the walls end on it. A plain fort differs from a castle by its moat and archers, not its shape.
 - **Don't load 3D libraries from a CDN.** The first try used Three.js that way, and it was blocked. `render3d.py` needs only numpy and Pillow and gives the same picture every run.
+
+## The Norse ring fort
+
+The second castle (`castle_norse.py`, `paint/norse/`, `ground_norse.py`), made 2026-11-11 with 52 PixelLab generations. What differed from the Greek recipe:
+
+- **Model.** Same parts, states, `WALL_COL` and positions. A wall is an earth bank (sloped faces, snow on top) under two rows of upright sharpened logs, with rails and a plank walk (`palisade`); broken states cut the logs to splinters and char them (`burn`). Round towers are staves with iron bands, a hoarding and a stake ring; the floor stays at the Greek height, so `TOWER_FEET` of the corner towers is unchanged. The gatehouse is two log blockhouses with snowy gable roofs, the door still facing west (invisible shut). The keep is a longhouse with a log loft at its west end: the company stands on the loft (`TOWER_FEET_NORSE[0]`, y 226), not a roof.
+- **Snow is white on the white preview.** Look at renders on a mid-grey background (roofs and caps vanish on white).
+- **Sheets.** The bank makes pieces wider: pack with `GAP = 5` (`sheets.GAP = 5` before `pack`) to fit two 512 sheets; at 25 generations each that is 50. Painted prompt: Viking timberwork, snow on everything, charred timber for broken parts; same seed on both sheets. Cut worst match 0.88 and still clean.
+- **Ground without PixelLab.** `ground_norse.py` draws the court from the game's own snow field (median-filtered, trodden mud patches, a plank street from the gate to the hall's steps), recolours the Greek moat into a frozen ditch with snowy earth banks, and reuses the Greek bridge (already timber). Generations saved for the sheets.
+- **Install and pick.** `install.py norse` writes `src/art/pixel/siege-norse/` and `siege-norse.ts` (`SIEGE_ART_NORSE`); Greek stays where it was. `castleOf(state)` (`src/scenes/battle/castle.ts`) picks the castle from the people of the defender's companies (side 1): Norse unless more Greek or Egyptian companies stand there. `SiegeView`, `loadBattleArt`, `partAt` and `towerFeetOf` take the castle; Norse textures are keyed `px-siege-norse-*`.
+- **Re-render only some parts.** `castle_norse.py --only=keep,gate` re-renders those parts and keeps the rest of `pieces.json`.

@@ -23,6 +23,12 @@ import iconVoicePause from './ui/icon-voicePause.png?url';
 import iconVoicePlay from './ui/icon-voicePlay.png?url';
 import iconVoiceSkip from './ui/icon-voiceSkip.png?url';
 import iconVoiceRead from './ui/icon-voiceRead.png?url';
+import iconHallNorse from './ui/icon-hallNorse.png?url';
+import iconRecruitNorse from './ui/icon-recruitNorse.png?url';
+import iconTownNorse from './ui/icon-townNorse.png?url';
+import iconHallKemet from './ui/icon-hallKemet.png?url';
+import iconRecruitKemet from './ui/icon-recruitKemet.png?url';
+import iconTownKemet from './ui/icon-townKemet.png?url';
 import statAttack from './ui/stat-attack.png?url';
 import statDefense from './ui/stat-defense.png?url';
 import statShots from './ui/stat-shots.png?url';
@@ -62,6 +68,9 @@ import spellBloodlust from './ui/spell-bloodlust.png?url';
 import spellCurse from './ui/spell-curse.png?url';
 import spellWard from './ui/spell-ward.png?url';
 import spellRebirth from './ui/spell-rebirth.png?url';
+import spellTiwaz from './ui/spell-tiwaz.png?url';
+import spellIsa from './ui/spell-isa.png?url';
+import spellThurisaz from './ui/spell-thurisaz.png?url';
 import spellArtMagicArrow from './ui/spellArt-magicArrow.png?url';
 import spellArtHaste from './ui/spellArt-haste.png?url';
 import spellArtSlow from './ui/spellArt-slow.png?url';
@@ -74,6 +83,9 @@ import spellArtBloodlust from './ui/spellArt-bloodlust.png?url';
 import spellArtCurse from './ui/spellArt-curse.png?url';
 import spellArtWard from './ui/spellArt-ward.png?url';
 import spellArtRebirth from './ui/spellArt-rebirth.png?url';
+import spellArtTiwaz from './ui/spellArt-tiwaz.png?url';
+import spellArtIsa from './ui/spellArt-isa.png?url';
+import spellArtThurisaz from './ui/spellArt-thurisaz.png?url';
 import guildRoom from './ui/guildRoom.png?url';
 import smithRoom from './ui/smithRoom.png?url';
 import storeRoom from './ui/storeRoom.png?url';
@@ -228,6 +240,79 @@ import itemNovicePapyrus from './ui/item-novicePapyrus.png?url';
 import itemRamp from './ui/item-ramp.png?url';
 import itemRamp2 from './ui/item-ramp2.png?url';
 import itemRamp3 from './ui/item-ramp3.png?url';
+import itemIronCap from './ui/item-ironCap.png?url';
+import itemHideJerkin from './ui/item-hideJerkin.png?url';
+import itemHideBracers from './ui/item-hideBracers.png?url';
+import itemStuddedBelt from './ui/item-studdedBelt.png?url';
+import itemFurGreaves from './ui/item-furGreaves.png?url';
+import itemFurBoots from './ui/item-furBoots.png?url';
+import itemVolvaHood from './ui/item-volvaHood.png?url';
+import itemVolvaCloak from './ui/item-volvaCloak.png?url';
+import itemVolvaWraps from './ui/item-volvaWraps.png?url';
+import itemSeidrCord from './ui/item-seidrCord.png?url';
+import itemVolvaLeggings from './ui/item-volvaLeggings.png?url';
+import itemBarkShoes from './ui/item-barkShoes.png?url';
+import itemRaiderHelm from './ui/item-raiderHelm.png?url';
+import itemRaiderMail from './ui/item-raiderMail.png?url';
+import itemRaiderBracers from './ui/item-raiderBracers.png?url';
+import itemOarsmanBelt from './ui/item-oarsmanBelt.png?url';
+import itemRaiderGreaves from './ui/item-raiderGreaves.png?url';
+import itemLongshipBoots from './ui/item-longshipBoots.png?url';
+import itemSkaldCap from './ui/item-skaldCap.png?url';
+import itemSkaldCoat from './ui/item-skaldCoat.png?url';
+import itemSkaldArmbands from './ui/item-skaldArmbands.png?url';
+import itemSagaSash from './ui/item-sagaSash.png?url';
+import itemSkaldLeggings from './ui/item-skaldLeggings.png?url';
+import itemWandererShoes from './ui/item-wandererShoes.png?url';
+import itemTyrHelm from './ui/item-tyrHelm.png?url';
+import itemTyrByrnie from './ui/item-tyrByrnie.png?url';
+import itemTyrBracers from './ui/item-tyrBracers.png?url';
+import itemFenrirBelt from './ui/item-fenrirBelt.png?url';
+import itemTyrGreaves from './ui/item-tyrGreaves.png?url';
+import itemWolfskinBoots from './ui/item-wolfskinBoots.png?url';
+import itemRunemasterHood from './ui/item-runemasterHood.png?url';
+import itemRunemasterRobe from './ui/item-runemasterRobe.png?url';
+import itemRunemasterWraps from './ui/item-runemasterWraps.png?url';
+import itemRuneCord from './ui/item-runeCord.png?url';
+import itemRunemasterLeggings from './ui/item-runemasterLeggings.png?url';
+import itemRunemasterBoots from './ui/item-runemasterBoots.png?url';
+import itemJarlHelm from './ui/item-jarlHelm.png?url';
+import itemJarlByrnie from './ui/item-jarlByrnie.png?url';
+import itemJarlBracers from './ui/item-jarlBracers.png?url';
+import itemGoldStuddedBelt from './ui/item-goldStuddedBelt.png?url';
+import itemJarlGreaves from './ui/item-jarlGreaves.png?url';
+import itemJarlBoots from './ui/item-jarlBoots.png?url';
+import itemAllfatherHat from './ui/item-allfatherHat.png?url';
+import itemAllfatherCloak from './ui/item-allfatherCloak.png?url';
+import itemAllfatherArmrings from './ui/item-allfatherArmrings.png?url';
+import itemRavenBelt from './ui/item-ravenBelt.png?url';
+import itemAllfatherLeggings from './ui/item-allfatherLeggings.png?url';
+import itemSleipnirBoots from './ui/item-sleipnirBoots.png?url';
+import itemHandAxe from './ui/item-handAxe.png?url';
+import itemLindenShield from './ui/item-lindenShield.png?url';
+import itemBoneCharm from './ui/item-boneCharm.png?url';
+import itemBoneRing from './ui/item-boneRing.png?url';
+import itemIronRing from './ui/item-ironRing.png?url';
+import itemSeax from './ui/item-seax.png?url';
+import itemPaintedShield from './ui/item-paintedShield.png?url';
+import itemHammerAmulet from './ui/item-hammerAmulet.png?url';
+import itemAmberRing from './ui/item-amberRing.png?url';
+import itemRavenRing from './ui/item-ravenRing.png?url';
+import itemBeardedAxe from './ui/item-beardedAxe.png?url';
+import itemBossShield from './ui/item-bossShield.png?url';
+import itemValknutAmulet from './ui/item-valknutAmulet.png?url';
+import itemRunestoneRing from './ui/item-runestoneRing.png?url';
+import itemRingOfFreyr from './ui/item-ringOfFreyr.png?url';
+import itemSeaKingsSword from './ui/item-seaKingsSword.png?url';
+import itemShieldOfTyr from './ui/item-shieldOfTyr.png?url';
+import itemMjolnirPendant from './ui/item-mjolnirPendant.png?url';
+import itemDraupnirRing from './ui/item-draupnirRing.png?url';
+import itemFenrirRing from './ui/item-fenrirRing.png?url';
+import itemTyrfing from './ui/item-tyrfing.png?url';
+import itemNoviceRuneStaff from './ui/item-noviceRuneStaff.png?url';
+import itemRam from './ui/item-ram.png?url';
+import itemRam2 from './ui/item-ram2.png?url';
+import itemRam3 from './ui/item-ram3.png?url';
 import slotHelm from './ui/slot-helm.png?url';
 import slotCuirass from './ui/slot-cuirass.png?url';
 import slotBracers from './ui/slot-bracers.png?url';
@@ -249,7 +334,7 @@ import resCrystal from './ui/res-crystal.png?url';
 import resGems from './ui/res-gems.png?url';
 import laurel from './ui/laurel.png?url';
 
-export type IconName = 'wait' | 'defend' | 'spell' | 'auto' | 'endDay' | 'town' | 'menu' | 'hall' | 'recruit' | 'leave' | 'smith' | 'tavern' | 'store' | 'tower' | 'voicePause' | 'voicePlay' | 'voiceSkip' | 'voiceRead';
+export type IconName = 'wait' | 'defend' | 'spell' | 'auto' | 'endDay' | 'town' | 'menu' | 'hall' | 'recruit' | 'leave' | 'smith' | 'tavern' | 'store' | 'tower' | 'voicePause' | 'voicePlay' | 'voiceSkip' | 'voiceRead' | 'hallNorse' | 'recruitNorse' | 'townNorse' | 'hallKemet' | 'recruitKemet' | 'townKemet';
 
 export const ICONS: Readonly<Record<IconName, string>> = {
   wait: iconWait,
@@ -270,6 +355,12 @@ export const ICONS: Readonly<Record<IconName, string>> = {
   voicePlay: iconVoicePlay,
   voiceSkip: iconVoiceSkip,
   voiceRead: iconVoiceRead,
+  hallNorse: iconHallNorse,
+  recruitNorse: iconRecruitNorse,
+  townNorse: iconTownNorse,
+  hallKemet: iconHallKemet,
+  recruitKemet: iconRecruitKemet,
+  townKemet: iconTownKemet,
 };
 
 export type StatName = 'attack' | 'defense' | 'shots' | 'damage' | 'health' | 'left' | 'speed' | 'mana' | 'power' | 'knowledge' | 'morale' | 'luck' | 'sight';
@@ -321,6 +412,9 @@ export const SPELL_ICONS: Readonly<Partial<Record<SpellId, string>>> = {
   curse: spellCurse,
   ward: spellWard,
   rebirth: spellRebirth,
+  tiwaz: spellTiwaz,
+  isa: spellIsa,
+  thurisaz: spellThurisaz,
 };
 
 /** The guild's spell paintings (64 x 64). */
@@ -337,6 +431,9 @@ export const SPELL_ART: Readonly<Partial<Record<SpellId, string>>> = {
   curse: spellArtCurse,
   ward: spellArtWard,
   rebirth: spellArtRebirth,
+  tiwaz: spellArtTiwaz,
+  isa: spellArtIsa,
+  thurisaz: spellArtThurisaz,
 };
 
 /** The guild's library (768 x 340). */
@@ -507,6 +604,79 @@ export const ITEM_ICONS: Readonly<Partial<Record<ItemId, string>>> = {
   ramp: itemRamp,
   ramp2: itemRamp2,
   ramp3: itemRamp3,
+  ironCap: itemIronCap,
+  hideJerkin: itemHideJerkin,
+  hideBracers: itemHideBracers,
+  studdedBelt: itemStuddedBelt,
+  furGreaves: itemFurGreaves,
+  furBoots: itemFurBoots,
+  volvaHood: itemVolvaHood,
+  volvaCloak: itemVolvaCloak,
+  volvaWraps: itemVolvaWraps,
+  seidrCord: itemSeidrCord,
+  volvaLeggings: itemVolvaLeggings,
+  barkShoes: itemBarkShoes,
+  raiderHelm: itemRaiderHelm,
+  raiderMail: itemRaiderMail,
+  raiderBracers: itemRaiderBracers,
+  oarsmanBelt: itemOarsmanBelt,
+  raiderGreaves: itemRaiderGreaves,
+  longshipBoots: itemLongshipBoots,
+  skaldCap: itemSkaldCap,
+  skaldCoat: itemSkaldCoat,
+  skaldArmbands: itemSkaldArmbands,
+  sagaSash: itemSagaSash,
+  skaldLeggings: itemSkaldLeggings,
+  wandererShoes: itemWandererShoes,
+  tyrHelm: itemTyrHelm,
+  tyrByrnie: itemTyrByrnie,
+  tyrBracers: itemTyrBracers,
+  fenrirBelt: itemFenrirBelt,
+  tyrGreaves: itemTyrGreaves,
+  wolfskinBoots: itemWolfskinBoots,
+  runemasterHood: itemRunemasterHood,
+  runemasterRobe: itemRunemasterRobe,
+  runemasterWraps: itemRunemasterWraps,
+  runeCord: itemRuneCord,
+  runemasterLeggings: itemRunemasterLeggings,
+  runemasterBoots: itemRunemasterBoots,
+  jarlHelm: itemJarlHelm,
+  jarlByrnie: itemJarlByrnie,
+  jarlBracers: itemJarlBracers,
+  goldStuddedBelt: itemGoldStuddedBelt,
+  jarlGreaves: itemJarlGreaves,
+  jarlBoots: itemJarlBoots,
+  allfatherHat: itemAllfatherHat,
+  allfatherCloak: itemAllfatherCloak,
+  allfatherArmrings: itemAllfatherArmrings,
+  ravenBelt: itemRavenBelt,
+  allfatherLeggings: itemAllfatherLeggings,
+  sleipnirBoots: itemSleipnirBoots,
+  handAxe: itemHandAxe,
+  lindenShield: itemLindenShield,
+  boneCharm: itemBoneCharm,
+  boneRing: itemBoneRing,
+  ironRing: itemIronRing,
+  seax: itemSeax,
+  paintedShield: itemPaintedShield,
+  hammerAmulet: itemHammerAmulet,
+  amberRing: itemAmberRing,
+  ravenRing: itemRavenRing,
+  beardedAxe: itemBeardedAxe,
+  bossShield: itemBossShield,
+  valknutAmulet: itemValknutAmulet,
+  runestoneRing: itemRunestoneRing,
+  ringOfFreyr: itemRingOfFreyr,
+  seaKingsSword: itemSeaKingsSword,
+  shieldOfTyr: itemShieldOfTyr,
+  mjolnirPendant: itemMjolnirPendant,
+  draupnirRing: itemDraupnirRing,
+  fenrirRing: itemFenrirRing,
+  tyrfing: itemTyrfing,
+  noviceRuneStaff: itemNoviceRuneStaff,
+  ram: itemRam,
+  ram2: itemRam2,
+  ram3: itemRam3,
 };
 
 export type SlotIcon = 'helm' | 'cuirass' | 'bracers' | 'belt' | 'greaves' | 'boots' | 'weapon' | 'shield' | 'amulet' | 'ring' | 'book' | 'machine';

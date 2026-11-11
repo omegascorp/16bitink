@@ -105,7 +105,7 @@ describe('lairs', () => {
     expect(groupOf(back)).toEqual(groupOf(adv));
     expect(back.objects.find((o) => o.id === DEN.id)).toMatchObject({ week: 2, since: 1 });
     // Moved, or for a lair the map doesn't have: not read back.
-    const moved = { ...raw, objects: raw.objects.map((o) => (o.id === groupOf(adv)!.id ? { ...o, x: 1, y: 1, creature: 'dragon' } : o)) };
+    const moved = { ...raw, objects: raw.objects.map((o) => (o.id === groupOf(adv)!.id ? { ...o, x: 1, y: 1, creature: 'wyvern' } : o)) };
     expect(groupOf(parseAdventure(moved, FIXTURE)!)).toMatchObject(lairDoor(DEN));
     expect(groupOf(parseAdventure(moved, FIXTURE)!)?.creature).toBe('wolf');
     const stray = { ...raw, objects: [...raw.objects, { id: 'nowhere@w2', kind: 'monster', x: 3, y: 3, creature: 'wolf', count: 5 }] };

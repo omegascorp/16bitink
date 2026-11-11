@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
-import { KEMET_TOWN, MAP_COVER, MAP_GROUND, MAP_SITES, MAP_VIGNETTES, TOWN_LOOKS, type MapCover, type MapSprite } from '../../art/pixel/map';
+import { KEMET_TOWN, MAP_COVER, MAP_GROUND, MAP_SITES, MAP_VIGNETTES, NORSE_SITES, NORSE_TOWN, TOWN_LOOKS, type MapCover, type MapSprite } from '../../art/pixel/map';
 import { HERO_ART, UNIT_ART } from '../../art/pixel/manifest';
 import type { SiteArt } from '../../art/sites/types';
-import { CREATURE_IDS } from '../../logic/creatures';
+import { CREATURE_IDS, type TownFaction } from '../../logic/creatures';
 import { factionOf } from '../../logic/factions';
 import type { Town } from '../../logic/town';
 import type { MapDef } from '../../level/types';
@@ -27,16 +27,27 @@ export const MAP_TEX = {
   fog: (map: string) => `pxm-fog-${map}`,
   vignette: (id: string) => `pxm-vignette-${id}`,
   town: (map: string) => `pxm-town-${map}`,
-  kemetTown: 'pxm-town-kemet',
+  /** A people's town drawn whole (Egypt's, the Norse ring fort). */
+  peopleTown: (f: TownFaction) => `pxm-town-${f}`,
   townLook: (look: string) => `pxm-town-look-${look}`,
+  norseSite: (art: string) => `pxm-norse-${art}`,
 } as const;
 
-/** The texture a town is drawn with on the map (and shrunk for the town list): its own look, Egypt's town, or the city as built. */
+/** Each people's town drawn whole, by faction: it does not grow with the buildings. The Greeks' (none here) is built from the city the town screen shows. */
+export const PEOPLE_TOWNS: Readonly<Partial<Record<TownFaction, MapSprite>>> = { kemet: KEMET_TOWN, norse: NORSE_TOWN };
+
+/** A town's people's picture drawn whole, if its people have one. */
+export function peopleTownOf(t: { readonly faction?: TownFaction }): { key: string; sprite: MapSprite } | null {
+  const f = factionOf(t);
+  const sprite = PEOPLE_TOWNS[f];
+  return sprite ? { key: MAP_TEX.peopleTown(f), sprite } : null;
+}
+
+/** The texture a town is drawn with on the map (and shrunk for the town list): its own look, its people's town, or the city as built. */
 export function townTexOf(def: MapDef, t: Town): string {
   const look = def.towns?.find((d) => d.id === t.id)?.look;
   if (look && TOWN_LOOKS[look]) return MAP_TEX.townLook(look);
-  if (factionOf(t) === 'kemet') return MAP_TEX.kemetTown;
-  return MAP_TEX.town(`${def.id}-${t.id}`);
+  return peopleTownOf(t)?.key ?? MAP_TEX.town(`${def.id}-${t.id}`);
 }
 
 /** The new sites' sprite keys (Othrys's, then the Delta's), and what each borrows while its own isn't drawn. */
@@ -48,10 +59,41 @@ const NEW_SITES: Readonly<Record<string, SiteArt>> = {
   arena: 'keep', hephaestusForge: 'titanForge', raTemple: 'benbenHouse',
 };
 
-/** The art a map object is drawn with (monsters, towns and gear on the ground are drawn apart): a SiteArt, or a new site's key. */
-export function siteArtOf(o: MapObject): string | null {
-  if (o.kind === 'mine' || o.kind === 'pile') return `${o.kind}-${o.resource!}`;
+/** True for a map with a Norse town or hero: its borrowed sites (altar, shrine, lair) wear the Norse looks. */
+export function isNorseMap(def: Pick<MapDef, 'towns' | 'hero'>): boolean {
+  return !!def.towns?.some((t) => t.faction === 'norse') || def.hero?.faction === 'norse';
+}
+
+/**
+ * Part 4's own sites and the temple, by an object's `look` (any map, any kind) or, failing that, by its id or (a dwelling) its creature:
+ * a look of `treasureBarrow`, `mimirsWell`, `angantyrBarrow`, `boarPen`, `dragonHoard` or `uppsalaTemple`.
+ */
+const NORSE_LOOK_ART: Readonly<Record<string, string>> = {
+  treasureBarrow: 'treasureBarrow', mimirsWell: 'mimirWell', mimirWell: 'mimirWell', angantyrBarrow: 'angantyr', boarPen: 'boarPen', dragonHoard: 'dragonHoard', uppsalaTemple: 'uppsalaTemple',
+};
+const NORSE_CREATURE_ART: Readonly<Record<string, string>> = { warBoar: 'boarPen', warBoar2: 'boarPen', dragon: 'dragonHoard', dragon2: 'dragonHoard', dragon3: 'dragonHoard' };
+
+function norseArtOf(o: MapObject, norseMap: boolean): string | null {
+  const look = NORSE_LOOK_ART[String(o.look)];
+  if (look) return look;
+  if (!norseMap) return null;
+  if (/angantyr/i.test(o.id)) return 'angantyr';
+  if (/mimir/i.test(o.id)) return 'mimirWell';
+  switch (o.kind) {
+    case 'spellbook': return 'altar';
+    case 'shrine': return 'runeShrine';
+    case 'lair': return 'barrow';
+    case 'bank': return 'treasureBarrow';
+    case 'sanctum': return 'mimirWell';
+    case 'dwelling': return NORSE_CREATURE_ART[o.creature ?? ''] ?? null;
+    default: return null;
+  }
+}
+
+/** A Greek-side art key for an object: a SiteArt or a new site's key. */
+function greekArtOf(o: MapObject): string | null {
   if (o.kind === 'monster' || o.kind === 'town' || o.kind === 'item') return null;
+  if (o.kind === 'mine' || o.kind === 'pile') return `${o.kind}-${o.resource!}`;
   if (o.kind === 'dwelling') return o.look ?? 'cyclopsCave';
   if (o.kind === 'bank') return o.look ?? 'keep';
   if (o.kind === 'lair') return o.look ?? 'den';
@@ -59,8 +101,27 @@ export function siteArtOf(o: MapObject): string | null {
   return o.kind;
 }
 
+/** The Greek sites that wear a Norse look on a Norse map (keys of NORSE_SITES): the mines, stables, camp, tower, mill, stones and the arena. */
+const NORSE_REPAINTED: ReadonlySet<string> = new Set([
+  'mine-gold', 'mine-wood', 'mine-ore', 'mine-gems', 'mine-mercury', 'mine-sulfur', 'mine-crystal',
+  'stables', 'mercCamp', 'watchtower', 'windmill', 'standingStone', 'learningStone', 'arena',
+]);
+
+/** The art a map object is drawn with (monsters, towns and gear on the ground are drawn apart): a SiteArt, a new site's key, or (on a Norse map) a Norse look's `norse:` key. */
+export function siteArtOf(o: MapObject, norseMap = false): string | null {
+  if (o.kind === 'monster' || o.kind === 'town' || o.kind === 'item') return null;
+  const norse = norseArtOf(o, norseMap);
+  if (norse) return `norse:${norse}`;
+  const art = greekArtOf(o);
+  return norseMap && art && NORSE_REPAINTED.has(art) ? `norse:${art}` : art;
+}
+
 /** A site's sprite: its own, or (a mine drawn later) the gold mine's, or (a new site drawn later) the one it borrows. */
 export function siteSprite(art: string): { key: string; sprite: MapSprite } | null {
+  if (art.startsWith('norse:')) {
+    const n = NORSE_SITES[art.slice(6)];
+    return n ? { key: MAP_TEX.norseSite(art.slice(6)), sprite: n } : null;
+  }
   const sites = MAP_SITES as Readonly<Partial<Record<string, MapSprite>>>;
   const own = sites[art];
   if (own) return { key: MAP_TEX.site(art as SiteArt), sprite: own };
@@ -85,9 +146,10 @@ export function loadMapArt(scene: Phaser.Scene, creatures: readonly string[], wo
   if (world) {
     for (const [t, url] of Object.entries(MAP_GROUND)) if (url) image(MAP_TEX.ground(t), url);
     for (const [art, s] of Object.entries(MAP_SITES) as [SiteArt, MapSprite][]) image(MAP_TEX.site(art), s.url);
+    for (const [art, s] of Object.entries(NORSE_SITES)) image(MAP_TEX.norseSite(art), s.url);
     // The signs on our towns (the cursors' own pictures).
     for (const [kind, list] of Object.entries(MAP_COVER) as [MapCover, readonly MapSprite[]][]) list.forEach((s, i) => image(MAP_TEX.cover(kind, i), s.url));
-    image(MAP_TEX.kemetTown, KEMET_TOWN.url);
+    for (const [f, s] of Object.entries(PEOPLE_TOWNS) as [TownFaction, MapSprite][]) image(MAP_TEX.peopleTown(f), s.url);
     for (const [look, s] of Object.entries(TOWN_LOOKS)) image(MAP_TEX.townLook(look), s.url);
     // The town's own sprites: the map draws its town from the city the town screen shows.
     keys.push(...queueTownArt(scene));

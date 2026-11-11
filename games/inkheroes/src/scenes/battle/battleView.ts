@@ -13,13 +13,14 @@ import type { BattleCameras } from './battleCameras';
 import { badgeTexture, backdropSource, bufferTexture, heroArt, obstacleArt, PX_TEX, unitArt } from './pixelAssets';
 import { FIGURE_DEPTH, PixelFigure } from './pixelFigure';
 import { Backdrop } from './pixelBackdrop';
-import { feetOn, feetPx, heroFeet, hexPx, TOWER_FEET, WORLD } from './pixelLayout';
+import { feetOn, feetPx, heroFeet, hexPx, towerFeetOf, WORLD } from './pixelLayout';
+import { castleOf, type Castle } from './castle';
 import { PixelBuffer, type Rgba } from './pixelRaster';
 import { INK, texturePixels } from './pixelUi';
 import { partAt, SiegeView } from './siegeView';
 import { rampLook } from './rampView';
 import { bodyMiddle, onBodyMiddle } from './bodyAnchor';
-import type { FigureArt } from './standIns';
+import { battleArtId, type FigureArt } from './standIns';
 import { rankOf, type Rarity } from '../../logic/rarity';
 
 /** How far above the part struck by hand its message floats, native pixels. */
@@ -61,7 +62,7 @@ function stackHexes(s: Stack): readonly Hex[] {
 }
 
 /** Where a stack's feet go: on its hex, or up on its tower. */
-const stackFeet = (s: Stack): { x: number; y: number } => (s.tower === undefined ? feetOn(stackHexes(s)) : TOWER_FEET[s.tower]!);
+const stackFeet = (s: Stack, castle: Castle): { x: number; y: number } => (s.tower === undefined ? feetOn(stackHexes(s)) : towerFeetOf(castle)[s.tower]!);
 
 /** The ground line a company on a tower sorts on: just in front of the tower's own. */
 const TOWER_SORT = 2;
@@ -131,10 +132,12 @@ export class BattleView {
   private readonly extras: Phaser.GameObjects.GameObject[] = [];
   private readonly backdrop: Backdrop;
   private readonly walls: SiegeView | null = null;
+  /** Whose castle the walls are. */
+  private readonly castle: Castle;
   /** The side the player plays: theirs are the navy badges, and their hero the player's. */
   private readonly me: number;
 
-  constructor(private readonly scene: Phaser.Scene, private readonly cams: BattleCameras, state: BattleState, terrain: string, seed: number, heroes: readonly [boolean, boolean], private readonly floater: Floater, private readonly opts: ViewOpts = {}) {
+  constructor(private readonly scene: Phaser.Scene, private readonly cams: BattleCameras, state: BattleState, private readonly terrain: string, seed: number, heroes: readonly [boolean, boolean], private readonly floater: Floater, private readonly opts: ViewOpts = {}) {
     const layer = cams.world;
     this.backdrop = new Backdrop(scene, backdropSource(terrain, seed), DEPTH.bg);
     for (const o of this.backdrop.objects) layer.add(o);
@@ -145,7 +148,8 @@ export class BattleView {
     this.addStill(scene.add.image(0, 0, GRID_KEY).setOrigin(0).setDepth(DEPTH.grid));
     this.placeObstacles(state.obstacles, seed);
     this.me = playerSide(state);
-    if (state.siege) this.walls = new SiegeView(scene, layer, state.siege, rampLook(state));
+    this.castle = castleOf(state);
+    if (state.siege) this.walls = new SiegeView(scene, layer, state.siege, rampLook(state), this.castle);
     heroes.forEach((has, side) => {
       if (!has) return;
       // The other side's hero is always the rival lord (monsters and garrisons fight without one).
@@ -186,21 +190,23 @@ export class BattleView {
   }
 
   /** A unit's art, its feet under the body's middle when it fills three hexes (measured once per kind from its idle strip). */
-  private figureArtFor(id: Stack['creature']): FigureArt {
-    const art = unitArt(id);
+  private figureArtFor(id: Stack['creature'], artId: string = id): FigureArt {
+    const art = unitArt(artId);
     if (sizeOf(id) < 3) return art;
-    const known = this.centred.get(id);
+    const known = this.centred.get(artId);
     if (known) return known;
-    const key = PX_TEX.unit(id, 'idle');
+    const key = PX_TEX.unit(artId, 'idle');
     const middle = this.scene.textures.exists(key) ? bodyMiddle(texturePixels(this.scene, key), art.w, art.frames.idle) : null;
     const out = onBodyMiddle(art, middle);
-    this.centred.set(id, out);
+    this.centred.set(artId, out);
     return out;
   }
 
   private addUnit(s: Stack): void {
-    const art = this.figureArtFor(s.creature);
-    const fig = new PixelFigure(this.scene, this.cams.world, art, (pose) => PX_TEX.unit(s.creature, pose), stackFeet(s), s.side === 1);
+    // A skier off snow is drawn on foot, its skis on its back (standIns.ts).
+    const artId = battleArtId(s.creature, this.terrain);
+    const art = this.figureArtFor(s.creature, artId);
+    const fig = new PixelFigure(this.scene, this.cams.world, art, (pose) => PX_TEX.unit(artId, pose), stackFeet(s, this.castle), s.side === 1);
     if (this.opts.pose) fig.hold(this.opts.pose);
     if (s.tower !== undefined) fig.sortOn(hexPx(s.hex).y + TOWER_SORT);
     const rank = rankOf(s.creature);
@@ -213,7 +219,7 @@ export class BattleView {
   sync(state: BattleState): void {
     for (const s of state.stacks) {
       const u = this.units.get(s.id)!;
-      const p = stackFeet(s);
+      const p = stackFeet(s, this.castle);
       u.fig.setFeet(p.x, p.y);
       if (s.tower === undefined) u.fig.sortOn(null);
       // A side whose hero fled has left the field with them.
@@ -240,7 +246,7 @@ export class BattleView {
 
   private markFeet(state: BattleState): void {
     for (const s of state.stacks) {
-      const p = stackFeet(s);
+      const p = stackFeet(s, this.castle);
       const dot = this.scene.add.rectangle(p.x, p.y, 1, 1, 0xff00ff).setOrigin(0).setDepth(DEPTH.feet);
       this.addStill(dot as unknown as Phaser.GameObjects.Image);
     }
@@ -310,7 +316,7 @@ export class BattleView {
         this.walls?.rampDust(ev.part);
         if (after.siege) this.walls?.show(after.siege);
         const done = ev.stage >= ev.need;
-        const at = partAt(ev.part);
+        const at = partAt(ev.part, this.castle);
         this.floater(at.x - 30, at.y - STRIKE_FLOAT, ev.stage === 0 ? 'The workers begin a ramp' : done ? 'The ramp is ready!' : 'The ramp grows…', done ? INK.title : INK.text);
         await this.wait(done ? 420 : 260);
         return;
@@ -322,9 +328,37 @@ export class BattleView {
         getSound(this.scene)?.play('hit');
         this.walls?.jolt(ev.part);
         if (after.siege) this.walls?.show(after.siege);
-        const at = partAt(ev.part);
+        const at = partAt(ev.part, this.castle);
         this.floater(at.x, at.y - STRIKE_FLOAT, ev.left ? `${SIEGE_NAMES[ev.part]} shudders: ${ev.left} more ${ev.left === 1 ? 'strike' : 'strikes'}` : `${SIEGE_NAMES[ev.part]} falls!`, ev.left ? INK.text : INK.title);
         await this.wait(260);
+        return;
+      }
+      case 'breath': {
+        // The dragon's breath rolls on past its target into the unit behind.
+        const t = this.units.get(ev.target)!;
+        this.hit(t.fig);
+        this.floatAt(t.fig, `Breath: −${ev.damage}${ev.kills ? `  ${ev.kills} fall` : ''}`, INK.damage);
+        this.syncOne(after, ev.target);
+        await this.wait(300);
+        return;
+      }
+      case 'lightning': {
+        const t = this.units.get(ev.target)!;
+        getSound(this.scene)?.play('hit');
+        await this.flash(t.fig);
+        this.floatAt(t.fig, `Thor’s lightning: −${ev.damage}${ev.kills ? `  ${ev.kills} fall` : ''}`, INK.spell);
+        this.syncOne(after, ev.target);
+        await this.wait(300);
+        return;
+      }
+      case 'ram': {
+        // The ram's last blow: the gate (and the finest's wall beside it) comes down.
+        getSound(this.scene)?.play('hit');
+        for (const part of ev.parts) this.walls?.jolt(part);
+        if (after.siege) this.walls?.show(after.siege);
+        const at = partAt('gate', this.castle);
+        this.floater(at.x, at.y - STRIKE_FLOAT, ev.parts.length > 1 ? 'The ram breaks the gate and the wall beside it!' : 'The ram breaks the gate!', INK.title);
+        await this.wait(450);
         return;
       }
       case 'moat': {

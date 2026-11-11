@@ -3,7 +3,7 @@ import { SCENERY } from '../art/pixel/scenery';
 import { BACKDROP } from '../art/palette';
 import type { GameHost } from '@16bitink/game-sdk';
 import { getFullError, getHost, getSound, trackOffer } from '../host';
-import { CHAPTERS, isLoaded, partsOf, type ChapterDef } from '../level/maps';
+import { CHAPTERS, comingSoon, isLoaded, partsOf, type ChapterDef } from '../level/maps';
 import { calendar } from '../logic/adventure';
 import { loadProgress, type Progress } from '../logic/save';
 import { loadPaidMaps } from './BootScene';
@@ -175,12 +175,14 @@ export class MenuScene extends Phaser.Scene {
   private cardSpec(c: ChapterDef, host: GameHost, progress: Progress): ChapterCardSpec {
     const base = { records: progress.maps, last: c.last };
     if (!isLoaded(c)) {
-      return { ...base, parts: c.parts, playing: null, ...this.lockedOf(c, host) };
+      // A chapter still being made names the parts it is planned in.
+      return { ...base, parts: c.parts.length ? c.parts : c.planned ?? [], playing: null, ...this.lockedOf(c, host) };
     }
     const looked = Session.look(host, c);
     return {
       ...base, parts: partsOf(c),
-      playing: looked ? { def: looked.def, when: calendar(looked.day) } : null,
+      // A chapter won and played on says so: Continue goes back to roaming it, Start over still throws it away.
+      playing: looked ? { def: looked.def, when: looked.free ? `Chapter complete · ${calendar(looked.day)}` : calendar(looked.day), free: !!looked.free } : null,
       onPlay: () => this.play(c),
       ...(looked ? { onStartOver: () => this.startOver(c, looked) } : {}),
     };
@@ -188,6 +190,8 @@ export class MenuScene extends Phaser.Scene {
 
   /** A chapter the player can't play now: an owner whose maps didn't come can try again; anyone else sees the offer. */
   private lockedOf(c: ChapterDef, host: GameHost): Pick<ChapterCardSpec, 'locked' | 'onPlay'> {
+    // A chapter still being made: owners get it as a free update, so there is nothing to retry.
+    if (host.unlocked && comingSoon(c)) return { locked: { pitch: `Coming soon, free with the full game: ${c.pitch}`, label: 'Coming soon' }, onPlay: () => undefined };
     if (host.unlocked) {
       const retry = (): void => void loadPaidMaps(this).then(() => this.sys.isActive() && this.draw());
       return { locked: { pitch: getFullError(this) ?? 'Your full game is still on its way.', label: 'Try again' }, onPlay: retry };
