@@ -23,6 +23,19 @@ export function trackGame(s: RegistryReader, event: GameEvent): void {
   }
 }
 
+/**
+ * A part (or the campaign menu) couldn't load its art: the site checks whether a deploy
+ * replaced the game since the page opened and offers a refresh. Only from loadMapArt, as a
+ * part opens: never in the middle of play. Never throws.
+ */
+export function reportFilesMissing(s: RegistryReader): void {
+  try {
+    (s.registry.get(REG.host) as GameHost | undefined)?.filesMissing?.();
+  } catch {
+    // Ignored on purpose.
+  }
+}
+
 /** Reports that the full-game offer is on screen (once per showing), for the site's stats. */
 export function trackOffer(s: RegistryReader, where: OfferPlace): void {
   trackGame(s, { type: 'offer_view', where });

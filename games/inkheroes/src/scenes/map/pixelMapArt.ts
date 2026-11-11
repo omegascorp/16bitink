@@ -11,6 +11,7 @@ import { HERO_IDS, nearest, POSES, PX_TEX, unitArt } from '../battle/pixelAssets
 import { loadUiFont } from '../battle/pixelFont';
 import { loadUiArt } from '../battle/pixelUi';
 import { queueTownArt } from '../town/townTex';
+import { reportFilesMissing } from '../../host';
 
 /**
  * The adventure map's textures: the ground swatches, site and cover
@@ -175,9 +176,17 @@ export function loadMapArt(scene: Phaser.Scene, creatures: readonly string[], wo
     done();
     return font;
   }
+  // A part opening without its art: gone with a deploy since the page opened, so the site offers a refresh.
+  let missing = false;
+  const onMissing = (): void => {
+    missing = true;
+  };
+  scene.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, onMissing);
   const art = new Promise<void>((resolve) => {
     scene.load.once(Phaser.Loader.Events.COMPLETE, () => {
+      scene.load.off(Phaser.Loader.Events.FILE_LOAD_ERROR, onMissing);
       done();
+      if (missing) reportFilesMissing(scene);
       resolve();
     });
     scene.load.start();

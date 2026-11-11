@@ -71,6 +71,11 @@ const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean
         <a class="back" href={`/games/${game.slug}`}>← back</a>
         {version && <p class="version">v{version}</p>}
       </div>
+      <!-- Over the game when a chapter or level can't load its files, gone with a deploy (lib/client/player.ts, offerRefresh). -->
+      <div id="refresh" role="alertdialog" aria-modal="true" aria-labelledby="refresh-text" hidden>
+        <p id="refresh-text"></p>
+        <button id="refresh-go" type="button">Refresh</button>
+      </div>
     </div>
 
     <script>
@@ -160,6 +165,20 @@ const fontFamilies = ['family=Silkscreen', game.fonts?.googleCss].filter(Boolean
       #ios-hint, #status { font-family: Georgia, serif; font-size: 0.95rem; max-width: 34ch; margin: 8px 0 0; }
       #status { color: #a3342b; }
       .back { font-size: 1.5rem; color: var(--ink); margin-top: 14px; }
+      #refresh {
+        position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 10px; padding: 0 16px; text-align: center;
+        background: color-mix(in srgb, var(--paper) 88%, transparent); color: var(--ink);
+      }
+      #refresh[hidden] { display: none; }
+      #refresh-text { font-family: Georgia, serif; font-size: 1.05rem; max-width: 34ch; margin: 0 0 8px; }
+      #refresh-go {
+        font: 700 2rem 'Caveat', cursive; padding: 8px 32px; min-height: 56px; cursor: pointer;
+        color: var(--paper); background: var(--accent); border: 3px solid var(--ink);
+        border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; box-shadow: 3px 4px 0 var(--ink);
+      }
+      #refresh-go:active { transform: translate(2px, 3px); box-shadow: none; }
+      #refresh-go:focus-visible { outline: 3px dashed var(--accent); outline-offset: 5px; }
       .version {
         position: absolute; right: 14px; bottom: 10px; margin: 0;
         font-family: 'Silkscreen', monospace; font-size: 0.7rem; color: var(--ink); opacity: 0.55;

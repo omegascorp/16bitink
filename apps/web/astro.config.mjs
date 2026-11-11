@@ -28,7 +28,11 @@ export default defineConfig({
   vite: {
     ssr: { noExternal: ['@16bitink/inkfish', '@16bitink/inkcrab', '@16bitink/inkmine', '@16bitink/inkgecko', '@16bitink/inksnake', '@16bitink/inkpin', '@16bitink/inkheroes'] },
     // Ties the game's saved drawings (art cache) to its source.
-    define: { __INKFISH_BUILD__: JSON.stringify(inkfishBuildId()) },
+    define: {
+      __INKFISH_BUILD__: JSON.stringify(inkfishBuildId()),
+      // When this build was made: a splash screen older than the deploy reloads (lib/build.ts).
+      __SITE_BUILD__: JSON.stringify(Date.now()),
+    },
     // Phaser is ~1.4 MB and loaded lazily on the play page only.
     build: { chunkSizeWarningLimit: 1600 },
   },

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { KeyValueStore } from '@16bitink/game-sdk';
-import { isStaleBuildError, reloadForNewBuild, shouldReloadForNewBuild, RELOAD_COOLDOWN_MS } from '../src/lib/client/staleBuild';
+import { isNewerBuild, isStaleBuildError, reloadForNewBuild, shouldReloadForNewBuild, RELOAD_COOLDOWN_MS } from '../src/lib/client/staleBuild';
 
 function memoryStore(): KeyValueStore & { readonly items: Map<string, string> } {
   const items = new Map<string, string>();
@@ -85,5 +85,29 @@ describe('reload for a new build', () => {
     let reloads = 0;
     expect(reloadForNewBuild(store, 1_000, () => reloads++)).toBe(false);
     expect(reloads).toBe(0);
+  });
+});
+
+describe('a newer build on the server', () => {
+  it('spots a deploy since this page loaded', () => {
+    expect(isNewerBuild(1_000, 2_000)).toBe(true);
+  });
+
+  it('leaves the page alone on the same build', () => {
+    expect(isNewerBuild(1_000, 1_000)).toBe(false);
+  });
+
+  it('never goes back to an older build (the other instance, mid-deploy)', () => {
+    expect(isNewerBuild(2_000, 1_000)).toBe(false);
+  });
+
+  it('ignores an answer it cannot read', () => {
+    expect(isNewerBuild(1_000, undefined)).toBe(false);
+    expect(isNewerBuild(1_000, 'soon')).toBe(false);
+    expect(isNewerBuild(1_000, Number.NaN)).toBe(false);
+  });
+
+  it('does nothing when the page has no build stamp of its own', () => {
+    expect(isNewerBuild(0, 2_000)).toBe(false);
   });
 });

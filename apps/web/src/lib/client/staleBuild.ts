@@ -51,3 +51,12 @@ export function reloadForNewBuild(storage: KeyValueStore | undefined, now: numbe
   reload();
   return true;
 }
+
+/**
+ * The server runs a newer build than this page (see lib/build.ts). Only newer:
+ * mid-deploy the other instance may still answer with the old one, and going
+ * back to it would bounce the page. A page without a build stamp never reloads.
+ */
+export function isNewerBuild(mine: number, served: unknown): boolean {
+  return mine > 0 && typeof served === 'number' && Number.isFinite(served) && served > mine;
+}

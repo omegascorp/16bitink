@@ -93,6 +93,15 @@ export interface GameHost {
    * Absent in dev harnesses and tests: games then show their own boot screen.
    */
   readonly loading?: LoadingReporter;
+  /**
+   * A new chapter or level couldn't load its files. A deploy may have
+   * replaced the game since the page opened: the site checks and shows a
+   * Refresh button onto the new version. Call it only as a chapter or level
+   * loads, never in the middle of play (a missing voice line or sound just
+   * stays silent). Fire and forget, never throws; calling it again does no
+   * harm. Absent in dev harnesses and tests.
+   */
+  readonly filesMissing?: () => void;
 }
 
 /**
