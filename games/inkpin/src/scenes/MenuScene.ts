@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { INK, PAPER_HEX } from '../art/palette';
+import { INK } from '../art/palette';
 import { PENCIL } from '../art/atlas';
 import type { SoundBoard } from '../audio/sfx';
 import { getFullError, getHost, trackOffer } from '../host';
@@ -14,6 +14,7 @@ import { buildNodes, mapStates, type NodeHit, type NodeState } from './map/nodes
 import { NibWalker } from './map/walker';
 import { readProgress, type Progress } from './progress';
 import { bakeTextures } from './textures';
+import { bakeUi, paintedButton, paperCard, UI_RES, UI_TEX } from './uiPaint';
 
 /** playable: installed; locked: the full game's, not installed here; draft: not built yet. */
 type ChapterKind = 'playable' | 'locked' | 'draft';
@@ -254,7 +255,7 @@ export class MenuScene extends Phaser.Scene {
     } else if (locked && host?.price) {
       this.card = new ChapterCard(this, this.uiLayer, this.ui, {
         title, lines: [`Chapters 2–${BUILT_CHAPTERS} are the full game:`, 'the Volcano Shrine and the Desert Tomb,', 'and more ruins as free updates.'],
-        action: { label: `Unlock · ${host.price}`, run: () => host.onBuy('locked') },
+        action: { label: `Unlock · ${host.price}`, run: () => host.onBuy('locked'), offer: true },
       }, close);
       trackOffer('locked');
     } else {
@@ -272,47 +273,32 @@ export class MenuScene extends Phaser.Scene {
     const w = screen.width;
     const h = screen.height;
     this.ui = { width: w, height: h };
-    const bar = this.add.graphics();
-    bar.fillStyle(PAPER_HEX, 0.9).fillRect(0, 0, w, TOP_BAR);
-    bar.lineStyle(1.5, 0x26316a, 0.5).lineBetween(0, TOP_BAR, w, TOP_BAR);
-    this.uiLayer.add(bar);
+    bakeUi(this);
+    // The bar: a strip of old map paper torn along its bottom, running off both sides and the top.
+    const barW = Math.ceil((w + 40) / 64) * 64;
+    this.uiLayer.add(paperCard(this, w / 2, TOP_BAR / 2 - 8, barW, TOP_BAR + 16, 31, { radius: 2, rough: 1.8, shadow: 0.6, tint: 'parchment' }));
     const text = (x: number, y: number, s: string, size: number, color = INK): Phaser.GameObjects.Text =>
       this.add.text(x, y, s, { fontFamily: FONT, fontSize: `${size}px`, fontStyle: '700', color, padding: { x: 6, y: 3 } }).setOrigin(0.5).setResolution(DPR * 1.5);
     const narrow = w < 640;
-    if (!narrow) this.uiLayer.add(text(96, TOP_BAR / 2, 'The Ink Atlas', 30));
+    if (!narrow) this.uiLayer.add(text(104, TOP_BAR / 2, 'The Ink Atlas', 32));
     // Back to 16bit.ink: top right on a computer, top left on a phone (where the title is hidden).
-    const exit = this.pill(narrow ? 44 : w - 58, TOP_BAR / 2, 'Exit', () => getHost()?.onExit());
+    const exit = paintedButton(this, narrow ? 50 : w - 62, TOP_BAR / 2, 'Exit', () => getHost()?.onExit(), { width: 84, height: 42, size: 25 });
     // On a phone the caption centres in the room right of Exit.
-    const cx = narrow ? (w + 84) / 2 : w / 2;
+    const cx = narrow ? (w + 96) / 2 : w / 2;
     this.caption = text(cx, TOP_BAR / 2 - 11, '', narrow ? 22 : 26);
     this.tally = text(cx, TOP_BAR / 2 + 15, '', narrow ? 15 : 17, SOFT_INK);
-    this.nibButton = this.pill(w - 62, h - 40, 'Nib ↓', () => {
+    const nib = paintedButton(this, w - 66, h - 40, 'Nib ↓', () => {
       this.targetY = this.clampY(this.walker.position.y - 40);
-    });
-    this.nibLabel = this.nibButton.list[1] as Phaser.GameObjects.Text;
+    }, { width: 100, height: 44, size: 25 });
+    this.nibButton = nib.root;
+    this.nibLabel = nib.label;
+    // The blots won so far, on a tag in the corner.
     const blots = Object.values(this.progress.levels).reduce((n, r) => n + r.blots, 0);
-    const g = this.add.graphics();
-    g.fillStyle(0x26316a, 0.85).fillCircle(30, h - 34, 11).fillCircle(39, h - 43, 4).fillCircle(21, h - 25, 3);
-    this.uiLayer.add([this.caption, this.tally, exit, this.nibButton, g, text(48, h - 34, `${blots} / ${LEVELS.length * 3}`, 24).setOrigin(0, 0.5).setStroke('#fffaf0', 5)]);
-  }
-
-  /** A small paper button with an ink rim, like the level's own buttons. */
-  private pill(x: number, y: number, label: string, onTap: () => void): Phaser.GameObjects.Container {
-    const t = this.add.text(0, 0, label, { fontFamily: FONT, fontSize: '24px', fontStyle: '700', color: INK, padding: { x: 4, y: 2 } }).setOrigin(0.5).setResolution(DPR * 1.5);
-    const bw = Math.max(72, t.width + 26);
-    const bh = 42;
-    const g = this.add.graphics();
-    g.fillStyle(0x000000, 0.14).fillRoundedRect(-bw / 2 + 2, -bh / 2 + 3, bw, bh, 12);
-    g.fillStyle(0xfffaf0, 1).fillRoundedRect(-bw / 2, -bh / 2, bw, bh, 12);
-    g.lineStyle(2.5, 0x26316a, 1).strokeRoundedRect(-bw / 2, -bh / 2, bw, bh, 12);
-    const c = this.add.container(x, y, [g, t]).setSize(bw, bh).setInteractive({ useHandCursor: true });
-    c.on('pointerup', () => {
-      if (this.drag?.moved || this.card) return;
-      this.sfx.play('tap');
-      this.tweens.add({ targets: c, scale: 0.9, duration: 70, yoyo: true });
-      onTap();
-    });
-    return c;
+    const tally = text(58, h - 38, `${blots} / ${LEVELS.length * 3}`, 25).setOrigin(0, 0.5);
+    const tagW = Math.ceil((tally.width + 70) / 16) * 16;
+    const tag = paperCard(this, 12 + tagW / 2, h - 38, tagW, 44, 33, { radius: 6, rough: 1, shadow: 0.45 });
+    const blot = this.add.image(36, h - 38, UI_TEX.blot(0)).setScale(0.62 / UI_RES);
+    this.uiLayer.add([this.caption, this.tally, exit.root, this.nibButton, tag, blot, tally]);
   }
 
   /** The caption follows the chapter in view; the Nib button shows when Nib is off screen. */

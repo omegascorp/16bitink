@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ART_RES, INK, PAPER } from '../../art/palette';
+import { ART_RES, INK } from '../../art/palette';
 import type { GuardAnimal, LevelDef } from '../../logic/level';
 import { LEDGE_T } from '../../logic/ledges';
 import { inPlay, RUBY_R } from '../../logic/rubies';
@@ -7,11 +7,13 @@ import { COIN, LAVA, STONE, WATER } from '../../logic/particles';
 import { World } from '../../logic/world';
 import type { LevelRecord } from '../progress';
 import { bakeBoard, nibKey } from '../textures';
-import { drawBlots } from './nodes';
+import { freePaper, paintedButton, paperCard, roundButton, UI_RES, UI_TEX } from '../uiPaint';
 
 const FONT = 'Caveat';
 const SOFT_INK = '#4a463e';
 const CARD_W = 420;
+const SEED = 41;
+const CARD_H = 560;
 const PREVIEW = { w: 340, h: 250 } as const;
 const GRAIN_COLOR: Record<number, number> = { [WATER]: 0x6f9fcf, [LAVA]: 0xe8782a, [COIN]: 0xe2b33c, [STONE]: 0x8f857a };
 /** Each guard's colour in the preview, by animal. */
@@ -37,13 +39,11 @@ export class LevelCard {
   constructor(private readonly scene: Phaser.Scene, layer: Phaser.GameObjects.Layer, view: { width: number; height: number }, o: LevelCardOpts, private readonly onClose: () => void) {
     const shade = scene.add.rectangle(0, 0, view.width, view.height, 0xf5f0e1, 0.6).setOrigin(0).setInteractive();
     shade.on('pointerup', () => this.close());
-    const h = 560;
+    const h = CARD_H;
     const fit = Math.min(1, (view.height - 24) / h, (view.width - 16) / CARD_W);
     const card = scene.add.container(view.width / 2, view.height / 2);
-    const bg = scene.add.graphics();
-    bg.fillStyle(0x000000, 0.12).fillRoundedRect(-CARD_W / 2 + 6, -h / 2 + 8, CARD_W, h, 14);
-    bg.fillStyle(Phaser.Display.Color.HexStringToColor(PAPER).color, 1).fillRoundedRect(-CARD_W / 2, -h / 2, CARD_W, h, 14);
-    bg.lineStyle(3, 0x26316a, 1).strokeRoundedRect(-CARD_W / 2, -h / 2, CARD_W, h, 14);
+    // A page of Nib's journal, the level pasted in like a photograph.
+    const bg = paperCard(scene, 0, 0, CARD_W, h, SEED, { tint: 'parchment', rule: true, tapes: ['tl'], tapeLen: 72 });
     const body = scene.add.zone(0, 0, CARD_W, h).setInteractive();
     const text = (y: number, s: string, size: number, color = INK, bold = true): Phaser.GameObjects.Text =>
       scene.add.text(0, y, s, { fontFamily: FONT, fontSize: `${size}px`, fontStyle: bold ? '700' : '500', color, align: 'center', wordWrap: { width: CARD_W - 50 }, padding: { x: 6, y: 3 } }).setOrigin(0.5).setResolution(window.devicePixelRatio * 2);
@@ -52,20 +52,18 @@ export class LevelCard {
     parts.push(preview(scene, o.level, top + 100 + PREVIEW.h / 2));
     const y = top + 100 + PREVIEW.h + 30;
     parts.push(text(y, o.level.goal, 22, SOFT_INK, false));
-    const blots = scene.add.graphics();
-    drawBlots(blots, -70, y + 48, o.record?.blots ?? 0, 10);
-    parts.push(blots, text(y + 48, o.record ? `Best: ${o.record.coins} coins` : 'Not won yet', 21, SOFT_INK, false).setOrigin(0, 0.5).setX(-20));
-    const play = text(y + 112, o.record ? 'Play again' : 'Play', 34, '#ffffff').setBackgroundColor('#2f7a3a').setPadding(30, 4, 30, 4);
+    const earned = o.record?.blots ?? 0;
+    for (let i = 0; i < 3; i++) parts.push(scene.add.image(-98 + i * 30, y + 48, i < earned ? UI_TEX.blot(i) : UI_TEX.blotSlot).setScale(0.55 / UI_RES).setAngle((i - 1) * 9));
+    parts.push(text(y + 48, o.record ? `Best: ${o.record.coins} coins` : 'Not won yet', 21, SOFT_INK, false).setOrigin(0, 0.5).setX(-20));
     let fired = false;
     const go = (): void => {
       if (fired) return;
       fired = true;
       o.onPlay();
     };
-    play.setInteractive({ useHandCursor: true }).on('pointerup', go);
-    const close = text(top + 26, '×', 36, INK).setX(CARD_W / 2 - 26).setInteractive({ useHandCursor: true });
-    close.on('pointerup', () => this.close());
-    parts.push(play, close);
+    const play = paintedButton(scene, 0, y + 114, o.record ? 'Play again' : 'Play  ➜', go, { kind: 'leaf', width: 220, height: 58, size: 34 });
+    const close = roundButton(scene, CARD_W / 2 - 30, top + 30, 'close', () => this.close(), 38);
+    parts.push(play.root, close);
     card.add(parts);
     this.root = scene.add.container(0, 0, [shade, card]);
     layer.add(this.root);
@@ -82,6 +80,7 @@ export class LevelCard {
   close(): void {
     this.scene.input.keyboard?.off('keydown', this.onKey);
     this.root.destroy();
+    freePaper(this.scene, CARD_W, CARD_H, SEED);
     this.onClose();
   }
 }

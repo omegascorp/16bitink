@@ -4,8 +4,10 @@ import type { Creature } from '../logic/world';
 import { clampZoom, zoomAbout, zoomRange, type ZoomRange } from '../logic/zoom';
 import { DPR, screenSize } from './hidpi';
 
-/** Space kept for the interface: above the board, and around it (CSS px). */
-export const HUD_TOP = 76;
+/** Space kept for the interface: above the board, and around it (CSS px). The HUD says how much it takes at the top. */
+const HUD_TOP = 76;
+/** Registry key: how far down the interface reaches over the board (CSS px), set by the HUD. */
+export const HUD_TOP_KEY = 'hudTop';
 export const HUD_BOTTOM = 34;
 const MARGIN = 10;
 /**
@@ -123,7 +125,7 @@ export class LevelCamera {
     const z2 = clampZoom(this.zoom * factor, this.range);
     if (Math.abs(z2 - this.zoom) < 1e-6) return false;
     const { width, height } = screenSize(this.scene.scale);
-    const about = at ?? { x: width / 2, y: HUD_TOP + (height - HUD_TOP - HUD_BOTTOM) / 2 };
+    const about = at ?? { x: width / 2, y: this.top() + (height - this.top() - HUD_BOTTOM) / 2 };
     const mid = zoomAbout(this.cam.midPoint, about, { x: width / 2, y: height / 2 }, this.zoom, z2);
     this.scale = z2 / this.fitZoom;
     this.setZoom(z2);
@@ -134,7 +136,7 @@ export class LevelCamera {
   /** The space the level shows in, below the bar (CSS px). */
   private avail(): { w: number; h: number } {
     const { width, height } = screenSize(this.scene.scale);
-    return { w: width - MARGIN * 2, h: height - HUD_TOP - HUD_BOTTOM };
+    return { w: width - MARGIN * 2, h: height - this.top() - HUD_BOTTOM };
   }
 
   private setZoom(zoom: number): void {
@@ -154,9 +156,20 @@ export class LevelCamera {
     this.place(1);
   }
 
+  /** How far down the interface reaches over the board (CSS px). */
+  private top(): number {
+    const t = this.scene.registry.get(HUD_TOP_KEY) as unknown;
+    return typeof t === 'number' ? t : HUD_TOP;
+  }
+
+  /** The interface grew or shrank: fits again, carrying on with the opening look at the far end if it's still under way. */
+  refit(nib: Creature): void {
+    this.fit(nib, this.intro > 0);
+  }
+
   /** Half the bar's height, in board px: the view's middle sits this far below the screen's. */
   private offset(): number {
-    return (HUD_TOP - HUD_BOTTOM) / 2 / this.zoom;
+    return (this.top() - HUD_BOTTOM) / 2 / this.zoom;
   }
 
   /** Eases the camera's middle towards the target, kept inside the level. */
@@ -164,7 +177,7 @@ export class LevelCamera {
     const { width, height } = screenSize(this.scene.scale);
     const { view } = this.level;
     const shownW = width / this.zoom;
-    const shownH = (height - HUD_TOP - HUD_BOTTOM) / this.zoom;
+    const shownH = (height - this.top() - HUD_BOTTOM) / this.zoom;
     const clamp = (v: number, lo: number, size: number, shown: number): number => (shown >= size ? lo + size / 2 : Phaser.Math.Clamp(v, lo + shown / 2, lo + size - shown / 2));
     const x = clamp(this.target.x, view.x, view.w, shownW);
     const y = clamp(this.target.y, view.y, view.h, shownH) - this.offset();

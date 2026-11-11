@@ -1,15 +1,17 @@
 import Phaser from 'phaser';
-import { INK, PAPER } from '../../art/palette';
+import { INK } from '../../art/palette';
+import { freePaper, paintedButton, paperCard, roundButton } from '../uiPaint';
 
 const FONT = 'Caveat';
 const SOFT_INK = '#4a463e';
 const CARD_W = 420;
+const SEED = 43;
 
 export interface ChapterCardOpts {
   readonly title: string;
   readonly lines: readonly string[];
   /** The one button, if any: the full game's offer, or a retry. */
-  readonly action?: { readonly label: string; readonly run: () => void };
+  readonly action?: { readonly label: string; readonly run: () => void; /** The full game's offer: a gold plate. */ readonly offer?: boolean };
 }
 
 /**
@@ -20,6 +22,7 @@ export interface ChapterCardOpts {
 export class ChapterCard {
   private readonly root: Phaser.GameObjects.Container;
   private readonly onKey: (e: KeyboardEvent) => void;
+  private readonly h: number;
 
   constructor(private readonly scene: Phaser.Scene, layer: Phaser.GameObjects.Layer, view: { width: number; height: number }, o: ChapterCardOpts, private readonly onClose: () => void) {
     const shade = scene.add.rectangle(0, 0, view.width, view.height, 0xf5f0e1, 0.6).setOrigin(0).setInteractive();
@@ -27,10 +30,8 @@ export class ChapterCard {
     const h = o.action ? 330 : 270;
     const fit = Math.min(1, (view.height - 24) / h, (view.width - 16) / CARD_W);
     const card = scene.add.container(view.width / 2, view.height / 2);
-    const bg = scene.add.graphics();
-    bg.fillStyle(0x000000, 0.12).fillRoundedRect(-CARD_W / 2 + 6, -h / 2 + 8, CARD_W, h, 14);
-    bg.fillStyle(Phaser.Display.Color.HexStringToColor(PAPER).color, 1).fillRoundedRect(-CARD_W / 2, -h / 2, CARD_W, h, 14);
-    bg.lineStyle(3, 0x26316a, 1).strokeRoundedRect(-CARD_W / 2, -h / 2, CARD_W, h, 14);
+    this.h = h;
+    const bg = paperCard(scene, 0, 0, CARD_W, h, SEED, { tint: 'parchment', rule: true, tapes: ['tl', 'tr'], tapeLen: 66 });
     const body = scene.add.zone(0, 0, CARD_W, h).setInteractive();
     const text = (y: number, s: string, size: number, color = INK, bold = true): Phaser.GameObjects.Text =>
       scene.add.text(0, y, s, { fontFamily: FONT, fontSize: `${size}px`, fontStyle: bold ? '700' : '500', color, align: 'center', wordWrap: { width: CARD_W - 50 }, padding: { x: 6, y: 3 } }).setOrigin(0.5).setResolution(window.devicePixelRatio * 2);
@@ -48,13 +49,9 @@ export class ChapterCard {
         this.close();
         action.run();
       };
-      const button = text(h / 2 - 54, action.label, 34, '#ffffff').setBackgroundColor('#2f7a3a').setPadding(30, 4, 30, 4);
-      button.setInteractive({ useHandCursor: true }).on('pointerup', take);
-      parts.push(button);
+      parts.push(paintedButton(scene, 0, h / 2 - 58, action.label, take, { kind: action.offer ? 'gold' : 'leaf', width: 260, height: 58, size: 32 }).root);
     }
-    const close = text(top + 26, '×', 36, INK).setX(CARD_W / 2 - 26).setInteractive({ useHandCursor: true });
-    close.on('pointerup', () => this.close());
-    parts.push(close);
+    parts.push(roundButton(scene, CARD_W / 2 - 30, top + 30, 'close', () => this.close(), 38));
     card.add(parts);
     this.root = scene.add.container(0, 0, [shade, card]);
     layer.add(this.root);
@@ -71,6 +68,7 @@ export class ChapterCard {
   close(): void {
     this.scene.input.keyboard?.off('keydown', this.onKey);
     this.root.destroy();
+    freePaper(this.scene, CARD_W, this.h, SEED);
     this.onClose();
   }
 }
