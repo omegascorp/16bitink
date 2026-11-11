@@ -9,7 +9,7 @@ import { drawPortrait, FILLS } from './battle/pixelFrames';
 import { PixelButton, PixelFrame, putBuffer, TextLabel, UI_TEX } from './battle/pixelUi';
 import { openCard } from './CardScene';
 import { soundCard } from './soundCard';
-import { toMenu } from './cards';
+import { chapterDoneCard, toMenu } from './cards';
 import { HERO_SLOT } from './hud/armySlots';
 import { HERO_LIST_H, HeroList } from './hud/heroList';
 import { heroListOrder } from './hud/heroListData';
@@ -352,11 +352,14 @@ export class MapHudScene extends Phaser.Scene {
     const map = this.scene.get('Map') as MapScene;
     if (map.blocked()) return;
     const sound = getSound(this);
+    const free = this.session.freePlay;
     openCard(this, {
       title: this.session.def.name,
-      body: `Goal: ${this.session.def.goal.text}.\n${calendar(this.session.adv.day)}. The game saves as you play.`,
+      // In free play the goal is met for good: the land is the player's to roam, and the chapter's ending can be seen again.
+      body: `${free ? 'Chapter complete: the land is yours to explore.' : `Goal: ${this.session.def.goal.text}.`}\n${calendar(this.session.adv.day)}. The game saves as you play.`,
       buttons: [
         { label: 'Back to the map', onClick: () => undefined },
+        ...(free ? [{ label: 'The chapter’s ending', kind: 'plain' as const, onClick: () => openCard(this, chapterDoneCard(this, this.session, undefined, true)) }] : []),
         ...(sound ? [{ label: 'Sound', kind: 'plain' as const, onClick: () => soundCard(sound, (spec) => openCard(this, spec)) }] : []),
         { label: `Start ${this.session.def.name} again`, kind: 'plain', onClick: () => {
           this.session.restartPart();

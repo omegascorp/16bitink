@@ -6,7 +6,7 @@ import { isTownFaction } from '../logic/factions';
 import type { HeroClass } from '../logic/hero';
 import { fitsSlot, ITEM_IDS, SLOTS, type Gear, type ItemId } from '../logic/items';
 import { TILE_CHARS } from '../logic/map';
-import { BANK_LOOKS, DWELLING_LOOKS, LAIR_LOOKS, objectFootprint, SANCTUM_LOOKS, type BankLook, type DwellingLook, type LairLook, type MapObject, type ObjectKind, type Owner, type SanctumLook } from '../logic/objects';
+import { BANK_LOOKS, DWELLING_LOOKS, LAIR_LOOKS, objectFootprint, SANCTUM_LOOKS, TEMPLE_LOOKS, type BankLook, type DwellingLook, type LairLook, type MapObject, type ObjectKind, type Owner, type SanctumLook, type TempleLook } from '../logic/objects';
 import { parseGrid, passable } from '../logic/map';
 import { lairDoor } from '../logic/lairs';
 import { heroFromDef } from '../logic/adventure';
@@ -35,7 +35,7 @@ const MAX_COUNT = 4000;
 const MAX_GOLD = 1e6;
 const ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const HERO_CLASSES: readonly HeroClass[] = ['knight', 'cleric'];
-const KINDS: readonly ObjectKind[] = ['mine', 'pile', 'chest', 'campfire', 'mercCamp', 'watchtower', 'standingStone', 'shrine', 'windmill', 'stables', 'spellbook', 'monster', 'item', 'learningStone', 'dwelling', 'bank', 'lair', 'arena', 'sanctum'];
+const KINDS: readonly ObjectKind[] = ['mine', 'pile', 'chest', 'campfire', 'mercCamp', 'watchtower', 'standingStone', 'shrine', 'windmill', 'stables', 'spellbook', 'monster', 'item', 'learningStone', 'dwelling', 'bank', 'lair', 'arena', 'sanctum', 'temple'];
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const int = (v: unknown, lo: number, hi: number): v is number => Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi;
@@ -184,6 +184,10 @@ function object(v: unknown, g: { w: number; h: number }): MapObject {
     if (!SANCTUM_LOOKS.includes(v.look as SanctumLook)) throw new Error('bad legendary site');
     o.look = v.look;
   }
+  if (kind === 'temple') {
+    if (!TEMPLE_LOOKS.includes(v.look as TempleLook)) throw new Error('bad temple');
+    o.look = v.look;
+  }
   if (kind === 'learningStone' && v.visitedBy !== undefined) o.visitedBy = ids<string>(v.visitedBy, 20, 'visited by', (h): h is string => typeof h === 'string' && ID.test(h));
   return o as unknown as MapObject;
 }
@@ -297,12 +301,6 @@ function map(v: unknown): MapDef {
     ...(v.story !== undefined ? { story: v.story } : {}),
     goal: goal(v.goal), parDays: v.parDays, rows,
     objects: list(v.objects, MAX_OBJECTS, 'objects', (o) => object(o, g)),
-    ...(v.landmarks !== undefined ? {
-      landmarks: list(v.landmarks, 20, 'landmarks', (l) => {
-        if (!isObj(l) || typeof l.id !== 'string' || !/^[a-z0-9-]{1,40}$/i.test(l.id) || typeof l.art !== 'string' || !/^[a-zA-Z0-9]{1,40}$/.test(l.art) || !int(l.x, 0, g.w - 1) || !int(l.y, 0, g.h - 1)) throw new Error('bad landmark');
-        return { id: l.id, art: l.art, x: l.x as number, y: l.y as number };
-      }),
-    } : {}),
     town: town(v.town, g, false),
     ...(v.towns !== undefined ? { towns: list(v.towns, MAX_TOWNS, 'towns', (t) => town(t, g, true) as NonNullable<MapDef['towns']>[number]) } : {}),
     hero: hero(v.hero, g),

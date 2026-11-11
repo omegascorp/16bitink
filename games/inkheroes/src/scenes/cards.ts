@@ -103,7 +103,7 @@ export function openPrompt(scene: Phaser.Scene & { showPrompts(): void }, sessio
       // One way on: from the next part the map's own menu still leads back to the campaign.
       buttons: [next
         ? { label: `Ride on to ${next.name}`, onClick: () => rideOnward(scene, session) }
-        : { label: 'On we go', onClick: () => openCard(scene, chapterDoneCard(scene, session)) }],
+        : { label: 'On we go', onClick: () => openCard(scene, chapterDoneCard(scene, session, () => scene.showPrompts())) }],
     });
     return;
   }
@@ -187,32 +187,38 @@ export function wallsCard(town: Town, adv: Adventure, storm: () => void, later: 
  * The end of everything built of a chapter: its ending (told by the
  * narrator, or read here), how the whole march went, and what comes next,
  * so finishing reads as an ending, not a dead end. Chapter 1's points on to
- * chapter 2: open to an owner, the full game's offer to anyone else.
+ * chapter 2: open to an owner, the full game's offer to anyone else. Keep
+ * exploring stays in the land in free play (src/logic/freePlay.ts), the
+ * chapter counted won; `onStay` runs once back on the map. Also opened from
+ * the map's menu in free play, to see the ending again (`again`: the full
+ * game's offer was counted the first time).
  */
-function chapterDoneCard(scene: Phaser.Scene, session: Session): CardSpec {
+export function chapterDoneCard(scene: Phaser.Scene, session: Session, onStay: () => void = () => undefined, again = false): CardSpec {
   const chapter = session.chapter;
   const told = !!chapter.ending && !!narrator(scene)?.say(chapter.ending);
   const end = chapterEnd(chapter, session.adv, told, isLoaded);
+  const stay = (kind: 'crown' | 'plain'): CardSpec['buttons'][number] => ({ label: 'Keep exploring', kind, onClick: () => {
+    session.keepExploring();
+    onStay();
+  } });
   const back = { label: 'Back to the campaign', kind: 'plain' as const, onClick: () => toMenu(scene, session, null) };
   const more = { label: 'More games', kind: 'plain' as const, onClick: () => getHost(scene).onExit() };
   const body = end.body.join('\n\n');
   const next = end.next;
-  if (!next) return { title: end.title, body, buttons: [{ ...back, kind: 'crown' }, more] };
   const host = getHost(scene);
-  const owned = isLoaded(next);
-  // An owner told of a chapter still being made has nothing to buy or start.
-  if (!owned && host.unlocked) return { title: end.title, body, buttons: [{ ...back, kind: 'crown' }, more] };
-  if (!owned && host.price) trackOffer(scene, 'free_end');
+  const owned = !!next && isLoaded(next);
+  // Nothing to start or buy (no next chapter, or an owner told of one still being made): staying in the land leads.
+  if (!next || (!owned && (host.unlocked || !host.price))) return { title: end.title, body, buttons: [stay('crown'), back, more] };
+  if (!owned && !again) trackOffer(scene, 'free_end');
   return {
     title: end.title,
     body,
     buttons: [
       owned
         ? { label: `On to chapter ${next.n}`, kind: 'crown', onClick: () => startChapter(scene, next.id) }
-        : host.price
-          ? { label: `Full game · ${host.price}`, kind: 'crown', onClick: () => host.onBuy('free_end') }
-          : { ...back, kind: 'crown' },
-      ...(owned || host.price ? [back] : []),
+        : { label: `Full game · ${host.price}`, kind: 'crown', onClick: () => host.onBuy('free_end') },
+      stay('plain'),
+      back,
       more,
     ],
   };

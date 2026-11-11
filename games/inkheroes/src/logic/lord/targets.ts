@@ -140,7 +140,7 @@ function siteValue(ctx: Ctx, h: Hero, o: MapObject, job: Job): number {
     case 'spellbook': return hasSpellbook(h) ? 0 : VALUE.spellbook;
     case 'mine': return (o.owner === 'player' ? 0 : o.owner === 'rival' ? VALUE.theirMine : o.resource === 'gold' ? VALUE.goldMine : VALUE.mine) * (ctx.short.has(o.resource!) ? SHORT : 1);
     case 'learningStone': return o.visitedBy?.includes(h.id) ? 0 : VALUE.learningStone;
-    case 'mercCamp': case 'watchtower': case 'standingStone': return h.visited.includes(o.id) ? 0 : VALUE.site;
+    case 'mercCamp': case 'watchtower': case 'standingStone': case 'temple': return h.visited.includes(o.id) ? 0 : VALUE.site;
     case 'shrine': return h.visited.includes(o.id) || !hasSpellbook(h) ? 0 : VALUE.site;
     // Opened already, its gold taken and only a piece left that his bag has no room for: nothing (it would stop his day there, every day).
     case 'bank': return o.looted || job === 'runner' || (o.item && !roomFor(h, o.item) && !Object.values(o.prize ?? {}).some((n) => (n ?? 0) > 0)) ? 0 : VALUE.keep;

@@ -20,7 +20,7 @@ import type { BuildingId } from '../../logic/buildings';
 import type { TownFaction } from '../../logic/creatures';
 import { renderMapTown, type CityArt } from '../town/cityRender';
 import { TOWN_TEX } from '../town/townTex';
-import { isNorseMap, landmarkSprite, landmarksOf, landmarkTiles, type MapLandmark, MAP_TEX, peopleTownOf, siteArtOf, siteSprite } from './pixelMapArt';
+import { isNorseMap, MAP_TEX, peopleTownOf, siteArtOf, siteSprite } from './pixelMapArt';
 import { composeFog, fogPieces, GROUND_BORDER, MAP_TILE, touchedPieces, type PixelRect } from './pixelGround';
 import { groundNow } from './groundPrep';
 import { Ride, RIDE_FPS } from './ride';
@@ -105,13 +105,6 @@ const MOUNTAINS: Readonly<Partial<Record<MapCover, { readonly plain: number; rea
 };
 
 /** Which sprite of a cover kind a placement takes. */
-/** The grid as its cover is drawn: a landmark's own tiles bare (the fells that block them stand under the picture, unseen). */
-function underLandmarks(g: ReturnType<typeof gridOf>, landmarks: readonly MapLandmark[]): ReturnType<typeof gridOf> {
-  if (!landmarks.length) return g;
-  const bare = new Set(landmarks.flatMap((l) => landmarkTiles(l).filter((t) => t.x >= 0 && t.y >= 0 && t.x < g.w && t.y < g.h).map((t) => t.x + t.y * g.w)));
-  return { ...g, cover: g.cover.map((c, i) => (bare.has(i) ? 'none' : c)) };
-}
-
 function coverPick(g: ReturnType<typeof gridOf>, p: { kind: MapCover; pick: number; x: number; y: number }, n: number): number {
   const m = MOUNTAINS[p.kind];
   if (!m) return p.pick % n;
@@ -163,7 +156,7 @@ export class PixelMapWorld {
   constructor(private readonly scene: Phaser.Scene, private readonly def: MapDef, adv: Adventure) {
     this.layer = scene.add.layer();
     this.norse = isNorseMap(def);
-    const g = underLandmarks(gridOf(def), landmarksOf(def));
+    const g = gridOf(def);
     this.drawGround();
     for (const p of coverPlacements(g, def.seed)) {
       const list = MAP_COVER[p.kind];
@@ -178,7 +171,6 @@ export class PixelMapWorld {
     }
     for (const t of adv.towns) this.addTown(t);
     for (const o of def.objects) this.addObject(o);
-    for (const l of landmarksOf(def)) this.addLandmark(l);
     this.picked = adv.hero.id;
     for (const h of ourHeroes(adv)) this.addHero(h);
     for (const r of rivalHeroes(adv)) this.addRival(r);
@@ -285,15 +277,6 @@ export class PixelMapWorld {
     this.sprites.set(o.id, img);
     // Mines and outer dwellings fly their holder's flag.
     if (o.kind === 'mine' || o.kind === 'dwelling') this.addFlag(o.id, 'neutral', feet.x + Math.floor(s.sprite.w * 0.25), feet.y - s.sprite.h + 12, FIGURE_DEPTH + feet.y);
-  }
-
-  /** A landmark: a picture with its feet on the tile (the great temple), waiting in the fog until it is seen. */
-  private addLandmark(l: MapLandmark): void {
-    const s = landmarkSprite(l.art);
-    if (!s) return;
-    const feet = tileFeet(l.x, l.y);
-    const img = this.place(s.key, s.sprite, feet.x, feet.y + 2, FIGURE_DEPTH + feet.y - 1);
-    this.shrouded.push({ obj: img, x: l.x, y: l.y });
   }
 
   /** A piece of gear on the ground, in its own icon at half size, where the monster that left it stood. */

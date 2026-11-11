@@ -92,7 +92,6 @@ export const UPPSALA: MapDef = {
   opening: { text: 'The road south over the mountains, toward Uppsala', way: WAY_SOUTH },
   won: 'uppsala-won',
   objects: [...HLADIR.objects, ...placed(UPPSALA_LAND.objects, AT.uppsala)],
-  landmarks: (UPPSALA_LAND.landmarks ?? []).map((l) => at(l, AT.uppsala)),
 };
 
 /** The second pass: Uppsala's south fells opened where the Bloodaxe's own pass meets them, by the river's last bend. */
@@ -146,7 +145,6 @@ export const BLOODAXE: MapDef = {
   opening: { text: 'The road south over the fells, toward the western sea', way: WAY_ON_SOUTH },
   won: 'bloodaxe-won',
   objects: [...flagged(UPPSALA.objects), ...placed(BLOODAXE_LAND.objects, AT.bloodaxe)],
-  landmarks: [...(UPPSALA.landmarks ?? []), ...(BLOODAXE_LAND.landmarks ?? []).map((l) => at(l, AT.bloodaxe))],
 };
 
 /**
@@ -209,7 +207,6 @@ export const HALOGALAND: MapDef = {
   // No recruits of its own: the Taverns offer two of the Norse roster a week (Eirik and Gunnhild never to ours; Hervor and Heid never to hers).
   opening: { text: 'Three ways north over the frozen sound: from Hladir, from Uppsala, up the ice from Kaupang', way: WAYS_NORTH, apart: true },
   objects: [...flagged(BLOODAXE.objects), ...placed(HALOGALAND_LAND.objects, AT.halogaland)],
-  landmarks: [...(BLOODAXE.landmarks ?? []), ...(HALOGALAND_LAND.landmarks ?? []).map(haloAt)],
 };
 
 /** The chapter's parts, in order (what content/paid.ts serves). */

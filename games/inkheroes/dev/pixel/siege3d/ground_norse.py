@@ -77,6 +77,36 @@ def court() -> None:
     Image.fromarray(np.clip(out, 0, 255).astype(np.uint8)).convert('RGBA').save(OUT / 'court.png')
 
 
+FIELD_SNOW = np.array([158.0, 160.0, 157.0])  # the battle field's snow (bg-snow.png's median)
+FEATHER = 26  # px of the outer bank that fade into the field
+
+
+def feather_outer_bank(a: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    """The ditch's outer (west) bank melts into the field: toned to the field's snow, then dithered away at its edge.
+
+    The Greek bank's moss blends with the grass field; the snowy earth on the grey snow field read as a cut-off strip.
+    """
+    out = a.copy()
+    h, w = a.shape[:2]
+    jitter = smooth_noise(rng, max(h, w), 23)[:h, :w] * 10
+    for y in range(h):
+        opaque = np.nonzero(a[y, :, 3])[0]
+        if not opaque.size:
+            continue
+        x0 = opaque[0]
+        for x in range(x0, min(w, x0 + FEATHER + 10)):
+            if a[y, x, 3] == 0:
+                continue
+            d = (x - x0 + jitter[y, x] - 5) / FEATHER
+            if d >= 1:
+                continue
+            t = max(0.0, d)
+            out[y, x, :3] = (a[y, x, :3] * (0.35 + 0.65 * t) + FIELD_SNOW * (0.65 - 0.65 * t)).astype(np.uint8)
+            if t + BAYER[y % 4, x % 4] * 0.9 < 0.35:
+                out[y, x, 3] = 0
+    return out
+
+
 def moat() -> None:
     im = Image.open(GAME / 'src' / 'art' / 'pixel' / 'siege' / 'moat.png').convert('RGBA')
     src = HERE / 'paint' / 'greek' / 'moat.png'
@@ -104,6 +134,7 @@ def moat() -> None:
                 else:
                     rgb = colorsys.hls_to_rgb(0.07, l * 0.8 + 0.04, 0.32)
             out[y, x, :3] = np.array(rgb) * 255
+    out = feather_outer_bank(out, rng)
     Image.fromarray(out).save(OUT / 'moat.png')
     shutil.copy(HERE / 'paint' / 'greek' / 'bridge.png', OUT / 'bridge.png')
 

@@ -84,6 +84,12 @@ export interface Adventure {
    * of his after we beat the hero at its gate (the town's id).
    */
   readonly rivalFight?: string;
+  /**
+   * The chapter's last part won and played on (the chapter-done card's Keep
+   * exploring, src/logic/freePlay.ts): days, towns, the rival and the weeks
+   * go on, but the goal never fires again. Only losing ends the day.
+   */
+  readonly freePlay?: true;
 }
 
 export interface RivalState {
@@ -1027,6 +1033,8 @@ export function wallsToStorm(adv: Adventure, id: string): Town | undefined {
 export function checkGoal(adv: Adventure, def: MapDef): Adventure {
   if (adv.status !== 'playing') return adv;
   if (!playerTowns(adv).length) return { ...adv, status: 'lost' };
+  // In free play the chapter is already won: its goal is not met twice.
+  if (adv.freePlay) return adv;
   const { kind, target } = def.goal;
   const held = (): boolean => (townById(adv, target) ?? adv.objects.find((o) => o.id === target))?.owner === 'player';
   if (kind === 'overthrow' && def.rival?.mind === 'lord') return lordOverthrown(adv, def);

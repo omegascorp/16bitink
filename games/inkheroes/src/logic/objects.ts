@@ -23,7 +23,9 @@ export type ObjectKind =
   /** An Arena of Heroes: once a week it trains one Rare company of the visiting hero's up to Epic (src/logic/training.ts). */
   | 'arena'
   /** A chapter's legendary site (the Forge of Hephaestus, the Temple of Ra): once a week it trains one Epic company up to Legendary. */
-  | 'sanctum';
+  | 'sanctum'
+  /** A great temple, 3 × 3 tiles with its door at (x, y), the front middle: +1 Power, once for each hero (Uppsala's). */
+  | 'temple';
 
 /** How an outer dwelling is drawn (a map sprite key of the same name; src/scenes/map/pixelMapArt.ts falls back while one isn't drawn). */
 export type DwellingLook = 'cyclopsCave' | 'griffinCliff' | 'titanForge' | 'crocodileMarsh' | 'lionRocks' | 'benbenHouse' | 'boarPen' | 'dragonHoard';
@@ -38,6 +40,10 @@ export const LAIR_LOOKS: readonly LairLook[] = ['den', 'tomb'];
 /** How a legendary site is drawn and named: Othrys's forge of the smith god, or the Delta's temple of the sun (a map sprite key of the same name, src/scenes/map/pixelMapArt.ts falls back while one isn't drawn). */
 export type SanctumLook = 'hephaestusForge' | 'raTemple' | 'mimirsWell';
 export const SANCTUM_LOOKS: readonly SanctumLook[] = ['hephaestusForge', 'raTemple', 'mimirsWell'];
+
+/** How a great temple is drawn and named (a Norse look's name, src/scenes/map/pixelMapArt.ts). */
+export type TempleLook = 'uppsalaTemple';
+export const TEMPLE_LOOKS: readonly TempleLook[] = ['uppsalaTemple'];
 
 /** A thing on the map. Fields beyond kind/x/y depend on the kind. */
 export interface MapObject {
@@ -71,8 +77,8 @@ export interface MapObject {
   readonly growth?: number;
   /** Dwelling: creatures waiting to be hired. */
   readonly stock?: number;
-  /** Dwelling: its picture; bank: 'keep' or 'mastaba'; lair: 'den' or 'tomb'; sanctum: its picture and name. */
-  readonly look?: DwellingLook | BankLook | LairLook | SanctumLook;
+  /** Dwelling: its picture; bank: 'keep' or 'mastaba'; lair: 'den' or 'tomb'; sanctum and temple: its picture and name. */
+  readonly look?: DwellingLook | BankLook | LairLook | SanctumLook | TempleLook;
   /** Learning stone: the heroes who have read it (each may once). */
   readonly visitedBy?: readonly string[];
   /** Bank: its prize, taken once its guard is beaten: gold and goods (and `item`, a piece of gear). */
@@ -98,9 +104,12 @@ const TALL: readonly ObjectKind[] = ['mine', 'mercCamp', 'watchtower', 'windmill
  * from there (see stepHero).
  */
 export function objectFootprint(o: Pick<MapObject, 'kind' | 'x' | 'y'>): { x: number; y: number }[] {
+  if (o.kind === 'temple') return TEMPLE_TILES.map(([dx, dy]) => ({ x: o.x + dx, y: o.y + dy }));
   return TALL.includes(o.kind) ? [{ x: o.x, y: o.y - 1 }] : [];
 }
-export const ONCE_PER_HERO: readonly ObjectKind[] = ['mercCamp', 'watchtower', 'standingStone', 'shrine'];
+/** A great temple's other 8 tiles, from its door: 3 wide (x−1..x+1) and 3 deep (y−2..y). */
+const TEMPLE_TILES: readonly (readonly [number, number])[] = [-2, -1, 0].flatMap((dy) => [-1, 0, 1].map((dx) => [dx, dy] as const)).filter(([dx, dy]) => dx !== 0 || dy !== 0);
+export const ONCE_PER_HERO: readonly ObjectKind[] = ['mercCamp', 'watchtower', 'standingStone', 'shrine', 'temple'];
 
 /** Mines' daily output. */
 export const MINE_OUTPUT: Readonly<Record<Resource, number>> = { gold: 1000, wood: 2, ore: 2, mercury: 1, sulfur: 1, crystal: 1, gems: 1 };
@@ -117,10 +126,13 @@ export const SITE_NAMES: Readonly<Record<ObjectKind, string>> = {
   mercCamp: 'Mercenary Camp', watchtower: 'Old Watchtower', standingStone: 'Standing Stone', shrine: 'Wayside Shrine',
   windmill: 'Windmill', stables: 'Stables', spellbook: 'Spellbook Altar', monster: 'Monster', item: 'Gear on the ground',
   learningStone: 'Learning Stone', dwelling: 'Dwelling', bank: 'Treasure Keep', lair: 'Lair',
-  arena: 'Arena of Heroes', sanctum: 'Legendary Site',
+  arena: 'Arena of Heroes', sanctum: 'Legendary Site', temple: 'Temple',
 };
 /** Each legendary site's name on the map. */
 export const SANCTUM_NAMES: Readonly<Record<SanctumLook, string>> = { hephaestusForge: 'Forge of Hephaestus', raTemple: 'Temple of Ra', mimirsWell: 'Mimir’s Well' };
+/** Each great temple's name on the map. */
+export const TEMPLE_NAMES: Readonly<Record<TempleLook, string>> = { uppsalaTemple: 'Temple at Uppsala' };
+export const templeName = (o: Pick<MapObject, 'look'>): string => TEMPLE_NAMES[o.look as TempleLook] ?? SITE_NAMES.temple;
 /** Each lair's name on the map. */
 export const LAIR_NAMES: Readonly<Record<LairLook, string>> = { den: 'Den', tomb: 'Tomb' };
 

@@ -42,9 +42,9 @@ export const UPPSALA_LAND: MapDef = {
     'NNNnnNNnnNNNnNNnnnn=nnnnnNNnNNNn',
     'NNnnnnnnnnNnnnnniin=nnnnnnnNNnnn',
     'Nnpppppnnnnnnppniin=nnnnNNNNNNNp',
-    'Nnppnppnnnnnnppniin=nnnnNNNNnNNp',
-    'Nnpppnpnnnnnnnnniin=nnnnNNNNnNNp',
-    'Nnpnpnpnnnnnnnnniin=nnxnNNNNnNNp',
+    'Nnppnppnnnnnnppniin=nnnnNnnnnNNp',
+    'Nnpppnpnnnnnnnnniin=nnnnNnnnnNNp',
+    'Nnpnpnpnnnnnnnnniin=nnxnNnnnnNNp',
     'Nnnnnnnnnnnnnnnxiin======nnnnnnp',
     'Nnnnnnnnnnnnnnnniin=nnnnNnnnnnnp',
     'NnnNnnnNnnnnnnnniin=nnnnNnnnnnnp',
@@ -84,8 +84,6 @@ export const UPPSALA_LAND: MapDef = {
   // What the chapter has opened by its second part (src/level/unlocks.ts): the Hof's two floors, the Boar Pen and the rest.
   off: lockedIn(LONG_WINTER_UNLOCKS, 2),
   seed: 8192,
-  // The temple itself, in its yard just behind the gate's kings, the altar at its door and Aun on the steps beside it: its 3 × 3 tiles (25–27, 6–8) are fells (the map draws them bare), the row before it open.
-  landmarks: [{ id: 'temple', art: 'uppsalaTemple', x: 26, y: 8 }],
   objects: [
     // The king's mounds: three tombs in a row east of the river, south of the temple, each sending out its draugr week after week.
     { id: 'mound-west', kind: 'lair', x: 21, y: 18, creature: 'draugr', count: 8, look: 'tomb' },
@@ -107,6 +105,8 @@ export const UPPSALA_LAND: MapDef = {
     // The temple's gate, off the road below the pass: Barrow Kings hold it, and the Novice's Rune Staff lies on the altar behind them.
     { id: 'altar-kings', kind: 'monster', x: 24, y: 9, creature: 'barrowKing', count: 10, drop: 'volvaCloak' },
     { id: 'altar-staff', kind: 'spellbook', x: 26, y: 9, item: 'noviceRuneStaff', spell: 'tiwaz' },
+    // The temple itself, in its yard just behind the gate's kings: a site 3 × 3 tiles (25–27, 6–8) with its door at (26, 8), the altar at its door and Aun on the steps beside it. A hero visits it for +1 Power, once.
+    { id: 'uppsala-temple', kind: 'temple', x: 26, y: 8, look: 'uppsalaTemple' },
     // Aun the Old on the temple's steps, with the dead of the mounds: the goal.
     { id: 'aun', kind: 'monster', x: 29, y: 10, creature: 'barrowKing', count: 8, brood: { creature: 'draugr', count: 100 }, name: 'Aun the Old', line: 'aun', drop: 'barkShoes' },
     // Sites.

@@ -16,14 +16,6 @@ export type Goal =
   /** Town `target` taken and the map's rival lord beaten, in either order. */
   | { readonly kind: 'overthrow'; readonly target: string; readonly text: string };
 
-/** A picture on the map that is nothing to visit (src/scenes/map/pixelMapArt.ts has the same shape): its id, its art's name, its feet's tile. */
-export interface MapLandmark {
-  readonly id: string;
-  readonly art: string;
-  readonly x: number;
-  readonly y: number;
-}
-
 /** A hand-made campaign map. */
 export interface MapDef {
   readonly id: string;
@@ -40,8 +32,6 @@ export interface MapDef {
   /** Rows of tile characters (see TILE_CHARS). */
   readonly rows: readonly string[];
   readonly objects: readonly MapObject[];
-  /** Pictures that stand on the map and are nothing to visit (Uppsala's temple): feet on tile (x, y), drawn by `art` (src/scenes/map/pixelMapArt.ts). The ground under them is blocked by the map's own tiles. */
-  readonly landmarks?: readonly MapLandmark[];
   readonly town: {
     readonly id: string;
     readonly name: string;

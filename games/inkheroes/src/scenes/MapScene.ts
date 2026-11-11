@@ -14,7 +14,7 @@ import { besideEachOther, selectHero } from '../logic/heroes';
 import type { Army } from '../logic/army';
 import { creature, sizeWord, type CreatureId } from '../logic/creatures';
 import { intentAt, townTap, townWords, type MapIntent } from '../logic/mapIntent';
-import { bankName, LEARNING_XP, MINE_NAMES, MINE_OUTPUT, SITE_NAMES } from '../logic/objects';
+import { bankName, LEARNING_XP, MINE_NAMES, MINE_OUTPUT, SITE_NAMES, templeName } from '../logic/objects';
 import { dwellingName } from '../logic/dwellings';
 import type { PathStep } from '../logic/path';
 import type { RivalReport } from '../logic/rival';
@@ -301,6 +301,7 @@ export class MapScene extends Phaser.Scene {
     }
     if (o.kind === 'learningStone') return `Learning Stone: +${LEARNING_XP} experience${o.visitedBy?.includes(adv.hero.id) ? ' (read)' : ''}`;
     if (o.kind === 'bank') return o.looted ? `${bankName(o)} (empty)` : bankName(o);
+    if (o.kind === 'temple') return `${templeName(o)}: +1 Power${adv.hero.visited.includes(o.id) ? ' (visited)' : ''}`;
     if (o.kind === 'lair') return lairWords(o);
     if (o.kind === 'arena' || o.kind === 'sanctum') return trainingWords(o, weekOf(adv.day));
     // A piece lying on the ground: ridden over, taken in passing when there is room (src/logic/lying.ts).

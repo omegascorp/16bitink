@@ -116,31 +116,6 @@ export function siteArtOf(o: MapObject, norseMap = false): string | null {
   return norseMap && art && NORSE_REPAINTED.has(art) ? `norse:${art}` : art;
 }
 
-/**
- * A landmark: a picture the level places by tile, with no object behind it (the great temple at Uppsala: `art: 'uppsalaTemple'`).
- * The level lists them in an optional `landmarks` of its MapDef and blocks the tiles it stands on itself.
- */
-export interface MapLandmark {
-  readonly id: string;
-  readonly art: string;
-  readonly x: number;
-  readonly y: number;
-}
-
-/** The landmarks a map lists (none until MapDef carries them). */
-export const landmarksOf = (def: MapDef): readonly MapLandmark[] => (def as MapDef & { readonly landmarks?: readonly MapLandmark[] }).landmarks ?? [];
-
-/** The tiles a landmark's picture stands on: 3 × 3, its feet at the front middle. The level blocks them; the map draws no cover (fells, pines) there. */
-export function landmarkTiles(l: MapLandmark): readonly { readonly x: number; readonly y: number }[] {
-  return [-2, -1, 0].flatMap((dy) => [-1, 0, 1].map((dx) => ({ x: l.x + dx, y: l.y + dy })));
-}
-
-/** A landmark's sprite, by its `art` (a Norse look's name). */
-export function landmarkSprite(art: string): { key: string; sprite: MapSprite } | null {
-  const n = NORSE_LOOK_ART[art];
-  return n ? siteSprite(`norse:${n}`) : null;
-}
-
 /** A site's sprite: its own, or (a mine drawn later) the gold mine's, or (a new site drawn later) the one it borrows. */
 export function siteSprite(art: string): { key: string; sprite: MapSprite } | null {
   if (art.startsWith('norse:')) {

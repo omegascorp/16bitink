@@ -7,7 +7,7 @@ import { lairWords, lairName } from './lairs';
 import { noRoomWords } from './lying';
 import { gainedXp, maxMana } from './hero';
 import { gainItem, hasSpellbook, itemSays, ITEMS, QUALITY_NAMES } from './items';
-import { bankKind, bankName, CHEST_XP, LEARNING_XP, MINE_NAMES, MINE_OUTPUT, ONCE_PER_HERO, type MapObject } from './objects';
+import { bankKind, bankName, CHEST_XP, LEARNING_XP, MINE_NAMES, MINE_OUTPUT, ONCE_PER_HERO, templeName, type MapObject } from './objects';
 import { creature } from './creatures';
 import { dwellingName, dwellingStock } from './dwellings';
 import { addTo, RESOURCES } from './resources';
@@ -55,6 +55,8 @@ export function visitSite(adv: Adventure, o: MapObject, def: MapDef | undefined 
     }
     case 'mercCamp':
       return { adv: message({ ...adv, hero: { ...visited, attack: hero.attack + 1 } }, 'Mercenary Camp', 'Old soldiers drill your hero with the sword.\n+1 Attack'), notes: ['+1 Attack'] };
+    case 'temple':
+      return { adv: message({ ...adv, hero: { ...visited, power: hero.power + 1 } }, templeName(o), 'The priests of Odin cut a rune over your hero.\n+1 Power'), notes: ['+1 Power'] };
     case 'watchtower':
       return { adv: message({ ...adv, hero: { ...visited, defense: hero.defense + 1 } }, 'Old Watchtower', 'From the tower your hero learns how the land can be held.\n+1 Defense'), notes: ['+1 Defense'] };
     case 'standingStone': {
@@ -147,5 +149,6 @@ function lootKeep(adv: Adventure, o: MapObject): VisitResult {
 }
 
 function siteTitle(o: MapObject): string {
+  if (o.kind === 'temple') return templeName(o);
   return o.kind === 'mercCamp' ? 'Mercenary Camp' : o.kind === 'watchtower' ? 'Old Watchtower' : o.kind === 'standingStone' ? 'Standing Stone' : 'Wayside Shrine';
 }

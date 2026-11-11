@@ -40,7 +40,7 @@ export function rideOn(won: Adventure, from: MapDef, next: MapDef): Adventure {
   const lived = (id: string): boolean => !!won.rival && [...(won.rival.hero ? [won.rival.hero] : []), ...(won.rival.others ?? []), ...(won.rival.fallen ?? []).map((f) => f.hero)].some((h) => h.id === id);
   const rival = newLord ? rivalSideFromDef(next, lived) : adv.rival;
   // Nothing the last part left waiting is fought in the next.
-  const { rivalFight: _fight, ...rest } = adv;
+  const { rivalFight: _fight, freePlay: _free, ...rest } = adv;
   const opened: Adventure = {
     ...rest,
     mapId: next.id,

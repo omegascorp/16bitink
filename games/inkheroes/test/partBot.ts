@@ -147,6 +147,8 @@ function worth(adv: Adventure, def: MapDef, o: MapObject, edge: number, bossEdge
   if (o.kind === 'mine') return o.owner !== 'player';
   // A lair is a door, never visited: only its groups are fought. Training sites aren't part of the plan either.
   if (o.kind === 'windmill' || o.kind === 'stables' || o.kind === 'item' || o.kind === 'lair' || o.kind === 'arena' || o.kind === 'sanctum') return false;
+  // The temple's +1 Power is a bonus the bot leaves (Uppsala's balance table was struck without it: with it the AI casts Haste over the runes).
+  if (o.kind === 'temple') return false;
   // A shrine is copied into a spellbook: without one there is nothing to ride there for.
   if (o.kind === 'shrine' && !hasSpellbook(adv.hero)) return false;
   if (['mercCamp', 'watchtower', 'standingStone', 'shrine', 'spellbook'].includes(o.kind)) return !adv.hero.visited.includes(o.id);

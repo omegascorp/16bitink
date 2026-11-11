@@ -165,6 +165,8 @@ export function parseAdventure(raw: unknown, def: MapDef): Adventure | null {
     mapId: def.id, day, seed, purse: refundMachines(hero, p), hero: h, ...(others.length ? { others } : {}), towns: ts as Town[], objects: objs, explored, status, prompts: kept, lostStacks,
     ...(isInt(raw.begun, 2, day) ? { begun: raw.begun } : {}),
     ...(rival ? { rival } : {}), ...(fight ? { rivalFight: fight } : {}),
+    // Free play is kept only for a game still going (a won game's save turns to free play when resumed: src/logic/freePlay.ts).
+    ...(raw.freePlay === true && status !== 'won' ? { freePlay: true as const } : {}),
   }));
 }
 

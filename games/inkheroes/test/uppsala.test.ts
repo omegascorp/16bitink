@@ -10,7 +10,8 @@ import { factionOf } from '../src/logic/factions';
 import { cantHireHero, hireHero } from '../src/logic/heroes';
 import { ITEMS } from '../src/logic/items';
 import { inGrid, passable, tileIndex } from '../src/logic/map';
-import { townFootprint } from '../src/logic/objects';
+import { objectFootprint, templeName, townFootprint } from '../src/logic/objects';
+import { visitSite } from '../src/logic/visits';
 import { rosterOf, specialtyOf } from '../src/logic/roster';
 import { LINES } from '../src/narration/lines';
 import { upcoming } from '../src/narration/upcoming';
@@ -126,18 +127,46 @@ describe('Uppsala, chapter 3’s second part', () => {
     expect(planPath(open, UPPSALA, aun.x, aun.y)).not.toBeNull();
   });
 
-  it('stands the temple in its yard: its 3 × 3 tiles blocked, the row before it open, the altar at its door and the gate in front', () => {
-    const temple = UPPSALA_LAND.landmarks!.find((l) => l.id === 'temple')!;
+  it('stands the temple in its yard as a site: its door in front, its other 8 tiles blocked, the row before it open, the altar at its door and the gate in front', () => {
+    const temple = UPPSALA_LAND.objects.find((o) => o.id === 'uppsala-temple')!;
+    expect(temple.kind).toBe('temple');
+    expect(temple.look).toBe('uppsalaTemple');
+    expect(templeName(temple)).toBe('Temple at Uppsala');
     const g = gridOf(UPPSALA_LAND);
-    for (let dy = -2; dy <= 0; dy++) for (let dx = -1; dx <= 1; dx++) expect(passable(g, temple.x + dx, temple.y + dy), `${temple.x + dx},${temple.y + dy}`).toBe(false);
+    const block = objectFootprint(temple);
+    expect(block).toHaveLength(8);
+    for (let dy = -2; dy <= 0; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const t = { x: temple.x + dx, y: temple.y + dy };
+      expect(block.some((b) => b.x === t.x && b.y === t.y), `${t.x},${t.y}`).toBe(dx !== 0 || dy !== 0);
+      // The ground is open snow: the footprint, not fells, keeps a hero off.
+      expect(passable(g, t.x, t.y), `${t.x},${t.y}`).toBe(true);
+    }
     for (let dx = -1; dx <= 1; dx++) expect(passable(g, temple.x + dx, temple.y + 1), `front ${temple.x + dx}`).toBe(true);
     const at = (id: string): { x: number; y: number } => UPPSALA_LAND.objects.find((o) => o.id === id)!;
     const near = (o: { x: number; y: number }, n: number): boolean => Math.abs(o.x - temple.x) <= n && o.y - temple.y >= 0 && o.y - temple.y <= n;
-    // The altar and Aun just before it; the gate's kings further out, between it and the road; nothing stands on it.
+    // The altar and Aun just before it; the gate's kings further out, between it and the road; nothing else stands on it.
     expect(near(at('altar-staff'), 2)).toBe(true);
     expect(near(at('aun'), 3)).toBe(true);
     expect(at('altar-kings').x).toBeLessThan(at('altar-staff').x);
-    for (const o of UPPSALA_LAND.objects) expect(Math.abs(o.x - temple.x) <= 1 && o.y >= temple.y - 2 && o.y <= temple.y, o.id).toBe(false);
+    for (const o of UPPSALA_LAND.objects) if (o.id !== temple.id) expect(Math.abs(o.x - temple.x) <= 1 && o.y >= temple.y - 2 && o.y <= temple.y, o.id).toBe(false);
+  });
+
+  it('lets a hero reach the temple door from the yard, and its priests give +1 Power once for each hero', () => {
+    const a = riddenOn();
+    const temple = a.objects.find((o) => o.id === 'uppsala-temple')!;
+    const open = { ...a, objects: a.objects.map((o) => (o.id === 'altar-kings' ? { ...o, gone: true } : o)), hero: { ...a.hero, x: 19, y: 30, mp: 1e9 } };
+    expect(planPath(open, UPPSALA, temple.x, temple.y)).not.toBeNull();
+    // A tile of its body is no way in.
+    expect(planPath(open, UPPSALA, temple.x, temple.y - 1)).toBeNull();
+    const power = a.hero.power;
+    const first = visitSite(a, temple, UPPSALA);
+    expect(first.adv.hero.power).toBe(power + 1);
+    expect(first.notes).toEqual(['+1 Power']);
+    expect(first.adv.hero.visited).toContain(temple.id);
+    expect(first.adv.prompts.at(-1)).toMatchObject({ kind: 'message', title: 'Temple at Uppsala' });
+    const second = visitSite(first.adv, temple, UPPSALA);
+    expect(second.adv.hero.power).toBe(power + 1);
+    expect(second.adv.prompts.at(-1)).toMatchObject({ kind: 'message', title: 'Temple at Uppsala', text: 'You have already been here.' });
   });
 
   it('wins when Aun is beaten, his drop taken or left lying for a full bag', () => {

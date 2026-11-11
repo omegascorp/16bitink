@@ -181,7 +181,8 @@ export class MenuScene extends Phaser.Scene {
     const looked = Session.look(host, c);
     return {
       ...base, parts: partsOf(c),
-      playing: looked ? { def: looked.def, when: calendar(looked.day) } : null,
+      // A chapter won and played on says so: Continue goes back to roaming it, Start over still throws it away.
+      playing: looked ? { def: looked.def, when: looked.free ? `Chapter complete · ${calendar(looked.day)}` : calendar(looked.day), free: !!looked.free } : null,
       onPlay: () => this.play(c),
       ...(looked ? { onStartOver: () => this.startOver(c, looked) } : {}),
     };
