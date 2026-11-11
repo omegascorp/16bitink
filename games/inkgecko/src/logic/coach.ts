@@ -18,10 +18,10 @@ const is = (type: BoardEvent['type']) => (e: BoardEvent): boolean => e.type === 
 const charmed = (charm: string) => (e: BoardEvent): boolean => (e.type === 'charm' || e.type === 'caught') && e.charm === charm;
 
 const HINTS: Readonly<Record<Teach, Hint>> = {
-  spit: { id: 'spit', mouse: 'Click to spit a marble. Three of a colour pop!', touch: 'Tap to spit a marble. Three of a colour pop!', until: is('pop'), max: 30 },
-  swap: { id: 'swap', mouse: 'Right-click or Space swaps the marble on its tail', touch: 'Tap the gecko to swap the marble on its tail', after: (e) => e.type === 'pop', until: is('swap'), max: 9 },
+  spit: { id: 'spit', mouse: 'Click to spit a marble. Three of a colour pop!', touch: 'Tap to spit, or pull the stick and let go. Three of a colour pop!', until: is('pop'), max: 30 },
+  swap: { id: 'swap', mouse: 'Right-click or Space swaps the marble on its tail', touch: 'Tap the gecko or the stick to swap the marble on its tail', after: (e) => e.type === 'pop', until: is('swap'), max: 9 },
   pull: { id: 'pull', mouse: 'Matching colours either side of a gap pull together: combo!', touch: 'Matching colours either side of a gap pull together: combo!', until: is('pull'), max: 10 },
-  rail: { id: 'rail', mouse: 'Move to run along the branch, click to spit straight up', touch: 'Tap above a marble: the gecko runs there and spits', until: is('pop'), max: 25 },
+  rail: { id: 'rail', mouse: 'Move to run along the branch, click to spit straight up', touch: 'Tap above a marble, or slide the stick and let go to spit', until: is('pop'), max: 25 },
   catch: { id: 'catch', mouse: 'A charm is falling: run under it to catch it!', touch: 'A charm is falling: tap under it to catch it!', after: (e) => e.type === 'drop', until: is('caught'), max: 6 },
   hop: { id: 'hop', mouse: 'Click another lily pad to hop onto it (or Q / E)', touch: 'Tap another lily pad to hop onto it', until: is('landed'), max: 14 },
   tunnel: { id: 'tunnel', mouse: 'Marbles under the log are hidden: hit them where they come out', touch: 'Marbles under the log are hidden: hit them where they come out', until: is('pop'), max: 9 },

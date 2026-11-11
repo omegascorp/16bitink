@@ -11,6 +11,8 @@ const STEP = 40;
  * the board. It fades in when a hint comes and out when it's done.
  */
 export class HintNote {
+  /** The note's height, units. */
+  static readonly height = NOTE_H;
   readonly root: Phaser.GameObjects.Container;
   private readonly text: Phaser.GameObjects.Text;
   private card: Phaser.GameObjects.Image | null = null;

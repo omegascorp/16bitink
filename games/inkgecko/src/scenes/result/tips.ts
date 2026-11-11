@@ -11,7 +11,7 @@ export interface Tip {
 
 /** Gentle, useful things to know: one shows after each loss, in turn. */
 export const TIPS: readonly Tip[] = [
-  { mouse: 'Space or right-click swaps the marble on the gecko\'s tail for the one in its mouth.', touch: 'Tap the gecko to swap the marble on its tail for the one in its mouth.' },
+  { mouse: 'Space or right-click swaps the marble on the gecko\'s tail for the one in its mouth.', touch: 'Tap the gecko (or the stick) to swap the marble on its tail for the one in its mouth.' },
   { mouse: 'Shoot into a gap with the same colour either side: the line rolls back to close it, and that\'s a combo.', touch: 'Shoot into a gap with the same colour either side: the line rolls back to close it, and that\'s a combo.' },
   { mouse: 'Pops that set off more pops roll the line back: chain them to buy time.', touch: 'Pops that set off more pops roll the line back: chain them to buy time.' },
   { mouse: 'Catch the charms that fall: Slow, Reverse and the Ink Pot can turn a level round.', touch: 'Catch the charms that fall: Slow, Reverse and the Ink Pot can turn a level round.' },

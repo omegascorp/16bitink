@@ -211,7 +211,7 @@ export const GAMES: readonly CatalogGame[] = [
     loop: true,
     // Listed on the home page from this day (see isOut); its pages answer before that, for a look ahead of launch.
     released: '2026-10-22',
-    updated: '2026-10-24',
+    updated: '2026-11-11',
     size: { chapters: 10, levels: 100 },
     demo: '10 levels free',
     price: '$4.99',

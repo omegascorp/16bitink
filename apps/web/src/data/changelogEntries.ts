@@ -236,6 +236,14 @@ export const GAME_ENTRIES: Readonly<Record<string, readonly ChangelogEntry[]>> =
   ],
   inkgecko: [
     {
+      date: "2026-11-11",
+      title: "Touch joystick and faster loading",
+      changes: [
+        "Added an on-screen joystick for phones: pull it to aim (or to run along the branch), let go to spit, tap it to swap. Tapping the board still aims and spits.",
+        "The game starts faster: art used only by later levels is drawn after the first screen shows.",
+      ],
+    },
+    {
       date: "2026-10-24",
       title: "A twist on every level",
       changes: [

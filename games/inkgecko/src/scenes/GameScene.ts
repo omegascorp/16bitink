@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { ART_RES } from '../art/palette';
-import { bakeBoard, bakeCovers, dropBoards, TEX } from '../art/textures';
+import { bakeBoard, bakeCovers, bakeExtras, dropBoards, TEX } from '../art/textures';
 import { pitchForCombo, type SfxId } from '../audio/recipes';
 import { getHost, getSound, trackGame } from '../host';
 import { levelById, levelOrder, loadedLevels, placeOf } from '../level/levels';
@@ -73,6 +73,8 @@ export class GameScene extends Phaser.Scene {
     // Tunnels lie over the marbles (and shots fly over them, under the gecko).
     const covers = bakeCovers(this, this.level, placeOf(this.level.id));
     if (covers) this.add.image(0, 0, covers).setOrigin(0).setScale(1 / ART_RES).setDepth(5.5);
+    // Any of this level's own sprites the background painting hasn't reached yet.
+    bakeExtras(this, this.level);
     this.fx = new FxView(this, this.board);
     this.marbles = new MarblesView(this);
     this.gecko = new GeckoView(this, this.board);
@@ -96,6 +98,9 @@ export class GameScene extends Phaser.Scene {
         const s = this.level.shooter;
         return s.kind === 'hop' ? (this.board.pad + step + s.pads.length) % s.pads.length : null;
       },
+      stickRest: () => this.hud()?.stickRest() ?? null,
+      turn: () => (this.cameras.main as Phaser.Cameras.Scene2D.Camera & { readonly rotation: number }).rotation,
+      gecko: () => ({ x: this.board.gecko.x, y: this.board.gecko.y, rail: this.board.rail }),
     });
     this.fit();
     this.scale.on('resize', this.fit, this);
@@ -205,7 +210,7 @@ export class GameScene extends Phaser.Scene {
     for (const e of events) this.react(e, time);
     this.marbles.sync(this.board, dt, time);
     this.gecko.update(this.board, time, dt);
-    this.fx.update(this.board, time, this.board.timers.aim > 0);
+    this.fx.update(this.board, time, this.board.timers.aim > 0 || this.input2.stickAiming);
     this.night?.update(this.board, time, dt);
     this.bossView?.update(this.board, time);
     this.listenForDanger(dt);

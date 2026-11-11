@@ -9,6 +9,8 @@ import { HintNote } from './hud/hintNote';
 import { LevelTag } from './hud/levelTag';
 import { Meter, METER_H } from './hud/meter';
 import { PauseCard } from './hud/pauseCard';
+import { ThumbStick } from './hud/thumbStick';
+import { STICK } from '../logic/joystick';
 import { hitSize, hudPlan, type HudPlan } from './uiLayout';
 import { ROUND, roundButton, type RoundButton } from './uiPaint';
 
@@ -18,7 +20,7 @@ const SIZES = { button: ROUND, margin: MARGIN, meterH: METER_H } as const;
 /**
  * Over the board: the level's paper tag with the clock, the meter (score,
  * the bar's vine, lives), the pause and sound buttons, first-time hints
- * on a taped note, and the pause card. Laid out for a screen held either
+ * on a taped note, the thumbstick on a touch screen, and the pause card. Laid out for a screen held either
  * way (see hudPlan).
  */
 export class HudScene extends Phaser.Scene {
@@ -29,6 +31,7 @@ export class HudScene extends Phaser.Scene {
   private soundButton!: RoundButton;
   private plan!: HudPlan;
   private pauseCard: PauseCard | null = null;
+  private stick!: ThumbStick;
 
   constructor() {
     super('Hud');
@@ -45,6 +48,7 @@ export class HudScene extends Phaser.Scene {
     this.tag = new LevelTag(this, `${this.levelNumber()} · ${game.level.name}`, game.level.par);
     this.meter = new Meter(this, game.board.maxLives);
     this.hint = new HintNote(this);
+    this.stick = new ThumbStick(this);
     this.pauseButton = roundButton(this, 0, 0, 'pause', () => this.togglePause());
     this.soundButton = roundButton(this, 0, 0, getSound(this)?.muted ? 'muted' : 'sound', () => this.toggleSound());
     this.layout();
@@ -85,6 +89,10 @@ export class HudScene extends Phaser.Scene {
     this.meter.root.setPosition(this.plan.meter.x, this.plan.meter.y).setScale(k);
     [this.pauseButton, this.soundButton].forEach((b, i) => b.root.setPosition(this.plan.buttons[i]!.x, this.plan.buttons[i]!.y).setScale(k));
     this.hint.root.setPosition(view.width / 2, this.plan.hintY).setScale(k);
+    // The stick's resting ring in the lower-left corner: above the meter and the hint on an upright phone.
+    const r = (STICK.radius + 8) / uiScaleOf(this);
+    const bottom = this.plan.upright ? this.plan.hintY - (HintNote.height / 2) * k - MARGIN : view.height - MARGIN;
+    this.stick.place(MARGIN + r, bottom - r);
     if (this.pauseCard) {
       // A turned or resized screen lays the card out afresh.
       this.pauseCard.destroy();
@@ -109,6 +117,11 @@ export class HudScene extends Phaser.Scene {
     this.game2().pausePlay();
     this.pauseCard = this.openCard();
     this.showPieces(false);
+  }
+
+  /** Where the thumbstick rests, CSS px, or null while it isn't shown (a mouse, or paused). */
+  stickRest(): { x: number; y: number } | null {
+    return this.stick?.restCss() ?? null;
   }
 
   /** The tag, meter, buttons and hint hide while the pause card (which says it all) is up. */
@@ -143,5 +156,7 @@ export class HudScene extends Phaser.Scene {
     if (b.dragonfly) charms.push('Dragonfly ready');
     this.tag.update(b.elapsed, b.danger > 0.85, charms);
     this.hint.set(game.coach.current(game.input2.touch));
+    this.stick.setVisible(!this.pauseCard && (game.input2.touch || !this.sys.game.device.os.desktop));
+    this.stick.update(game.input2.stickHold);
   }
 }

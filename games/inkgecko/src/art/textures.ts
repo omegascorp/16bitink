@@ -1,6 +1,6 @@
 import type { SliceJob } from '@16bitink/game-sdk';
 import type Phaser from 'phaser';
-import { CHARMS } from '../logic/charms';
+import { CHARMS, type CharmId } from '../logic/charms';
 import { COLOURS } from '../logic/colours';
 import type { Place } from '../level/levels';
 import type { LevelDef } from '../level/types';
@@ -19,6 +19,7 @@ import { DRIFT_LEAF_FRAME, DRIFT_LEAF_RES, drawDriftLeaf, drawGilt, LEAF_WASHES 
 import { fencePost, molehill } from './meadowThings';
 import { createRng } from '../logic/rng';
 import type { BossKind } from '../level/types';
+import { EXTRAS, extrasFor, type Extra } from '../level/extras';
 import { makeCanvas, releaseScratch, shrink } from './pen';
 import { BURROW_FRAME, drawBranch, drawBurrow, drawGround, drawPad, drawPadRing, drawRaised, drawTrack, drawTunnel, drawWell, WELL_FRAME } from './placesArt';
 import type { Pt } from './pen';
@@ -112,21 +113,16 @@ function bakePaper(scene: Phaser.Scene): void {
 }
 
 /**
- * Every shared sprite, one job per drawing, so the boot can run them a slice
- * at a time and show its progress. Each has BOIL frames for the line boil.
+ * The sprites every level and the map share, one job per drawing, so the
+ * boot can run them a slice at a time and show its progress. Each has BOIL
+ * frames for the line boil. The ones only some levels use (charms among them) are extraTextureJobs.
  */
 export function textureJobs(scene: Phaser.Scene): SliceJob[] {
   const jobs: SliceJob[] = [() => bakePaper(scene)];
-  const bake = (key: string, units: number, res: number, draw: (ctx: CanvasRenderingContext2D) => void): void => {
-    jobs.push(() => bakeNow(scene, key, units, res, draw));
-  };
+  const bake = baker(scene, jobs);
   COLOURS.forEach((colour, i) => {
     for (let f = 0; f < BOIL; f++) bake(TEX.marble(colour, f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawMarble(makeDraw(ctx, 100 + i * 10 + f, f, 0), colour));
     bake(TEX.splash(colour), SPLASH_FRAME, 2, (ctx) => drawSplash(makeDraw(ctx, 200 + i, 0, 0), colour));
-  });
-  CHARMS.forEach((charm, i) => {
-    bake(TEX.mark(charm), MARBLE_FRAME, MARBLE_RES, (ctx) => drawCharmMark(makeDraw(ctx, 300 + i, 0, 0), charm));
-    for (let f = 0; f < BOIL; f++) bake(TEX.token(charm, f), TOKEN_FRAME, 3, (ctx) => drawCharmToken(makeDraw(ctx, 320 + i * 10 + f, f, 0), charm));
   });
   for (let f = 0; f < BOIL; f++) {
     for (const pose of POSES) {
@@ -135,25 +131,63 @@ export function textureJobs(scene: Phaser.Scene): SliceJob[] {
       bake(TEX.geckoLines(pose, f), GECKO_FRAME, GECKO_RES, (ctx) => drawGeckoLines(makeDraw(ctx, 400 + f, f, 0), pose));
     }
     bake(TEX.well(f), WELL_FRAME, 3, (ctx) => drawWell(makeDraw(ctx, 500 + f, f, 0)));
-    for (const wing of [0, 1] as const) bake(TEX.dragonfly(wing, f), DRAGONFLY_FRAME, DRAGONFLY_RES, (ctx) => drawDragonfly(makeDraw(ctx, 540 + f, f, 0), wing));
-    FRUITS.forEach((kind, k) => bake(TEX.fruit(kind, f), FRUIT_FRAME, FRUIT_RES, (ctx) => drawFruit(makeDraw(ctx, 560 + k * 10 + f, f, 0), kind)));
-    bake(TEX.bud(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawBud(makeDraw(ctx, 590 + f, f, 0)));
-    bake(TEX.stone(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawStone(makeDraw(ctx, 600 + f, f, 0), false));
-    bake(TEX.geode(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawGeode(makeDraw(ctx, 610 + f, f, 0)));
     bake(TEX.burrow(f), BURROW_FRAME, 3, (ctx) => drawBurrow(makeDraw(ctx, 520 + f, f, 0)));
-    bake(TEX.twineKnot(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawTwineKnot(makeDraw(ctx, 630 + f, f, 0)));
-    bake(TEX.twineCord(f), TWINE_CORD_FRAME, MARBLE_RES, (ctx) => drawTwineCord(makeDraw(ctx, 634 + f, f, 0)));
-    for (const step of [0, 1] as const) bake(TEX.hedgehog(step, f), HEDGEHOG_FRAME, HEDGEHOG_RES, (ctx) => drawHedgehog(makeDraw(ctx, 650 + f, f, 0), step));
-    bake(TEX.sheen(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawSheen(makeDraw(ctx, 660 + f, f, 0)));
-    bake(TEX.sheenRing(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawSheenRing(makeDraw(ctx, 664 + f, f, 0)));
-    for (const lit of [true, false]) bake(TEX.gardenLantern(f, lit), GARDEN_LANTERN_FRAME, 3, (ctx) => drawGardenLantern(makeDraw(ctx, 680 + f, f, 0), lit));
-    LEAF_WASHES.forEach((wash, k) => bake(TEX.leaf(k, f), DRIFT_LEAF_FRAME, DRIFT_LEAF_RES, (ctx) => drawDriftLeaf(makeDraw(ctx, 690 + k * 10 + f, f, 0), wash)));
-    bake(TEX.gilt(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawGilt(makeDraw(ctx, 720 + f, f, 0)));
   }
+  // The meter's flower (and a bud's blossom).
   bake(TEX.bloom, SPLASH_FRAME, 2, (ctx) => drawBloom(makeDraw(ctx, 620, 0, 0)));
-  bake(TEX.rainStreak, RAIN_STREAK_FRAME, RAIN_RES, (ctx) => drawRainStreak(makeDraw(ctx, 670, 0, 0)));
-  bake(TEX.rainSplash, RAIN_SPLASH_FRAME, RAIN_RES, (ctx) => drawRainSplash(makeDraw(ctx, 672, 0, 0)));
   return jobs;
+}
+
+/**
+ * The jobs painting extras `which` and the marks and falling tokens of
+ * `charms` (all of both by default); each skips a sprite already painted.
+ */
+export function extraTextureJobs(scene: Phaser.Scene, which: readonly Extra[] = EXTRAS, charms: readonly CharmId[] = CHARMS): SliceJob[] {
+  const jobs: SliceJob[] = [];
+  const bake = baker(scene, jobs);
+  const on = new Set(which);
+  CHARMS.forEach((charm, i) => {
+    if (!charms.includes(charm)) return;
+    bake(TEX.mark(charm), MARBLE_FRAME, MARBLE_RES, (ctx) => drawCharmMark(makeDraw(ctx, 300 + i, 0, 0), charm));
+    for (let f = 0; f < BOIL; f++) bake(TEX.token(charm, f), TOKEN_FRAME, 3, (ctx) => drawCharmToken(makeDraw(ctx, 320 + i * 10 + f, f, 0), charm));
+  });
+  for (let f = 0; f < BOIL; f++) {
+    if (on.has('dragonfly')) for (const wing of [0, 1] as const) bake(TEX.dragonfly(wing, f), DRAGONFLY_FRAME, DRAGONFLY_RES, (ctx) => drawDragonfly(makeDraw(ctx, 540 + f, f, 0), wing));
+    if (on.has('fruit')) FRUITS.forEach((kind, k) => bake(TEX.fruit(kind, f), FRUIT_FRAME, FRUIT_RES, (ctx) => drawFruit(makeDraw(ctx, 560 + k * 10 + f, f, 0), kind)));
+    if (on.has('bud')) bake(TEX.bud(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawBud(makeDraw(ctx, 590 + f, f, 0)));
+    if (on.has('stone')) bake(TEX.stone(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawStone(makeDraw(ctx, 600 + f, f, 0), false));
+    if (on.has('geode')) bake(TEX.geode(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawGeode(makeDraw(ctx, 610 + f, f, 0)));
+    if (on.has('twine')) {
+      bake(TEX.twineKnot(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawTwineKnot(makeDraw(ctx, 630 + f, f, 0)));
+      bake(TEX.twineCord(f), TWINE_CORD_FRAME, MARBLE_RES, (ctx) => drawTwineCord(makeDraw(ctx, 634 + f, f, 0)));
+    }
+    if (on.has('hedgehog')) for (const step of [0, 1] as const) bake(TEX.hedgehog(step, f), HEDGEHOG_FRAME, HEDGEHOG_RES, (ctx) => drawHedgehog(makeDraw(ctx, 650 + f, f, 0), step));
+    if (on.has('sheen')) {
+      bake(TEX.sheen(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawSheen(makeDraw(ctx, 660 + f, f, 0)));
+      bake(TEX.sheenRing(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawSheenRing(makeDraw(ctx, 664 + f, f, 0)));
+    }
+    if (on.has('lantern')) for (const lit of [true, false]) bake(TEX.gardenLantern(f, lit), GARDEN_LANTERN_FRAME, 3, (ctx) => drawGardenLantern(makeDraw(ctx, 680 + f, f, 0), lit));
+    if (on.has('leaf')) LEAF_WASHES.forEach((wash, k) => bake(TEX.leaf(k, f), DRIFT_LEAF_FRAME, DRIFT_LEAF_RES, (ctx) => drawDriftLeaf(makeDraw(ctx, 690 + k * 10 + f, f, 0), wash)));
+    if (on.has('gilt')) bake(TEX.gilt(f), MARBLE_FRAME, MARBLE_RES, (ctx) => drawGilt(makeDraw(ctx, 720 + f, f, 0)));
+  }
+  if (on.has('rain')) {
+    bake(TEX.rainStreak, RAIN_STREAK_FRAME, RAIN_RES, (ctx) => drawRainStreak(makeDraw(ctx, 670, 0, 0)));
+    bake(TEX.rainSplash, RAIN_SPLASH_FRAME, RAIN_RES, (ctx) => drawRainSplash(makeDraw(ctx, 672, 0, 0)));
+  }
+  return jobs;
+}
+
+/** Paints the extras and charms `level` shows now, skipping any already painted (a level calls it as it starts). */
+export function bakeExtras(scene: Phaser.Scene, level: LevelDef): void {
+  for (const job of extraTextureJobs(scene, extrasFor(level), level.charms)) job();
+  releaseScratch();
+}
+
+/** A `bake` that queues a job onto `jobs`. */
+function baker(scene: Phaser.Scene, jobs: SliceJob[]): (key: string, units: number, res: number, draw: (ctx: CanvasRenderingContext2D) => void) => void {
+  return (key, units, res, draw) => {
+    jobs.push(() => bakeNow(scene, key, units, res, draw));
+  };
 }
 
 /** Paints a boss's every pose in every boil frame, once (when its level starts). */

@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import type { BoardInput } from '../../logic/board';
+import { inStickReach, pulled, stickAngle, stickRun, TAP_MOVE, TAP_MS } from '../../logic/joystick';
 import type { Pt } from '../../logic/path';
+import { toView } from '../hidpi';
 
 export interface InputHooks {
   /** Screen pointer (Phaser pointer px) to board px. */
@@ -13,34 +15,68 @@ export interface InputHooks {
   readonly padAt: (p: Pt) => number | null;
   /** Hop levels: the pad before (−1) or after (1) the one the gecko is on. */
   readonly padStep: (step: 1 | -1) => number | null;
+  /** Where the thumbstick's resting ring sits, CSS px, or null while it isn't shown. */
+  readonly stickRest: () => Pt | null;
+  /** How far the board is turned on screen, radians (a quarter on an upright phone). */
+  readonly turn: () => number;
+  /** Where the gecko stands and whether it runs along a branch. */
+  readonly gecko: () => Pt & { readonly rail: boolean };
 }
+
+/** A finger on the thumbstick: where it landed and how far it's pulled since, CSS px. */
+export interface StickHold {
+  readonly x: number;
+  readonly y: number;
+  readonly dx: number;
+  readonly dy: number;
+}
+
+/** A stick aim is a point this far along the pull from the gecko, board px. */
+const STICK_AIM_FAR = 1000;
 
 /**
  * Mouse, touch and keys to board input. Mouse: point to aim, click to spit,
  * right-click to swap. Touch: tap to aim and spit in one go, tap the gecko to
- * swap. Either: click or tap another lily pad to hop onto it. Keys: Space /
+ * swap; or the thumbstick in the lower-left corner: pull to aim (or run along
+ * a branch), let go to spit, tap it to swap. Either: click or tap another lily pad to hop onto it. Keys: Space /
  * S swap, A D / arrows turn the gecko or run along a branch, W / ↑ / Enter
  * spit, Q / E hop to the previous / next pad. Pause and sound keys belong to the HUD, which
  * keeps listening while the game is paused.
  */
 export class GameInput {
-  /** The last press was a finger, so hints speak of taps. */
-  touch = false;
+  /** The last press was a finger (or this is a phone), so hints speak of taps. */
+  touch: boolean;
   private aim: Pt | null = null;
   private fire = false;
   private swap = false;
   private hop: number | null = null;
   private readonly held = new Set<string>();
+  private stick: (StickHold & { readonly id: number; readonly t: number }) | null = null;
 
-  constructor(scene: Phaser.Scene, hooks: InputHooks) {
+  constructor(scene: Phaser.Scene, private readonly hooks: InputHooks) {
+    this.touch = !scene.sys.game.device.os.desktop;
     scene.input.mouse?.disableContextMenu();
     scene.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      const st = this.stick;
+      if (st && p.id === st.id) {
+        const at = toView(p.x, p.y);
+        this.stick = { ...st, dx: at.x - st.x, dy: at.y - st.y };
+        return;
+      }
       if (p.wasTouch && !p.isDown) return;
       this.aim = hooks.toBoard(p);
     });
     scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       this.touch = p.wasTouch;
       if (hooks.overHud(p)) return;
+      if (p.wasTouch && !this.stick) {
+        const rest = hooks.stickRest();
+        const css = toView(p.x, p.y);
+        if (rest && inStickReach(css, rest)) {
+          this.stick = { id: p.id, x: css.x, y: css.y, dx: 0, dy: 0, t: p.event.timeStamp };
+          return;
+        }
+      }
       const at = hooks.toBoard(p);
       if (p.rightButtonDown()) {
         this.swap = true;
@@ -60,6 +96,19 @@ export class GameInput {
       this.aim = at;
       this.fire = true;
     });
+    const up = (p: Phaser.Input.Pointer): void => {
+      const st = this.stick;
+      if (!st || p.id !== st.id) return;
+      this.stick = null;
+      // Let go of a pull: the aim it set stays, and the gecko spits along it.
+      if (pulled(st.dx, st.dy)) {
+        this.aimAlong(st);
+        this.fire = true;
+      } else if (p.event.timeStamp - st.t < TAP_MS && Math.hypot(st.dx, st.dy) < TAP_MOVE) this.swap = true;
+    };
+    scene.input.on('pointerup', up);
+    // A thumb that slides off the canvas lets go of the stick too.
+    scene.input.on('pointerupoutside', up);
     const keys = scene.input.keyboard;
     keys?.on('keydown', (e: KeyboardEvent) => {
       this.touch = false;
@@ -80,12 +129,35 @@ export class GameInput {
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => scene.game.events.off(Phaser.Core.Events.BLUR, blur));
   }
 
+  /** The thumb on the stick, if any (the HUD draws it). */
+  get stickHold(): StickHold | null {
+    return this.stick;
+  }
+
+  /** The stick is pulled out of its dead zone, so the aim line shows. */
+  get stickAiming(): boolean {
+    return this.stick !== null && pulled(this.stick.dx, this.stick.dy);
+  }
+
+  /** Points the aim along a pull: a far point that way from the gecko (rail geckos keep spitting straight up). */
+  private aimAlong(st: StickHold): void {
+    const g = this.hooks.gecko();
+    const a = stickAngle(st.dx, st.dy, this.hooks.turn());
+    if (g.rail || a === null) return;
+    this.aim = { x: g.x + Math.cos(a) * STICK_AIM_FAR, y: g.y + Math.sin(a) * STICK_AIM_FAR };
+  }
+
   /** This frame's input; one-off presses are used up. */
   read(): BoardInput {
     const left = this.held.has('KeyA') || this.held.has('ArrowLeft');
     const right = this.held.has('KeyD') || this.held.has('ArrowRight');
-    const move = (right ? 1 : 0) - (left ? 1 : 0);
-    // Keys take over the branch from the pointer until it moves again.
+    let move = (right ? 1 : 0) - (left ? 1 : 0);
+    const st = this.stick;
+    if (move === 0 && st) {
+      if (this.hooks.gecko().rail) move = stickRun(st.dx, st.dy, this.hooks.turn());
+      else this.aimAlong(st);
+    }
+    // Keys (or the stick on a branch) take over from the pointer until it moves again.
     if (move !== 0) this.aim = null;
     const out: BoardInput = { aim: this.aim, fire: this.fire, swap: this.swap, move, hop: this.hop };
     this.fire = false;
@@ -100,5 +172,6 @@ export class GameInput {
     this.fire = false;
     this.swap = false;
     this.hop = null;
+    this.stick = null;
   }
 }

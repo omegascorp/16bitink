@@ -1,7 +1,8 @@
 import { runInSlices, type LoadingReporter } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
 import { PAPER } from '../art/palette';
-import { textureJobs } from '../art/textures';
+import { releaseScratch } from '../art/pen';
+import { extraTextureJobs, textureJobs } from '../art/textures';
 import { getHost, REG } from '../host';
 import { installPaidChapters } from '../level/levels';
 import { parseChapters } from '../level/validate';
@@ -14,6 +15,8 @@ import { uiTextureJobs } from './uiPaint';
 /** Shares of the site's loading bar: drawing the art, then fetching the full game's chapters, then the first screen. */
 const DRAWN_AT = 0.9;
 const FETCHED_AT = 0.96;
+/** The background painting's slices, ms: short, so the first screen's frames stay smooth while it runs. */
+const BACKGROUND_SLICE_MS = 6;
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -41,18 +44,36 @@ export class BootScene extends Phaser.Scene {
 
   private async boot(label: string): Promise<void> {
     const loading = getHost(this).loading;
+    this.registry.set(REG.fullError, null);
+    // The full game's chapters and the account's progress come over the network while the art is drawn.
+    const fetched = Promise.all([loadPaidChapters(this), pullFromAccount(getHost(this))]);
     // Drawn a slice at a time, so the loading bar moves and the page never freezes.
     await runInSlices([...textureJobs(this), ...uiTextureJobs(this)], { onProgress: (f) => loading?.progress(f * DRAWN_AT, label) });
-    this.registry.set(REG.fullError, null);
     if (getHost(this).unlocked) loading?.progress(DRAWN_AT, 'fetching the full game…');
-    await Promise.all([loadPaidChapters(this), pullFromAccount(getHost(this))]);
+    await fetched;
     // Read after the account's progress is pulled in, so a player new to this device but not to the game gets the map.
     const first = firstScreen(loadProgress(getHost(this).storage));
     loading?.progress(FETCHED_AT, first.scene === 'Game' ? 'raking the path…' : 'unfolding the map…');
     if (loading) readyOnFirstFrame(this, first.scene, loading);
+    paintExtrasAfter(this, first.scene);
     if (first.scene === 'Game') this.scene.start('Game', first.data);
     else this.scene.start('Menu');
   }
+}
+
+/**
+ * Once scene `key` is up, paints the sprites only some levels use, in short
+ * slices; a level that starts before they're done paints its own then.
+ */
+function paintExtrasAfter(scene: Phaser.Scene, key: string): void {
+  scene.scene.get(key).events.once(Phaser.Scenes.Events.CREATE, () => {
+    scene.game.events.once(Phaser.Core.Events.POST_RENDER, () => {
+      // This scene has stopped by then, but its texture manager is the one every scene shares.
+      void runInSlices(extraTextureJobs(scene), { budgetMs: BACKGROUND_SLICE_MS }).then(releaseScratch, (err: unknown) => {
+        console.warn('[inkgecko] could not paint the extra sprites ahead; levels paint their own', err);
+      });
+    });
+  });
 }
 
 /** Calls `loading.ready()` once scene `key` has been created and drawn, so the loading screen lifts onto a finished picture. */
