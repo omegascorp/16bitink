@@ -237,9 +237,13 @@ export const GAME_ENTRIES: Readonly<Record<string, readonly ChangelogEntry[]>> =
   inkgecko: [
     {
       date: "2026-11-11",
-      title: "Touch joystick and faster loading",
+      title: "Phone controls and a bigger board",
       changes: [
-        "Added an on-screen joystick for phones: pull it to aim (or to run along the branch), let go to spit, tap it to swap. Tapping the board still aims and spits.",
+        "Added an on-screen joystick for phones that stays put: pull it to aim, or to run along the branch, and it keeps going even if your thumb slips off the glass for a moment.",
+        "Added a Spit button holding the marble in the gecko's mouth and a Swap button holding the one on its tail, so letting go of the joystick no longer spits. Tapping the board still aims and spits.",
+        "On phones the board draws bigger, with the bare ground round each level trimmed, and the score, clock and buttons sit beside it instead of over the lines.",
+        "The garden now carries on past the edges of the board instead of showing a mirrored copy of it.",
+        "On phones, level cards skip the picture of the board and show the rest bigger, and long hints wrap to fit the screen.",
         "The game starts faster: art used only by later levels is drawn after the first screen shows.",
       ],
     },
@@ -287,8 +291,10 @@ export const GAME_ENTRIES: Readonly<Record<string, readonly ChangelogEntry[]>> =
       title: "Thumbstick, zoom and a new look",
       changes: [
         "A new look for the whole interface: the level's name and goal on a page of Nib's journal, painted buttons with drawn icons, the tips on taped notes, and a new results page and map cards.",
-        "Added a thumbstick for phones in the lower-left corner: push it to walk Nib, or up and down to climb a vine. The round button still jumps.",
+        "Added a thumbstick for phones in the lower-left corner: push it to walk Nib, or up and down to climb a vine. It keeps walking even if your thumb slips off the glass for a moment, and the round button still jumps.",
         "You can zoom now: pinch, or use the + and − buttons (ctrl + wheel or the + − keys on a computer). Zoom out to see a whole level, or in to see the details.",
+        "On phones, levels open zoomed in, and the stick, buttons, hearts and coins sit round the level instead of over it, so they never cover Nib or a pin.",
+        "On phones, each tip fades once there's been time to read it, a tap closes it, and the new ? button brings it back. Level cards skip the picture, and the map opens closer, with bigger level circles.",
         "Removed tap-to-go: tapping the floor no longer sends Nib walking, so a missed pin tap can't move him by mistake.",
       ],
     },
