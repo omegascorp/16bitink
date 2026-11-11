@@ -1,18 +1,19 @@
 ---
 import GameTitle from '../../components/GameTitle.astro';
-import { isPurchasable, playableGames, type CatalogGame } from '../../data/games';
+import { findGame, isPurchasable } from '../../data/games';
 import { appleTouchIcon } from '../../lib/manifest';
 import { GAME_VERSIONS } from '../../games/versions';
 import { coverSrcset, coverVariant } from '../../lib/covers';
 
-export function getStaticPaths() {
-  return playableGames().map((game) => ({ params: { slug: game.slug }, props: { game } }));
-}
+// Rendered per request, not prerendered: the deploy stamps every static file 1980-01-01, so a
+// prerendered page answers the browser's revalidation with 304 and an installed app keeps the
+// old page, whose /_astro chunks are gone after the deploy. A rendered page has no validator,
+// so each launch gets the current page.
+export const prerender = false;
 
-interface Props {
-  game: CatalogGame;
-}
-const { game } = Astro.props;
+const game = findGame(Astro.params.slug ?? '');
+if (!game || game.status !== 'playable') return new Response('Not found', { status: 404 });
+Astro.response.headers.set('cache-control', 'no-cache');
 const theme = game.theme ?? { paper: '#f4eddc', ink: '#1b1a1f', accent: '#1f3f8a' };
 const version = GAME_VERSIONS[game.slug];
 const cover = game.cover ?? '/covers/inkfish.png';

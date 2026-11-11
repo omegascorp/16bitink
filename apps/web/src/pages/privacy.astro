@@ -2,6 +2,11 @@
 import LegalPage from '../layouts/LegalPage.astro';
 import { COMPANY, PRIVACY_UPDATED } from '../data/company';
 
+// Rendered per request: a prerendered page carries the deploy's fixed 1980 date, so browsers
+// would keep it (and its old CSS links) through every deploy. See play/[slug].astro.
+export const prerender = false;
+Astro.response.headers.set('cache-control', 'public, max-age=3600');
+
 const mail = `mailto:${COMPANY.email}`;
 ---
 <LegalPage title="Privacy Policy" updated={PRIVACY_UPDATED} description="What personal data 16bit.ink collects, why, and the choices you have.">

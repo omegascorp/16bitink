@@ -1,6 +1,11 @@
 ---
 import Base from '../layouts/Base.astro';
 import { COMPANY } from '../data/company';
+
+// Rendered per request: a prerendered page carries the deploy's fixed 1980 date, so browsers
+// would keep it (and its old CSS links) through every deploy. See play/[slug].astro.
+export const prerender = false;
+Astro.response.headers.set('cache-control', 'public, max-age=3600');
 ---
 <Base title="About | 16bit.ink" description="16bit.ink makes small browser games in a pen-and-ink style.">
   <section class="paper-card narrow tape" style="text-align:left">
