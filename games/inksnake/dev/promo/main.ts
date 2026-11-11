@@ -16,9 +16,11 @@ import { createHeartbeat } from './heartbeat/render';
 import { createPythonBear } from './pythonbear/render';
 import { createEagleSnatch } from './eaglesnatch/render';
 import { createCobra } from './cobra/render';
+import { createDeer } from './deer/render';
 import { CREDIT as PYTHON_BEAR_CREDIT } from './pythonbear/story';
 import { CREDIT as HEARTBEAT_CREDIT } from './heartbeat/story';
 import { CREDIT as COBRA_CREDIT } from './cobra/story';
+import { CREDIT as DEER_CREDIT } from './deer/story';
 
 /**
  * Dev-only promo video page for InkSnake, 1080x1920. Every short is a
@@ -31,7 +33,8 @@ import { CREDIT as COBRA_CREDIT } from './cobra/story';
  * spider-tailed horned viper's fake spider, chapter 7's mountains) or gulphen
  * (gameplay, no voice: the corn snake swallows a hen) or heartbeat (the boa
  * feels a heart through its coils, and the fake-heart experiment, then the game)
- * or cobra (a king cobra swallows a reticulated python, Singapore 2021). ?short=kit
+ * or cobra (a king cobra swallows a reticulated python, Singapore 2021) or deer
+ * (a Burmese python swallows a fawn heavier than itself, Florida 2015). ?short=kit
  * shows the shared sprites. Plays live; ?t=4.2 freezes one moment. `pnpm promo`
  * (dev/promo/record.mjs) drives window.promo frame by frame to make the
  * video files.
@@ -114,6 +117,10 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
   cobra: async () => {
     await loadCaptionFont();
     return withCredit(createCobra(ctx), ctx, PAPER_ON_DARK, COBRA_CREDIT);
+  },
+  deer: async () => {
+    await loadCaptionFont();
+    return withCredit(createDeer(ctx), ctx, PAPER_ON_DARK, DEER_CREDIT);
   },
 };
 

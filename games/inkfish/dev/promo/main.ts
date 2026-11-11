@@ -135,6 +135,9 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * gulptuna (gameplay: the viperfish swallows a whole bluefin tuna).
  * pelican (a zoo pelican in Japan tries to swallow a baby capybara).
  * ospreyshark (an osprey carries a shark that has a fish in its mouth, Florida 2018).
+ * gulpgrouper (gameplay: the viperfish swallows a whole goliath grouper).
+ * gulpcuda (gameplay: the viperfish swallows a whole barracuda).
+ * beetle (a water beetle swallowed by a frog walks out the back door, Sugiura 2020).
  * They're loaded lazily (import() on demand).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
@@ -561,6 +564,21 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
     await loadCaptionFont();
     const { createOspreyShark } = await import('./ospreyshark/render');
     return withCredit(createOspreyShark(ctx), ctx);
+  },
+  gulpgrouper: async () => {
+    await loadCaptionFont();
+    const { createGulpGrouper } = await import('./gulpgrouper/render');
+    return createGulpGrouper(ctx);
+  },
+  gulpcuda: async () => {
+    await loadCaptionFont();
+    const { createGulpCuda } = await import('./gulpcuda/render');
+    return createGulpCuda(ctx);
+  },
+  beetle: async () => {
+    await loadCaptionFont();
+    const { createBeetle } = await import('./beetle/render');
+    return withCredit(createBeetle(ctx), ctx);
   },
   orcaflip: async () => {
     await loadCaptionFont();
