@@ -57,7 +57,7 @@ export interface MapObject {
   readonly brood?: { readonly creature: CreatureId; readonly count: number };
   /** Monster: the piece it leaves when beaten. */
   readonly drop?: ItemId;
-  /** Monster: a name of its own, a boss's (Hrímgrímnir, the frost giant of the fjord), where the map names it. */
+  /** Monster: a name of its own, a boss's (Hrimgrimnir, the frost giant of the fjord), where the map names it. */
   readonly name?: string;
   /** Monster: the narrator's line told the first time a hero of ours sees it (src/narration/lines.ts). */
   readonly line?: LineId;

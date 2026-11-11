@@ -172,18 +172,18 @@
   },
   {
     "line": "part-hladir",
-    "title": "Hlaðir",
-    "text": "It is the third winter with no summer… the Fimbulwinter, the great winter before the end of the world. The fjord is frozen, the ships can't sail, and the steadings are starving. At the fjord's mouth the frost giant Hrímgrímnir sits on the ice with his wolves… and no ship has passed him in three winters. But Hlaðir has a shieldmaiden! Hervor, whose father and his eleven brothers were berserkers. Wound a berserker, and he only hits harder… Raise the hall's warriors, and drive the giant off the ice!",
-    "script": "[grand, storytelling] It is the third winter with no summer… the Fimbulwinter, the great winter before the end of the world. [grim] The fjord is frozen, the ships can't sail, and the steadings are starving. [ominous] At the fjord's mouth the frost giant Hrímgrímnir sits on the ice with his wolves… and no ship has passed him in three winters. [proud] But Hlaðir has a shieldmaiden! Hervor, whose father and his eleven brothers were berserkers. [wry] Wound a berserker, and he only hits harder… [resolute] Raise the hall's warriors, and drive the giant off the ice!",
+    "title": "Hladir",
+    "text": "It is the third winter with no summer… the Fimbulwinter, the great winter before the end of the world. The fjord is frozen, the ships can't sail, and the steadings are starving. At the fjord's mouth the frost giant Hrimgrimnir sits on the ice with his wolves… and no ship has passed him in three winters. But Hladir has a shieldmaiden! Hervor, whose father and his eleven brothers were berserkers. Wound a berserker, and he only hits harder… Raise the hall's warriors, and drive the giant off the ice!",
+    "script": "[grand, storytelling] It is the third winter with no summer… the Fimbulwinter, the great winter before the end of the world. [grim] The fjord is frozen, the ships can't sail, and the steadings are starving. [ominous] At the fjord's mouth the frost giant Hrimgrimnir sits on the ice with his wolves… and no ship has passed him in three winters. [proud] But Hladir has a shieldmaiden! Hervor, whose father and his eleven brothers were berserkers. [wry] Wound a berserker, and he only hits harder… [resolute] Raise the hall's warriors, and drive the giant off the ice!",
     "voice": "BNgbHR0DNeZixGQVzloa",
     "model": "eleven_v4",
     "recorded": null
   },
   {
     "line": "hrimgrimnir",
-    "title": "Hrímgrímnir",
-    "text": "There, out on the ice… Hrímgrímnir! Tall as a mast, with frost in his beard, and he answers every blow that's struck at him. His wolves circle, hungry. Good! Let him strike the berserkers… every wound only makes them angrier!",
-    "script": "[ominous] There, out on the ice… Hrímgrímnir! [awed] Tall as a mast, with frost in his beard, and he answers every blow that's struck at him. [grim] His wolves circle, hungry. [eager] Good! Let him strike the berserkers… every wound only makes them angrier!",
+    "title": "Hrimgrimnir",
+    "text": "There, out on the ice… Hrimgrimnir! Tall as a mast, with frost in his beard, and he answers every blow that's struck at him. His wolves circle, hungry. Good! Let him strike the berserkers… every wound only makes them angrier!",
+    "script": "[ominous] There, out on the ice… Hrimgrimnir! [awed] Tall as a mast, with frost in his beard, and he answers every blow that's struck at him. [grim] His wolves circle, hungry. [eager] Good! Let him strike the berserkers… every wound only makes them angrier!",
     "voice": "BNgbHR0DNeZixGQVzloa",
     "model": "eleven_v4",
     "recorded": null
@@ -191,8 +191,8 @@
   {
     "line": "hladir-won",
     "title": "The ice breaks",
-    "text": "Hrímgrímnir falls, and the ice at the fjord's mouth cracks like thunder! The longships can sail again, and Hlaðir eats tonight. But the sun still won't climb above the hills… and the winter isn't ending. Over the mountains, the great temple at Uppsala keeps the old lore. Hervor rides south to ask who is keeping the sun away!",
-    "script": "[triumphant] Hrímgrímnir falls, and the ice at the fjord's mouth cracks like thunder! [joyful] The longships can sail again, and Hlaðir eats tonight. [uneasy] But the sun still won't climb above the hills… [mysterious] and the winter isn't ending. [resolute] Over the mountains, the great temple at Uppsala keeps the old lore. Hervor rides south to ask who is keeping the sun away!",
+    "text": "Hrimgrimnir falls, and the ice at the fjord's mouth cracks like thunder! The longships can sail again, and Hladir eats tonight. But the sun still won't climb above the hills… and the winter isn't ending. Over the mountains, the great temple at Uppsala keeps the old lore. Hervor rides south to ask who is keeping the sun away!",
+    "script": "[triumphant] Hrimgrimnir falls, and the ice at the fjord's mouth cracks like thunder! [joyful] The longships can sail again, and Hladir eats tonight. [uneasy] But the sun still won't climb above the hills… [mysterious] and the winter isn't ending. [resolute] Over the mountains, the great temple at Uppsala keeps the old lore. Hervor rides south to ask who is keeping the sun away!",
     "voice": "BNgbHR0DNeZixGQVzloa",
     "model": "eleven_v4",
     "recorded": null

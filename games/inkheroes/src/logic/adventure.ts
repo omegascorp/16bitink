@@ -220,7 +220,7 @@ export function revealAround(adv: Adventure, def: MapDef, cx: number, cy: number
 
 export const isSeen = (adv: Adventure, def: MapDef, x: number, y: number): boolean => adv.explored[tileIndex(gridOf(def), x, y)] === '1';
 
-/** `next` with the narrator's line of each monster with one that came into sight since `was` (Hrímgrímnir on the ice), told once: a monster is first seen only once. */
+/** `next` with the narrator's line of each monster with one that came into sight since `was` (Hrimgrimnir on the ice), told once: a monster is first seen only once. */
 function sighted(was: Adventure, next: Adventure, def: MapDef): { adv: Adventure; seen: boolean } {
   const lines = liveObjects(next).filter((o) => o.kind === 'monster' && o.line && !isSeen(was, def, o.x, o.y) && isSeen(next, def, o.x, o.y)).map((o) => toldPrompt(o.line!));
   return lines.length ? { adv: { ...next, prompts: [...next.prompts, ...lines] }, seen: true } : { adv: next, seen: false };

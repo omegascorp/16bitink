@@ -39,13 +39,13 @@ export const TWO_LANDS_UNLOCKS: readonly (readonly BuildingId[])[] = [
  * follow chapter 2's, for the map agents to change as each part is built.
  */
 export const LONG_WINTER_UNLOCKS: readonly (readonly BuildingId[])[] = [
-  // Part 1, Hlaðir: the halls and walls, the Tavern, the Mead Hall (the people's own), the four lowest dwellings. No Hof yet: Hervor finds her rune staff in part 2.
+  // Part 1, Hladir: the halls and walls, the Tavern, the Mead Hall (the people's own), the four lowest dwellings. No Hof yet: Hervor finds her rune staff in part 2.
   ['villageHall', 'townHall', 'fort', 'citadel', 'tavern', 'meadHall', 'guardhouse', 'archeryRange', 'griffinTower', 'barracks'],
-  // Part 2, Uppsala: the Hof, both floors (Rune Magic is the part's lesson), the Boar Pen (line 5); the market, the Storehouse, the Ski Track, the first upgrades of lines 1–4, the Bifröst Stone.
+  // Part 2, Uppsala: the Hof, both floors (Rune Magic is the part's lesson), the Boar Pen (line 5); the market, the Storehouse, the Ski Track, the first upgrades of lines 1–4, the Bifrost Stone.
   ['mageGuild1', 'mageGuild2', 'monastery', 'cityHall', 'marketplace', 'storehouse', 'stables', 'guardhouse2', 'archeryRange2', 'griffinTower2', 'barracks2', 'portal'],
   // Part 3, the Bloodaxe: the ram and a rival, so the Shipwright; the Castle, the Treasury, the Shield Hall (line 6), the Iron Pen, the second upgrades of lines 1–4, the Gate of the Nine Worlds.
   ['blacksmith', 'castle', 'treasury', 'tiltyard', 'monastery2', 'guardhouse3', 'archeryRange3', 'griffinTower3', 'barracks3', 'portal2'],
-  // Part 4, Hálogaland, the chapter's last part: the rest of the tree (the Capitol, the dragons, the last upgrades of lines 5 and 6, Bifröst).
+  // Part 4, Halogaland, the chapter's last part: the rest of the tree (the Capitol, the dragons, the last upgrades of lines 5 and 6, Bifrost).
   ['capitol', 'tiltyard2', 'tiltyard3', 'monastery3', 'seraphSpire', 'seraphSpire2', 'seraphSpire3', 'portal3'],
 ];
 

@@ -3,11 +3,11 @@ import type { MapDef } from './types';
 import { LONG_WINTER_UNLOCKS, lockedIn } from './unlocks';
 
 /**
- * Chapter 3, part 1: Hlaðir, at the head of a frozen fjord (in its own
+ * Chapter 3, part 1: Hladir, at the head of a frozen fjord (in its own
  * tiles; longWinter.ts places it in the chapter). The third winter with no
- * summer: the fjord's ice runs west from Hlaðir to the sea, and at its
- * mouth the frost giant Hrímgrímnir sits on the ice with his wolves, so no
- * ship has sailed for three winters. Hervor holds Hlaðir on the shore
+ * summer: the fjord's ice runs west from Hladir to the sea, and at its
+ * mouth the frost giant Hrimgrimnir sits on the ice with his wolves, so no
+ * ship has sailed for three winters. Hervor holds Hladir on the shore
  * where the ice ends. Snow everywhere (Norse heroes walk it as grass),
  * pine forest and fells; the ice ('i') is walked slowly by everyone. Two
  * roads leave the town, west along the north shore and round the fjord's
@@ -20,11 +20,11 @@ const { specialty: _berserkers, ...hervor } = HERVOR;
 
 export const HLADIR_LAND: MapDef = {
   id: 'hladir',
-  name: 'Hlaðir',
+  name: 'Hladir',
   n: 9,
-  brief: 'The frost giant Hrímgrímnir sits on the ice at the fjord’s mouth with his wolves. Raise Hlaðir’s warriors and drive him off the ice.',
+  brief: 'The frost giant Hrimgrimnir sits on the ice at the fjord’s mouth with his wolves. Raise Hladir’s warriors and drive him off the ice.',
   story: 'part-hladir',
-  goal: { kind: 'defeat', target: 'hrimgrimnir', text: 'beat Hrímgrímnir on the ice at the fjord’s mouth' },
+  goal: { kind: 'defeat', target: 'hrimgrimnir', text: 'beat Hrimgrimnir on the ice at the fjord’s mouth' },
   parDays: 21,
   rows: [
     'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN',
@@ -53,7 +53,7 @@ export const HLADIR_LAND: MapDef = {
     'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN',
   ],
   town: {
-    id: 'hladir-town', name: 'Hlaðir', x: 24, y: 9, faction: 'norse',
+    id: 'hladir-town', name: 'Hladir', x: 24, y: 9, faction: 'norse',
     built: ['villageHall', 'tavern', 'guardhouse'],
     // No Hof yet (it opens in part 2, when Hervor finds her rune staff): its first floor will teach the two level-1 runes and Haste, the second Thurisaz and Slow.
     guild: ['tiwaz', 'isa', 'haste', 'thurisaz', 'slow'],
@@ -79,7 +79,7 @@ export const HLADIR_LAND: MapDef = {
     { id: 'ness-wolves', kind: 'monster', x: 6, y: 7, creature: 'wolfWinter', count: 12 },
     { id: 'barrow-draugr', kind: 'monster', x: 6, y: 20, creature: 'draugr', count: 15 },
     { id: 'fell-troll', kind: 'monster', x: 3, y: 3, creature: 'troll', count: 5 },
-    { id: 'hrimgrimnir', kind: 'monster', x: 3, y: 12, creature: 'frostGiant', count: 1, brood: { creature: 'wolfWinter', count: 44 }, name: 'Hrímgrímnir', line: 'hrimgrimnir', drop: 'bronzeCuirass' },
+    { id: 'hrimgrimnir', kind: 'monster', x: 3, y: 12, creature: 'frostGiant', count: 1, brood: { creature: 'wolfWinter', count: 44 }, name: 'Hrimgrimnir', line: 'hrimgrimnir', drop: 'bronzeCuirass' },
     // Sites.
     { id: 'hladir-merc-camp', kind: 'mercCamp', x: 27, y: 19 },
     { id: 'hladir-watchtower', kind: 'watchtower', x: 5, y: 4 },

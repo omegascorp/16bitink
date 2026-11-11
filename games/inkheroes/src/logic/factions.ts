@@ -115,14 +115,14 @@ export const FACTIONS: Readonly<Record<TownFaction, FactionDef>> = {
     names: {
       mageGuild1: 'Hof', mageGuild2: 'Hof, 2nd floor', blacksmith: 'Shipwright', stables: 'Ski Track',
       guardhouse: 'Longhouse', guardhouse2: 'Muster Hall', guardhouse3: 'Jarl’s Hall',
-      archeryRange: 'Hunting Lodge', archeryRange2: 'Ski Lodge', archeryRange3: 'Ýdalir',
+      archeryRange: 'Hunting Lodge', archeryRange2: 'Ski Lodge', archeryRange3: 'Ydalir',
       griffinTower: 'Berserker Camp', griffinTower2: 'Bear Pit', griffinTower3: 'Odin’s Grove',
       barracks: 'Dwarf Forge', barracks2: 'Deep Forge', barracks3: 'Eitri’s Forge',
       monastery: 'Boar Pen', monastery2: 'Iron Pen', monastery3: 'Freyr’s Field',
       tiltyard: 'Shield Hall', tiltyard2: 'Hall of the Chosen', tiltyard3: 'Valhalla’s Gate',
       seraphSpire: 'Dragon’s Hoard', seraphSpire2: 'Gnitaheath', seraphSpire3: 'Root of Yggdrasil',
-      // Bifröst, the burning rainbow bridge between the worlds.
-      portal: 'Bifröst Stone', portal2: 'Gate of the Nine Worlds', portal3: 'Bifröst',
+      // Bifrost, the burning rainbow bridge between the worlds.
+      portal: 'Bifrost Stone', portal2: 'Gate of the Nine Worlds', portal3: 'Bifrost',
     },
     // The Norse order: the berserkers come out of the longhouse, the Ski Track stands by the hunters' lodge, the valkyries bring the slain to the mead hall, and the dragon comes after them.
     needs: {
@@ -134,8 +134,8 @@ export const FACTIONS: Readonly<Record<TownFaction, FactionDef>> = {
     says: {
       mageGuild1: 'Teaches 3 level-1 runes and spells; sells a rune staff',
       blacksmith: 'Sells battering rams, which break a town’s gate',
-      portal: 'Its store and those of your other towns with a Bifröst Stone are kept as one: a hero in any of them leaves or takes any piece',
-      portal3: 'A hero in town with movement left steps through to another town of yours with a Bifröst; it ends their day',
+      portal: 'Its store and those of your other towns with a Bifrost Stone are kept as one: a hero in any of them leaves or takes any piece',
+      portal3: 'A hero in town with movement left steps through to another town of yours with a Bifrost; it ends their day',
     },
     school: 'runes',
     book: 'noviceRuneStaff',

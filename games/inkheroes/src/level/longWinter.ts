@@ -4,11 +4,11 @@ import type { MapDef } from './types';
 /**
  * Chapter 3, the Long Winter (docs/inkheroes-design.md, "Chapter 3: The Long
  * Winter"), as one land that grows as it is played, as the Two Lands in
- * twoLands.ts: Hlaðir first, at the head of its frozen fjord. Each later
+ * twoLands.ts: Hladir first, at the head of its frozen fjord. Each later
  * part is laid into the land beside the parts before (`stitch`, as
  * twoLands.ts does), cut from the top-left corner so a tile keeps its place
  * from part to part (their objects `placed` as twoLands.ts does), and src/logic/chapter.ts rides the hero on into them.
- * Hlaðir's fjord opens west to the sea, so the land grows south (Uppsala,
+ * Hladir's fjord opens west to the sea, so the land grows south (Uppsala,
  * over the mountains) and east; the far north (part 4) can be laid as the
  * Delta was, round the land won so far.
  * Part of the full game: never imported by the game's client code
@@ -39,7 +39,7 @@ function stitch(lands: readonly (readonly [MapDef, Place])[], w: number, h: numb
   return grid.map((r) => r.join(''));
 }
 
-/** Part 1: Hervor holds Hlaðir; Hrímgrímnir sits on the ice at the fjord's mouth. Won, the chapter rides on south over the mountains (the narrator tells of Uppsala). */
+/** Part 1: Hervor holds Hladir; Hrimgrimnir sits on the ice at the fjord's mouth. Won, the chapter rides on south over the mountains (the narrator tells of Uppsala). */
 export const HLADIR: MapDef = {
   ...HLADIR_LAND,
   rows: stitch([[HLADIR_LAND, AT.hladir]], 32, 24),

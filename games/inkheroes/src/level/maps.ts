@@ -63,8 +63,8 @@ export const CHAPTERS: readonly ChapterDef[] = [
     // Chapter 3 (docs/inkheroes-design.md, "Chapter 3: The Long Winter"): each part is named here as it is built,
     // its map added to src/level/longWinter.ts; its ending line comes with part 4.
     id: 'longWinter', n: 3, name: 'The Long Winter', first: 9, last: 12, paid: true, slot: 'longWinter',
-    parts: [{ id: 'hladir', n: 9, name: 'Hlaðir' }],
-    planned: [{ id: 'hladir', n: 9, name: 'Hlaðir' }, { id: 'uppsala', n: 10, name: 'Uppsala' }, { id: 'bloodaxe', n: 11, name: 'The Bloodaxe' }, { id: 'halogaland', n: 12, name: 'Hálogaland' }],
+    parts: [{ id: 'hladir', n: 9, name: 'Hladir' }],
+    planned: [{ id: 'hladir', n: 9, name: 'Hladir' }, { id: 'uppsala', n: 10, name: 'Uppsala' }, { id: 'bloodaxe', n: 11, name: 'The Bloodaxe' }, { id: 'halogaland', n: 12, name: 'Halogaland' }],
     villains: NORSE_VILLAINS,
     teaser: 'sails north to the Norse kingdoms: a new people, Hervor the shieldmaiden, berserkers and Rune Magic, in a winter that won’t end.',
     pitch: 'The Norse kingdoms in a winter that won’t end: a new people, berserkers and Rune Magic.',

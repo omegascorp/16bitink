@@ -13,22 +13,22 @@ import { SPECIALTY_GOLD } from '../specialty';
  * our Taverns (the chapter's `villains`, src/level/maps.ts).
  */
 
-/** Hervor, the shieldmaiden of Hlaðir: chapter 3's first hero. */
+/** Hervor, the shieldmaiden of Hladir: chapter 3's first hero. */
 export const HERVOR: HeroDef = {
   id: 'hervor', name: 'Hervor', heroClass: 'knight', x: 0, y: 0, faction: 'norse',
   attack: 2, defense: 2, power: 1, knowledge: 1, skills: { offense: 1 }, spells: [],
   army: [{ creature: 'shieldmaiden', count: 18 }, { creature: 'hunter', count: 7 }],
   specialty: { kind: 'line', line: 'berserker' },
-  blurb: 'The shieldmaiden of Hlaðir, whose father and his eleven brothers were berserkers.',
+  blurb: 'The shieldmaiden of Hladir, whose father and his eleven brothers were berserkers.',
 };
 
-/** Heid, the völva: the chapter's second hero, hired at Uppsala from part 2. */
+/** Heid, the volva: the chapter's second hero, hired at Uppsala from part 2. */
 export const HEID: HeroDef = {
   id: 'heid', name: 'Heid', heroClass: 'cleric', x: 0, y: 0, faction: 'norse',
   attack: 1, defense: 1, power: 2, knowledge: 2, skills: { wisdom: 1 }, spells: ['thurisaz'], gear: { book: 'noviceRuneStaff' },
   army: [{ creature: 'shieldmaiden', count: 15 }, { creature: 'hunter', count: 8 }],
   specialty: { kind: 'spell', spell: 'thurisaz' },
-  blurb: 'The völva of the Völuspá, who reads the winter and calls down Thor’s lightning.',
+  blurb: 'The volva of the Voluspa, who reads the winter and calls down Thor’s lightning.',
 };
 
 /** Eirik Bloodaxe: part 3's rival, from Avaldsnes. */
@@ -46,7 +46,7 @@ export const GUNNHILD: HeroDef = {
   attack: 1, defense: 1, power: 2, knowledge: 2, skills: { wisdom: 1, mysticism: 1 }, spells: ['isa'], gear: { book: 'noviceRuneStaff' },
   army: [{ creature: 'shieldmaiden', count: 10 }, { creature: 'hunter', count: 5 }],
   specialty: { kind: 'spell', spell: 'isa' },
-  blurb: '“Mother of Kings”, who learned seiðr in the far north and sang the winter.',
+  blurb: '“Mother of Kings”, who learned seidr in the far north and sang the winter.',
 };
 
 /** The chapter's villains: never offered at the player's Taverns. */
@@ -83,7 +83,7 @@ export const NORSE_ROSTER: readonly HeroDef[] = [
     attack: 1, defense: 1, power: 2, knowledge: 2, skills: { wisdom: 1 }, spells: ['tiwaz'], gear: { book: 'noviceRuneStaff' },
     army: [{ creature: 'shieldmaiden', count: 8 }, { creature: 'hunter', count: 5 }],
     specialty: { kind: 'spell', spell: 'tiwaz' },
-    blurb: 'The “little völva” of the Greenland saga.',
+    blurb: 'The “little volva” of the Greenland saga.',
   },
   {
     id: 'brynhild', name: 'Brynhild', heroClass: 'cleric', x: 0, y: 0, faction: 'norse',

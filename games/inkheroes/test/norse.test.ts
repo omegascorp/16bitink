@@ -440,12 +440,12 @@ describe('the Norse heroes', () => {
 });
 
 describe("chapter 3's skeleton", () => {
-  it('is a paid chapter of its own, parts 9 to 12, its own save slot, part 1 (Hlaðir) built', () => {
+  it('is a paid chapter of its own, parts 9 to 12, its own save slot, part 1 (Hladir) built', () => {
     const c = chapterById('longWinter');
-    expect(c).toMatchObject({ n: 3, name: 'The Long Winter', first: 9, last: 12, paid: true, slot: 'longWinter', parts: [{ id: 'hladir', n: 9, name: 'Hlaðir' }] });
+    expect(c).toMatchObject({ n: 3, name: 'The Long Winter', first: 9, last: 12, paid: true, slot: 'longWinter', parts: [{ id: 'hladir', n: 9, name: 'Hladir' }] });
     expect(comingSoon(c)).toBe(false);
     expect(comingSoon(chapterById('twoLands'))).toBe(false);
-    expect(c.planned!.map((p) => p.name)).toEqual(['Hlaðir', 'Uppsala', 'The Bloodaxe', 'Hálogaland']);
+    expect(c.planned!.map((p) => p.name)).toEqual(['Hladir', 'Uppsala', 'The Bloodaxe', 'Halogaland']);
     expect(c.teaser).toMatch(/^sails north to the Norse kingdoms/);
     expect(new Set(CHAPTERS.map((x) => x.slot)).size).toBe(CHAPTERS.length);
     // Part 1 opens the halls, walls, Tavern, Mead Hall and lines 1–4, no Hof; part 2 the Hof and line 5.

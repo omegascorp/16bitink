@@ -14,12 +14,12 @@ import { composeGround, GROUND_BORDER, MAP_TILE } from '../src/scenes/map/pixelG
 import { emptyPlots, stagePieces } from '../src/scenes/town/townStage';
 
 /** Chapter 3, part 1 (docs/inkheroes-design.md, "Part 1 as built (Nov 11)"). */
-describe('Hlaðir, chapter 3’s first part', () => {
+describe('Hladir, chapter 3’s first part', () => {
   it('is the Long Winter’s part 1, named on its card, opening what the design says and no Hof', () => {
     expect(LONG_WINTER_PARTS.map((m) => m.id)).toEqual(['hladir']);
     expect(chapterOf(HLADIR)?.id).toBe('longWinter');
     expect(partNumber(HLADIR)).toBe(1);
-    expect(chapterById('longWinter').parts).toEqual([{ id: 'hladir', n: 9, name: 'Hlaðir' }]);
+    expect(chapterById('longWinter').parts).toEqual([{ id: 'hladir', n: 9, name: 'Hladir' }]);
     expect(HLADIR.off).toEqual(lockedIn(LONG_WINTER_UNLOCKS, 1));
     expect(HLADIR.off).toContain('mageGuild1');
     expect(HLADIR.off).not.toContain('meadHall');
@@ -59,9 +59,9 @@ describe('Hlaðir, chapter 3’s first part', () => {
     expect(HLADIR.objects.filter((o) => o.creature === 'troll').length).toBeGreaterThanOrEqual(3);
   });
 
-  it('has Hrímgrímnir, by name, with his wolves, on the ice at the fjord’s mouth: the goal', () => {
+  it('has Hrimgrimnir, by name, with his wolves, on the ice at the fjord’s mouth: the goal', () => {
     const boss = HLADIR.objects.find((o) => o.id === HLADIR.goal.target)!;
-    expect(boss).toMatchObject({ kind: 'monster', creature: 'frostGiant', count: 1, name: 'Hrímgrímnir', line: 'hrimgrimnir', brood: { creature: 'wolfWinter' } });
+    expect(boss).toMatchObject({ kind: 'monster', creature: 'frostGiant', count: 1, name: 'Hrimgrimnir', line: 'hrimgrimnir', brood: { creature: 'wolfWinter' } });
     expect(creature('frostGiant')).toMatchObject({ wide: true, guardian: true });
     const g = gridOf(HLADIR);
     expect(g.terrain[tileIndex(g, boss.x, boss.y)]).toBe('ice');
@@ -73,7 +73,7 @@ describe('Hlaðir, chapter 3’s first part', () => {
     expect(battleSides(beside, boss.id, HLADIR).snow).toBe(true);
   });
 
-  it('tells of Hrímgrímnir the first time Hervor sees him, and stops her there, once', () => {
+  it('tells of Hrimgrimnir the first time Hervor sees him, and stops her there, once', () => {
     const boss = HLADIR.objects.find((o) => o.id === 'hrimgrimnir')!;
     const g = gridOf(HLADIR);
     const a = startAdventure(HLADIR);
@@ -97,7 +97,7 @@ describe('Hlaðir, chapter 3’s first part', () => {
   });
 });
 
-describe('Hlaðir’s town screen', () => {
+describe('Hladir’s town screen', () => {
   it('stands the Mead Hall on its own plot, offered on a bare one before it is built', () => {
     const built = [...HLADIR.town.built];
     expect(emptyPlots(built, 'norse').map((p) => p.building)).toContain('meadHall');

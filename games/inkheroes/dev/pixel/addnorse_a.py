@@ -20,7 +20,7 @@ SPECS = [
  ("berserker", "Berserker", "a norse berserker in a fur pelt with a big bearded axe", AXE, 4, {}),
  ("berserker2", "Bear Warrior", "a norse berserker in a bear-head hood with bronze arm rings and a big axe", AXE, 4, {}),
  ("berserker3", "Berserker of Odin", "a norse berserker in a bear-head hood with raven tattoos holding two axes", TWIN, 4, {}),
- ("berserker4", "Úlfheðinn", "a norse berserker in a wolf pelt over a bear-head hood holding two axes", TWIN, 4, {}),
+ ("berserker4", "Ulfhedinn", "a norse berserker in a wolf pelt over a bear-head hood holding two axes", TWIN, 4, {}),
  ("berserker5", "Chosen of Odin", "a norse berserker with glowing eyes, ravens on his shoulders and two golden rune axes", TWIN, 4, {}),
  ("dwarf", "Dwarf", "a short broad bearded dwarf smith with a heavy hammer", HAMMER, 4, {}),
  ("dwarf2", "Dwarf Guard", "a short broad bearded dwarf in an iron helmet and iron mail with a heavy hammer", HAMMER, 4, {}),
@@ -29,7 +29,7 @@ SPECS = [
  ("dwarf5", "Son of Ivaldi", "a short broad dwarf master smith in gold and rune plate with a great golden rune hammer", HAMMER, 4, {}),
  ("hunter", "Hunter", "a norse hunter in a hooded fur cloak drawing a yew bow", BOW, 5, {"shot": [70, 48]}),
 ]
-SKI_NAMES = {2: "Ski Bowman", 3: "Archer of Ullr", 4: "Huntsman of Skadi", 5: "Archer of Ýdalir"}
+SKI_NAMES = {2: "Ski Bowman", 3: "Archer of Ullr", 4: "Huntsman of Skadi", 5: "Archer of Ydalir"}
 SKI_SUBJ = {2: "a norse ski bowman on skis in a fur hood drawing a bow", 3: "a norse archer on skis with a rune-carved bow and a fur hood", 4: "a norse huntsman on skis in a white wolf-fur hood with a rune bow", 5: "a norse archer on skis with a golden rune yew bow and golden-trimmed leather"}
 for r in (2, 3, 4, 5):
     SPECS.append((f"hunter{r}", SKI_NAMES[r], SKI_SUBJ[r], BOW_SKI, 5, {"walk": GLIDE, "idle": SKI_IDLE, "shot": [70, 48], "skis": True}))

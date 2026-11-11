@@ -126,12 +126,12 @@ describe('rarity: the five ranks', () => {
     };
     expect(['shieldmaiden4', 'shieldmaiden5', 'hunter4', 'hunter5', 'berserker4', 'berserker5', 'dwarf4', 'dwarf5', 'warBoar4', 'warBoar5', 'valkyrie4', 'valkyrie5', 'dragon4', 'dragon5'].map((id) => row(id as CreatureId))).toEqual([
       'Lagertha’s Guard 9/9, 3–5, 18, 6, 130', 'Einherjar 10/11, 4–6, 21, 7, 170',
-      'Huntsman of Skadi 9/5, 4–5, 14, 7, 230', 'Archer of Ýdalir 10/6, 5–6, 16, 8, 310',
-      'Úlfheðinn 15/7, 5–9, 31, 9, 365', 'Chosen of Odin 17/8, 6–10, 34, 10, 465',
+      'Huntsman of Skadi 9/5, 4–5, 14, 7, 230', 'Archer of Ydalir 10/6, 5–6, 16, 8, 310',
+      'Ulfhedinn 15/7, 5–9, 31, 9, 365', 'Chosen of Odin 17/8, 6–10, 34, 10, 465',
       'Dwarf Lord 13/18, 8–11, 54, 6, 535', 'Son of Ivaldi 14/20, 9–12, 60, 7, 675',
-      'Hildisvíni 18/13, 13–17, 60, 8, 625', 'Gullinbursti 20/14, 14–18, 65, 9, 765',
-      'Valkyrie Captain 21/18, 22–30, 130, 12, 1950 + 1', 'Valkyrie of Fólkvangr 23/19, 24–32, 145, 13, 2550 + 2',
-      'Elder Dragon 29/24, 55–65, 310, 16, 5600 + 4', 'Níðhöggr 32/26, 60–70, 350, 17, 7200 + 5',
+      'Hildisvini 18/13, 13–17, 60, 8, 625', 'Gullinbursti 20/14, 14–18, 65, 9, 765',
+      'Valkyrie Captain 21/18, 22–30, 130, 12, 1950 + 1', 'Valkyrie of Folkvangr 23/19, 24–32, 145, 13, 2550 + 2',
+      'Elder Dragon 29/24, 55–65, 310, 16, 5600 + 4', 'Nidhogg 32/26, 60–70, 350, 17, 7200 + 5',
     ]);
     // Rage counts double from the Berserker of Odin up; skis from the Ski Bowman; two shots from the Archer of Ullr.
     expect(lineUnits('berserker').map((id) => creature(id).rage)).toEqual([1, 1, 2, 2, 2]);

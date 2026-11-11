@@ -35,7 +35,7 @@ function storyLines(adv: Adventure): LineId[] {
   if (adv.mapId === 'abu') return ['abu-won', 'part-redLand'];
   if (adv.mapId === 'red-land') return ['redLand-won', 'part-delta'];
   if (adv.mapId === 'delta') return ['twoLands-won'];
-  // Hlaðir: the giant first seen on the ice, then the part's win (the chapter's next part isn't built yet).
+  // Hladir: the giant first seen on the ice, then the part's win (the chapter's next part isn't built yet).
   if (adv.mapId === 'hladir') return ['hrimgrimnir', 'hladir-won'];
   return [];
 }

@@ -65,7 +65,7 @@ describe('chapter 2 stays out of the free game', () => {
     expect(() => parseMaps(bad({ objects: [{ id: 'm', kind: 'monster', x: 1, y: 1, creature: 'hyena', count: 1e9 }] }))).toThrow();
     expect(() => parseMaps(bad({ off: ['nothing'] }))).toThrow();
     expect(() => parseMaps(bad({ story: 'no-such-line' }))).toThrow();
-    // A boss's own line (Hrímgrímnir's) must be one the narrator has.
+    // A boss's own line (Hrimgrimnir's) must be one the narrator has.
     expect(() => parseMaps(bad({ objects: [{ id: 'm', kind: 'monster', x: 1, y: 1, creature: 'hyena', count: 3, line: 'no-such-line' }] }))).toThrow();
     expect(() => parseMaps({})).toThrow();
     expect(() => parseMaps([ok, ok])).toThrow();

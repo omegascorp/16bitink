@@ -9,8 +9,8 @@ import { playPart, type BotRun } from './partBot';
 declare const process: { readonly env: Readonly<Record<string, string | undefined>> };
 
 /**
- * Hlaðir's balance on the real rules (docs/inkheroes-design.md, "Part 1 as
- * built (Nov 11)", Balance): the bot of partBot.ts plays Hlaðir, and map 1
+ * Hladir's balance on the real rules (docs/inkheroes-design.md, "Part 1 as
+ * built (Nov 11)", Balance): the bot of partBot.ts plays Hladir, and map 1
  * and Nekhen for the yardsticks, in three styles, a rusher, a steady player
  * and a careful one. BALANCE_SEEDS=24 plays more seeds and prints the table
  * the doc quotes.
@@ -23,7 +23,7 @@ const TWO_WEEKS = 14;
 const runs = (def: MapDef, style: keyof typeof STYLES): BotRun[] => Array.from({ length: SEEDS }, (_, i) => playPart(def, { seed: 1000 + i * 7919, ...STYLES[style] }));
 const share = (before: number, after: number): number => Math.round((1 - after / before) * 100);
 
-describe('Hlaðir, played by a bot that builds and hires', () => {
+describe('Hladir, played by a bot that builds and hires', () => {
   const table = (['rush', 'steady', 'careful'] as const).map((style) => ({ style, hladir: runs(HLADIR, style), ashford: runs(ASHFORD, style), nekhen: runs(NEKHEN, style) }));
 
   it('is won every time, by a rusher or a steady player in two weeks at most (Nekhen’s steady 12), by a careful one within par', () => {
@@ -35,7 +35,7 @@ describe('Hlaðir, played by a bot that builds and hires', () => {
     }
   });
 
-  it('makes Hrímgrímnir cost a real share of the army, and keeps the first week near home safe', () => {
+  it('makes Hrimgrimnir cost a real share of the army, and keeps the first week near home safe', () => {
     for (const { style, hladir } of table) {
       for (const r of hladir) {
         // A careful player who waits another week for a bigger army may win it cheaply (and later).
