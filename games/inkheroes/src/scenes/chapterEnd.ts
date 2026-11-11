@@ -1,5 +1,5 @@
 import { ourHeroes, playerTowns, type Adventure } from '../logic/adventure';
-import { CHAPTERS, type ChapterDef } from '../level/maps';
+import { CHAPTERS, comingSoon, type ChapterDef } from '../level/maps';
 import { lineText } from '../narration/lines';
 
 /** What the card at the end of everything built of a chapter says (src/scenes/cards.ts draws it). Pure: no Phaser. */
@@ -27,7 +27,7 @@ export function chapterEnd(chapter: ChapterDef, adv: Adventure, told: boolean, o
   const towns = playerTowns(adv).length;
   const heroes = ourHeroes(adv).length;
   const march = `${adv.day} days on the march, ${towns} ${towns === 1 ? 'town' : 'towns'} under your banner, ${heroes === 1 ? 'one hero' : `${heroes} heroes`} riding.`;
-  const story = told ? [] : [lineText(chapter.ending)];
+  const story = told || !chapter.ending ? [] : [lineText(chapter.ending)];
   const thanks = 'Thank you for playing!';
   if (!chapterBuilt(chapter)) {
     return { title: `Chapter ${chapter.n}: ${chapter.name}, so far`, body: [...story, march, `That is all of ${chapter.name} for now: its next parts are being made, and come to the full game as free updates.`, thanks] };
@@ -35,6 +35,8 @@ export function chapterEnd(chapter: ChapterDef, adv: Adventure, told: boolean, o
   const next = chapterAfter(chapter);
   const title = `Chapter ${chapter.n} complete`;
   if (!next) return { title, body: [...story, march, `Chapter ${chapter.n + 1} is being made, and comes to the full game as a free update.`, thanks] };
-  const onward = `Chapter ${next.n}, ${next.name}, ${next.teaser ?? ''} ${owned(next) ? 'It waits for you now.' : 'It is part of the full game.'}`.replace(/ {2,}/g, ' ');
+  // A next chapter with no part built yet is still being made: it comes to the full game as a free update.
+  const where = comingSoon(next) ? 'It is being made, and comes to the full game as a free update.' : owned(next) ? 'It waits for you now.' : 'It is part of the full game.';
+  const onward = `Chapter ${next.n}, ${next.name}, ${next.teaser ?? ''} ${where}`.replace(/ {2,}/g, ' ');
   return { title, body: [...story, march, onward, thanks], next };
 }

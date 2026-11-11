@@ -1,6 +1,6 @@
 import type { MapDef } from '../../level/types';
 import {
-  afterBattle, answerPrompt, battleSides, GATE, liveObjects, ourHeroes, planPath, playerTowns, RIVAL, rivalHeroes, stepHero, townById, withTown, type Adventure,
+  afterBattle, answerPrompt, battleSides, fieldOf, GATE, liveObjects, ourHeroes, planPath, playerTowns, RIVAL, rivalHeroes, stepHero, townById, withTown, type Adventure,
 } from '../adventure';
 import { addTroops, type Army } from '../army';
 import { playerSide, survivors } from '../battle';
@@ -186,7 +186,7 @@ function fightOut(adv: Adventure, def: MapDef, id: string, memory: LordMemory, t
   const refuge = playerTowns(adv).find((t) => t.id !== id);
   const mySide = me === 0 ? setup.attacker : setup.defender;
   const fleeing = refuge && mySide.hero ? { ...mySide, hero: { ...mySide.hero, canFlee: true } } : mySide;
-  const st = autoBattle(me === 0 ? fleeing : setup.attacker, me === 0 ? setup.defender : fleeing, setup.seed, setup.siege);
+  const st = autoBattle(me === 0 ? fleeing : setup.attacker, me === 0 ? setup.defender : fleeing, setup.seed, setup.siege, undefined, fieldOf(setup));
   if (st.fled === playerSide(st) && refuge) return retreat(adv, id, st, refuge);
   return answerAll(afterBattle(adv, def, id, st, then), memory);
 }

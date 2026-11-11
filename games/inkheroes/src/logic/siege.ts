@@ -8,6 +8,8 @@ export const MAX_TOWERS = TOWERS.length;
 export type WallPart = (typeof WALLS)[number];
 export type TowerPart = (typeof TOWERS)[number];
 export type SiegePart = WallPart | TowerPart | 'gate';
+/** The wall beside the gate, each side: what the finest battering ram cracks with it. */
+export const BESIDE_GATE: readonly WallPart[] = ['wallGateNorth', 'wallGateSouth'];
 
 /** What a town's Fort, Citadel and Castle put round a battle. */
 export interface Fortification {

@@ -32,17 +32,17 @@ describe('chapter 2 stays out of the free game', () => {
   it('no client code imports the paid maps', () => {
     expect(Object.keys(SOURCES).length).toBeGreaterThan(50);
     for (const [file, text] of Object.entries(SOURCES)) {
-      if (/level\/(twoLands|nekhen|abu|redLand|delta)\.ts$/.test(file)) continue;
+      if (/level\/(twoLands|nekhen|abu|redLand|delta|longWinter|hladir)\.ts$/.test(file)) continue;
       const specs = [...text.matchAll(/(?:from|import)\s*\(?\s*['"]([^'"]+)['"]/g)].map((m) => m[1]!);
       for (const spec of specs) {
         expect(spec, file).not.toMatch(/content\/paid/);
-        expect(spec, file).not.toMatch(/(^|\/)(twoLands|nekhen|abu|redLand|delta)$/);
+        expect(spec, file).not.toMatch(/(^|\/)(twoLands|nekhen|abu|redLand|delta|longWinter|hladir)$/);
       }
     }
   });
 
   it('serves the paid maps as JSON the client checks and reads back the same', () => {
-    expect(INKHEROES_PAID_MAPS.map((m) => m.id)).toEqual(['nekhen', 'abu', 'red-land', 'delta']);
+    expect(INKHEROES_PAID_MAPS.map((m) => m.id)).toEqual(['nekhen', 'abu', 'red-land', 'delta', 'hladir']);
     expect(parseMaps(JSON.parse(JSON.stringify(INKHEROES_PAID_MAPS)))).toEqual(JSON.parse(JSON.stringify(INKHEROES_PAID_MAPS)));
   });
 
@@ -54,17 +54,19 @@ describe('chapter 2 stays out of the free game', () => {
     expect(() => parseMaps(bad({ n: 2 }))).toThrow();
     // Part 4 is Othrys, chapter 1's last (free): never a paid map's number.
     expect(() => parseMaps(bad({ n: 4 }))).toThrow();
-    // Not in any paid chapter's range: it would be saved in chapter 1's slot.
-    expect(() => parseMaps(bad({ n: 9 }))).toThrow();
+    // Not in any paid chapter's range: it would be saved in chapter 1's slot (chapter 3 runs 9 to 12).
+    expect(() => parseMaps(bad({ n: 13 }))).toThrow();
     expect(() => parseMaps(bad({ n: 99 }))).toThrow();
     // A win is recorded only for a lowercase id (src/logic/save.ts).
     expect(() => parseMaps(bad({ id: 'Nekhen2' }))).toThrow();
     expect(() => parseMaps(bad({ rows: ['ss', 'sX'] }))).toThrow();
     expect(() => parseMaps(bad({ rows: ['sss', 'ss'] }))).toThrow();
-    expect(() => parseMaps(bad({ objects: [{ id: 'm', kind: 'monster', x: 1, y: 1, creature: 'dragon', count: 3 }] }))).toThrow();
+    expect(() => parseMaps(bad({ objects: [{ id: 'm', kind: 'monster', x: 1, y: 1, creature: 'wyvern', count: 3 }] }))).toThrow();
     expect(() => parseMaps(bad({ objects: [{ id: 'm', kind: 'monster', x: 1, y: 1, creature: 'hyena', count: 1e9 }] }))).toThrow();
     expect(() => parseMaps(bad({ off: ['nothing'] }))).toThrow();
     expect(() => parseMaps(bad({ story: 'no-such-line' }))).toThrow();
+    // A boss's own line (Hrímgrímnir's) must be one the narrator has.
+    expect(() => parseMaps(bad({ objects: [{ id: 'm', kind: 'monster', x: 1, y: 1, creature: 'hyena', count: 3, line: 'no-such-line' }] }))).toThrow();
     expect(() => parseMaps({})).toThrow();
     expect(() => parseMaps([ok, ok])).toThrow();
   });
@@ -87,7 +89,8 @@ describe('chapter 2 stays out of the free game', () => {
     expect(mapById('nekhen')?.name).toBe('Nekhen');
     expect(chapterOf(NEKHEN)?.id).toBe('twoLands');
     expect(chapterOf(ASHFORD)?.id).toBe('borderMarch');
-    expect(chapterOf({ n: 9 })).toBeUndefined();
+    expect(chapterOf({ n: 9 })?.id).toBe('longWinter');
+    expect(chapterOf({ n: 13 })).toBeUndefined();
     expect(nextMap({ ...NEKHEN, n: 9 })).toBeUndefined();
     expect(partsOf(chapterById('borderMarch'))).toEqual(MAPS);
     expect(nextMap(OTHRYS)).toBeUndefined();
@@ -96,9 +99,9 @@ describe('chapter 2 stays out of the free game', () => {
     expect(nextMap(RED_LAND)?.id).toBe('delta');
     expect(nextMap(DELTA)).toBeUndefined();
     // Each chapter's parts are 1, 2, 3, 4 to the player; inside, `n` runs on through the campaign and decides the chapter.
-    expect(CHAPTERS.map((c) => [c.first, c.last])).toEqual([[1, 4], [5, 8]]);
+    expect(CHAPTERS.map((c) => [c.first, c.last])).toEqual([[1, 4], [5, 8], [9, 12]]);
     expect([...MAPS, NEKHEN, ABU, RED_LAND, DELTA].map(partNumber)).toEqual([1, 2, 3, 4, 1, 2, 3, 4]);
-    expect(CHAPTERS.map(partsIn)).toEqual([4, 4]);
+    expect(CHAPTERS.map(partsIn)).toEqual([4, 4, 4]);
   });
 });
 

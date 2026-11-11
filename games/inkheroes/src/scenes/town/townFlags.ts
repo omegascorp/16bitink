@@ -1,4 +1,4 @@
-import type { TownFaction } from '../../logic/creatures';
+import type { TownPeople } from './townKit';
 import type { Pixels } from '../battle/pixelScenery';
 import { townKit, type PieceId } from './townKit';
 
@@ -30,7 +30,7 @@ export const FLAGS: Partial<Record<PieceId, readonly FlagSpot[]>> = {
 };
 
 /** The flags a people's sprite flies (none: it flies none). */
-export const flagsOf = (art: PieceId, faction: TownFaction = 'crown'): readonly FlagSpot[] | undefined => (faction === 'kemet' ? townKit(faction).flags?.[art] : FLAGS[art]);
+export const flagsOf = (art: PieceId, faction: TownPeople = 'crown'): readonly FlagSpot[] | undefined => (faction === 'crown' ? FLAGS[art] : townKit(faction).flags?.[art]);
 
 /** Frames in a flag's wave, and how long each shows (ms). */
 export const FLAG_FRAMES = 6;

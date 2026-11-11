@@ -191,7 +191,7 @@ export function wallsCard(town: Town, adv: Adventure, storm: () => void, later: 
  */
 function chapterDoneCard(scene: Phaser.Scene, session: Session): CardSpec {
   const chapter = session.chapter;
-  const told = !!narrator(scene)?.say(chapter.ending);
+  const told = !!chapter.ending && !!narrator(scene)?.say(chapter.ending);
   const end = chapterEnd(chapter, session.adv, told, isLoaded);
   const back = { label: 'Back to the campaign', kind: 'plain' as const, onClick: () => toMenu(scene, session, null) };
   const more = { label: 'More games', kind: 'plain' as const, onClick: () => getHost(scene).onExit() };
@@ -200,6 +200,8 @@ function chapterDoneCard(scene: Phaser.Scene, session: Session): CardSpec {
   if (!next) return { title: end.title, body, buttons: [{ ...back, kind: 'crown' }, more] };
   const host = getHost(scene);
   const owned = isLoaded(next);
+  // An owner told of a chapter still being made has nothing to buy or start.
+  if (!owned && host.unlocked) return { title: end.title, body, buttons: [{ ...back, kind: 'crown' }, more] };
   if (!owned && host.price) trackOffer(scene, 'free_end');
   return {
     title: end.title,

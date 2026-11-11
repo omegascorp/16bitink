@@ -1,10 +1,10 @@
-import { alive, canShoot, targetable } from './battle';
+import { alive, answers, canShoot, targetable } from './battle';
 import { cantCast, spellAmount } from './battleSpells';
 import type { Action, BattleState, Side, Stack } from './battleTypes';
 import { creature, strengthOf } from './creatures';
 import { damageRange, speedOf } from './damage';
 import { shotDistance } from './footprint';
-import { SPELLS, BAD_EFFECTS, type EffectKind, type SpellId } from './spells';
+import { SPELLS, BAD_EFFECTS, isRune, TIWAZ, type EffectKind, type SpellId } from './spells';
 
 /**
  * The hero's spell in a battle the AI plays (any AI side, and the player's
@@ -45,6 +45,10 @@ function blow(state: BattleState, a: Stack, d: Stack): number {
 
 const withEffect = (s: Stack, kind: EffectKind): Stack => ({ ...s, effects: [...s.effects.filter((e) => e.kind !== kind), { kind, rounds: 1 }] });
 const has = (s: Stack, kind: EffectKind): boolean => s.effects.some((e) => e.kind === kind);
+/** Whether a rune is carved on `s` already: a new one would only replace it. */
+const runed = (s: Stack): boolean => s.effects.some((e) => isRune(e.kind));
+/** A rune lasts the battle: its worth counts this many of the stack's strikes. */
+const RUNE_ROUNDS = 4;
 
 /** The best blow `a` has on any of `foes`. */
 const bestBlow = (state: BattleState, a: Stack, foes: readonly Stack[]): number => Math.max(0, ...foes.map((e) => blow(state, a, e)));
@@ -82,6 +86,20 @@ function valueOf(state: BattleState, side: Side, spell: SpellId, t: Stack, mine:
     }
     case 'ward':
       return has(t, 'ward') ? 0 : Math.min(amount, Math.max(0, ...foes.map((f) => average(damageRange(state, f, t, { ranged: canShoot(state, f), distance: 1, moved: 0 }))))) * STRIKES;
+    case 'tiwaz':
+      // +2 Attack for the battle, more as it bleeds: its best blow, raised.
+      return runed(t) ? 0 : Math.max(0, bestBlow(state, { ...t, effects: [...t.effects, { kind: 'tiwaz', rounds: 1, bonus: TIWAZ.base + 1 }] }, foes) - bestBlow(state, t, foes)) * RUNE_ROUNDS * STRIKES;
+    case 'isa': {
+      // The answers it can't give: what it would strike back at the best of ours that strikes it.
+      if (runed(t) || !mine.some((m) => !creature(m.creature).machine && answers(m, t))) return 0;
+      return Math.max(0, ...mine.map((m) => blow(state, t, m))) * rounds * 0.5;
+    }
+    case 'thurisaz': {
+      // Lightning on each foe that strikes it hand to hand: the strongest walker or flier, a few times.
+      const strikers = foes.filter((f) => !canShoot(state, f));
+      if (runed(t) || !strikers.length) return 0;
+      return Math.max(0, ...strikers.map((f) => worth(f, amount))) * RUNE_ROUNDS * STRIKES * 0.5;
+    }
     case 'rebirth': {
       const c = creature(t.creature);
       const fallen = (t.startCount - t.count) * c.hp + (c.hp - t.topHp);

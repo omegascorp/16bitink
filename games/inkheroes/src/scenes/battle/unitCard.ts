@@ -42,6 +42,7 @@ function traitsOf(id: CreatureId): string[] {
   if (c.machine) out.push('War machine: never moves, acts by itself');
   if (c.flies) out.push('Flies');
   if (c.ramp) out.push(`Raises a ramp against the stretch of wall chosen, ready on round ${c.ramp.ready}${c.ramp.second ? ` (a second, elsewhere, on round ${c.ramp.second})` : ''}; it can’t be hit`);
+  if (c.ram) out.push(`Breaks the gate at the end of round ${c.ram.round}${c.ram.towers ? ', and the wall beside it' : ''}; it can’t be hit`);
   if (c.machine === 'catapult') out.push(`Brings down walls, towers and gates, ${c.stones!.throws === 1 ? '1 stone' : `${c.stones!.throws} stones`} a round; it can’t be hit`);
   if (c.shots) out.push('Shoots');
   if (c.undead) out.push('Undead');
@@ -59,6 +60,10 @@ function traitsOf(id: CreatureId): string[] {
   if (c.noRangePenalty) out.push('Shoots as hard at any range');
   if (c.noMeleePenalty) out.push('Strikes as hard hand to hand');
   if (c.rebirth) out.push(c.rebirth === 'all' ? 'Rises again once a battle, all of it' : 'Rises again once a battle, half of it');
+  if (c.rage) out.push(`Rage: +${c.rage} Attack for each tenth of it lost (to +${c.rage * 10})`);
+  if (c.breath) out.push('Breath: its strike burns the unit behind its target too');
+  if (c.shootsTwice) out.push('Shoots twice, when it hasn’t moved');
+  if (c.skis) out.push('Skis: on snow +2 Speed, and it may move and then shoot');
   return out;
 }
 
@@ -83,6 +88,8 @@ export function unitInfo(state: BattleState, s: Stack): UnitInfo {
     const spell = Object.values(SPELLS).find((d) => d.effect === e.kind);
     if (e.kind === 'ward') return `${spell!.name}: ${e.left ?? 0} damage to soak`;
     if (e.kind === 'poison') return `Poisoned: ${e.rounds} turn${e.rounds === 1 ? '' : 's'}`;
+    if (e.kind === 'tiwaz') return `${spell!.name}: +${e.bonus ?? 0} Attack, for the battle`;
+    if (e.kind === 'thurisaz') return `${spell!.name}: ${e.dose ?? 0} lightning on each striker, for the battle`;
     return `${spell?.name ?? e.kind}: ${e.rounds} round${e.rounds === 1 ? '' : 's'}`;
   });
   return { name: s.count === 1 ? c.name : c.plural, creature: s.creature, count: s.count, side: s.side, rows, notes: [...traits(s), ...spells], ...inkOf(s.creature) };

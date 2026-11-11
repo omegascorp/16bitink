@@ -19,7 +19,7 @@ import { INK, texturePixels } from './pixelUi';
 import { partAt, SiegeView } from './siegeView';
 import { rampLook } from './rampView';
 import { bodyMiddle, onBodyMiddle } from './bodyAnchor';
-import type { FigureArt } from './standIns';
+import { battleArtId, type FigureArt } from './standIns';
 import { rankOf, type Rarity } from '../../logic/rarity';
 
 /** How far above the part struck by hand its message floats, native pixels. */
@@ -134,7 +134,7 @@ export class BattleView {
   /** The side the player plays: theirs are the navy badges, and their hero the player's. */
   private readonly me: number;
 
-  constructor(private readonly scene: Phaser.Scene, private readonly cams: BattleCameras, state: BattleState, terrain: string, seed: number, heroes: readonly [boolean, boolean], private readonly floater: Floater, private readonly opts: ViewOpts = {}) {
+  constructor(private readonly scene: Phaser.Scene, private readonly cams: BattleCameras, state: BattleState, private readonly terrain: string, seed: number, heroes: readonly [boolean, boolean], private readonly floater: Floater, private readonly opts: ViewOpts = {}) {
     const layer = cams.world;
     this.backdrop = new Backdrop(scene, backdropSource(terrain, seed), DEPTH.bg);
     for (const o of this.backdrop.objects) layer.add(o);
@@ -186,21 +186,23 @@ export class BattleView {
   }
 
   /** A unit's art, its feet under the body's middle when it fills three hexes (measured once per kind from its idle strip). */
-  private figureArtFor(id: Stack['creature']): FigureArt {
-    const art = unitArt(id);
+  private figureArtFor(id: Stack['creature'], artId: string = id): FigureArt {
+    const art = unitArt(artId);
     if (sizeOf(id) < 3) return art;
-    const known = this.centred.get(id);
+    const known = this.centred.get(artId);
     if (known) return known;
-    const key = PX_TEX.unit(id, 'idle');
+    const key = PX_TEX.unit(artId, 'idle');
     const middle = this.scene.textures.exists(key) ? bodyMiddle(texturePixels(this.scene, key), art.w, art.frames.idle) : null;
     const out = onBodyMiddle(art, middle);
-    this.centred.set(id, out);
+    this.centred.set(artId, out);
     return out;
   }
 
   private addUnit(s: Stack): void {
-    const art = this.figureArtFor(s.creature);
-    const fig = new PixelFigure(this.scene, this.cams.world, art, (pose) => PX_TEX.unit(s.creature, pose), stackFeet(s), s.side === 1);
+    // A skier off snow is drawn on foot, its skis on its back (standIns.ts).
+    const artId = battleArtId(s.creature, this.terrain);
+    const art = this.figureArtFor(s.creature, artId);
+    const fig = new PixelFigure(this.scene, this.cams.world, art, (pose) => PX_TEX.unit(artId, pose), stackFeet(s), s.side === 1);
     if (this.opts.pose) fig.hold(this.opts.pose);
     if (s.tower !== undefined) fig.sortOn(hexPx(s.hex).y + TOWER_SORT);
     const rank = rankOf(s.creature);
@@ -325,6 +327,34 @@ export class BattleView {
         const at = partAt(ev.part);
         this.floater(at.x, at.y - STRIKE_FLOAT, ev.left ? `${SIEGE_NAMES[ev.part]} shudders: ${ev.left} more ${ev.left === 1 ? 'strike' : 'strikes'}` : `${SIEGE_NAMES[ev.part]} falls!`, ev.left ? INK.text : INK.title);
         await this.wait(260);
+        return;
+      }
+      case 'breath': {
+        // The dragon's breath rolls on past its target into the unit behind.
+        const t = this.units.get(ev.target)!;
+        this.hit(t.fig);
+        this.floatAt(t.fig, `Breath: −${ev.damage}${ev.kills ? `  ${ev.kills} fall` : ''}`, INK.damage);
+        this.syncOne(after, ev.target);
+        await this.wait(300);
+        return;
+      }
+      case 'lightning': {
+        const t = this.units.get(ev.target)!;
+        getSound(this.scene)?.play('hit');
+        await this.flash(t.fig);
+        this.floatAt(t.fig, `Thor’s lightning: −${ev.damage}${ev.kills ? `  ${ev.kills} fall` : ''}`, INK.spell);
+        this.syncOne(after, ev.target);
+        await this.wait(300);
+        return;
+      }
+      case 'ram': {
+        // The ram's last blow: the gate (and the finest's wall beside it) comes down.
+        getSound(this.scene)?.play('hit');
+        for (const part of ev.parts) this.walls?.jolt(part);
+        if (after.siege) this.walls?.show(after.siege);
+        const at = partAt('gate');
+        this.floater(at.x, at.y - STRIKE_FLOAT, ev.parts.length > 1 ? 'The ram breaks the gate and the wall beside it!' : 'The ram breaks the gate!', INK.title);
+        await this.wait(450);
         return;
       }
       case 'moat': {

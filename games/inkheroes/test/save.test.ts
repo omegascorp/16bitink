@@ -44,7 +44,7 @@ describe('saving', () => {
     expect(bad({})).not.toBeNull();
     expect(bad({ day: -1 })).toBeNull();
     expect(bad({ purse: { ...adv.purse, gold: 1.5 } })).toBeNull();
-    expect(bad({ hero: { ...adv.hero, army: [{ creature: 'dragon', count: 9 }, null, null, null, null, null, null] } })).toBeNull();
+    expect(bad({ hero: { ...adv.hero, army: [{ creature: 'wyvern', count: 9 }, null, null, null, null, null, null] } })).toBeNull();
     expect(bad({ hero: { ...adv.hero, x: 0, y: 0 } })).toBeNull();
     expect(bad({ explored: 'x' })).toBeNull();
     expect(parseAdventure('nonsense', ASHFORD)).toBeNull();

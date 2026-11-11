@@ -3,15 +3,17 @@ import type { TownFaction } from '../creatures';
 import type { Specialty } from '../specialty';
 import { GREEK_ROSTER, RENAMED } from './greek';
 import { KEMET_ROSTER } from './kemet';
+import { NORSE_ROSTER } from './norse';
 
 /**
  * Each people's heroes, as each H3 town has its own: the Taverns of a map
  * without its own recruits hire from its town's people's roster. Egypt's
- * (Neferet, Paser and the rest) is kemet.ts, the same way.
+ * (Neferet, Paser and the rest) is kemet.ts, the Norse (Hervor, Heid and the rest) norse.ts, the same way.
  */
 const ROSTERS: Readonly<Record<TownFaction, readonly HeroDef[]>> = {
   crown: GREEK_ROSTER,
   kemet: KEMET_ROSTER,
+  norse: NORSE_ROSTER,
 };
 
 /** The heroes of `people` (none: an empty roster). */

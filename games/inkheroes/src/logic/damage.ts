@@ -1,5 +1,6 @@
 import type { BattleState, Stack } from './battleTypes';
 import { creature } from './creatures';
+import { TIWAZ } from './spells';
 import { roll } from './rng';
 import { shotOverWall } from './siege';
 import { skillValue } from './skills';
@@ -20,8 +21,28 @@ const has = (s: Stack, kind: string): boolean => s.effects.some((e) => e.kind ==
 
 export function attackOf(state: BattleState, s: Stack, melee: boolean): number {
   const hero = state.heroes[s.side];
-  return creature(s.creature).attack + (hero?.attack ?? 0) + lineBonusFor(hero?.specialty, s.creature) + (melee && has(s, 'bloodlust') ? 3 : 0);
+  return creature(s.creature).attack + (hero?.attack ?? 0) + lineBonusFor(hero?.specialty, s.creature) + (melee && has(s, 'bloodlust') ? 3 : 0) + rageOf(s) + tiwazOf(s);
 }
+
+/** Rage tops out at this many tenths of the stack lost. */
+export const RAGE_TENTHS = 10;
+
+/** A raging stack's Attack: +1 (2 when its rage counts double) for each tenth of its starting count lost this battle, to 10 tenths. */
+export function rageOf(s: Stack): number {
+  const rage = creature(s.creature).rage ?? 0;
+  if (!rage || s.startCount <= 0) return 0;
+  const lost = Math.max(0, s.startCount - s.count);
+  return Math.min(RAGE_TENTHS, Math.floor((lost * 10) / s.startCount)) * rage;
+}
+
+/** Tiwaz's Attack on a stack: what it has grown to (TIWAZ.base when carved). */
+export function tiwazOf(s: Stack): number {
+  const rune = s.effects.find((e) => e.kind === 'tiwaz');
+  return rune ? rune.bonus ?? TIWAZ.base : 0;
+}
+
+/** Skis add this to a skier's speed on snow. */
+export const SKI_SPEED = 2;
 
 export function defenseOf(state: BattleState, s: Stack): number {
   const hero = state.heroes[s.side];
@@ -30,7 +51,7 @@ export function defenseOf(state: BattleState, s: Stack): number {
 }
 
 export function speedOf(s: Stack): number {
-  const base = creature(s.creature).speed + (s.pace ?? 0) + (has(s, 'haste') ? 3 : 0);
+  const base = creature(s.creature).speed + (s.pace ?? 0) + (has(s, 'haste') ? 3 : 0) + (s.skiing ? SKI_SPEED : 0);
   return has(s, 'slow') ? Math.floor(base * 0.75) : base;
 }
 

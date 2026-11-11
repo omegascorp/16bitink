@@ -33,6 +33,8 @@ export type CardPart = PartName & { readonly goal?: { readonly text: string } };
 const VIGNETTE_STAND_IN: Readonly<Record<string, { readonly id: string; readonly tint: number }>> = {
   // The Delta borrows Nekhen's river, greener, until its own is drawn.
   delta: { id: 'nekhen', tint: 0xc8f0b8 },
+  // Chapter 3's first part (not built yet) borrows Ashford's, frosted.
+  hladir: { id: 'ashford', tint: 0xc8dcff },
 };
 
 export interface ChapterCardSpec {

@@ -1,5 +1,5 @@
 import type { MapDef } from '../../level/types';
-import { afterBattle, battleSides, heroTown, PORTAL, type Adventure } from '../adventure';
+import { afterBattle, battleSides, fieldOf, heroTown, PORTAL, type Adventure } from '../adventure';
 import { autoBattle } from '../autoBattle';
 import { selectHero } from '../heroes';
 import { cantStepThrough, portalTowns, stepThrough } from '../portal';
@@ -48,5 +48,5 @@ function fightBand(adv: Adventure, def: MapDef, memory: LordMemory): Adventure |
   if (!town || !mob || cantFightMob(adv, def) || mob.strength > armyStrength(adv.hero.army) * SAFE.monster) return null;
   const id = PORTAL + town.id;
   const setup = battleSides(adv, id, def);
-  return answerAll(afterBattle(adv, def, id, autoBattle(setup.attacker, setup.defender, setup.seed)), memory);
+  return answerAll(afterBattle(adv, def, id, autoBattle(setup.attacker, setup.defender, setup.seed, undefined, undefined, fieldOf(setup))), memory);
 }

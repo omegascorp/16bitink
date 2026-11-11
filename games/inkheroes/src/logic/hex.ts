@@ -41,6 +41,16 @@ function cube(h: Hex): [number, number, number] {
   return [q, r, -q - r];
 }
 
+/** The hex past `b` on the line from its neighbour `a` (a breath's next hex), or null off the field. */
+export function hexBeyond(a: Hex, b: Hex): Hex | null {
+  const [aq, ar] = cube(a);
+  const [bq, br] = cube(b);
+  const q = 2 * bq - aq;
+  const r = 2 * br - ar;
+  const col = q + (r - (r & 1)) / 2;
+  return onField(col, r) ? hexAt(col, r) : null;
+}
+
 /** A hex's centre in hex-size units (a hex is 1 wide, rows 0.75 apart × √3/2·… see layout). */
 export function hexCentre(h: Hex, size: number): { x: number; y: number } {
   const w = Math.sqrt(3) * size;

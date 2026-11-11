@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
-import { KEMET_TOWN, MAP_COVER, MAP_GROUND, MAP_SITES, MAP_VIGNETTES, TOWN_LOOKS, type MapCover, type MapSprite } from '../../art/pixel/map';
+import { KEMET_TOWN, MAP_COVER, MAP_GROUND, MAP_SITES, MAP_VIGNETTES, NORSE_TOWN, TOWN_LOOKS, type MapCover, type MapSprite } from '../../art/pixel/map';
 import { HERO_ART, UNIT_ART } from '../../art/pixel/manifest';
 import type { SiteArt } from '../../art/sites/types';
-import { CREATURE_IDS } from '../../logic/creatures';
+import { CREATURE_IDS, type TownFaction } from '../../logic/creatures';
 import { factionOf } from '../../logic/factions';
 import type { Town } from '../../logic/town';
 import type { MapDef } from '../../level/types';
@@ -27,16 +27,26 @@ export const MAP_TEX = {
   fog: (map: string) => `pxm-fog-${map}`,
   vignette: (id: string) => `pxm-vignette-${id}`,
   town: (map: string) => `pxm-town-${map}`,
-  kemetTown: 'pxm-town-kemet',
+  /** A people's town drawn whole (Egypt's, the Norse ring fort). */
+  peopleTown: (f: TownFaction) => `pxm-town-${f}`,
   townLook: (look: string) => `pxm-town-look-${look}`,
 } as const;
 
-/** The texture a town is drawn with on the map (and shrunk for the town list): its own look, Egypt's town, or the city as built. */
+/** Each people's town drawn whole, by faction: it does not grow with the buildings. The Greeks' (none here) is built from the city the town screen shows. */
+export const PEOPLE_TOWNS: Readonly<Partial<Record<TownFaction, MapSprite>>> = { kemet: KEMET_TOWN, norse: NORSE_TOWN };
+
+/** A town's people's picture drawn whole, if its people have one. */
+export function peopleTownOf(t: { readonly faction?: TownFaction }): { key: string; sprite: MapSprite } | null {
+  const f = factionOf(t);
+  const sprite = PEOPLE_TOWNS[f];
+  return sprite ? { key: MAP_TEX.peopleTown(f), sprite } : null;
+}
+
+/** The texture a town is drawn with on the map (and shrunk for the town list): its own look, its people's town, or the city as built. */
 export function townTexOf(def: MapDef, t: Town): string {
   const look = def.towns?.find((d) => d.id === t.id)?.look;
   if (look && TOWN_LOOKS[look]) return MAP_TEX.townLook(look);
-  if (factionOf(t) === 'kemet') return MAP_TEX.kemetTown;
-  return MAP_TEX.town(`${def.id}-${t.id}`);
+  return peopleTownOf(t)?.key ?? MAP_TEX.town(`${def.id}-${t.id}`);
 }
 
 /** The new sites' sprite keys (Othrys's, then the Delta's), and what each borrows while its own isn't drawn. */
@@ -87,7 +97,7 @@ export function loadMapArt(scene: Phaser.Scene, creatures: readonly string[], wo
     for (const [art, s] of Object.entries(MAP_SITES) as [SiteArt, MapSprite][]) image(MAP_TEX.site(art), s.url);
     // The signs on our towns (the cursors' own pictures).
     for (const [kind, list] of Object.entries(MAP_COVER) as [MapCover, readonly MapSprite[]][]) list.forEach((s, i) => image(MAP_TEX.cover(kind, i), s.url));
-    image(MAP_TEX.kemetTown, KEMET_TOWN.url);
+    for (const [f, s] of Object.entries(PEOPLE_TOWNS) as [TownFaction, MapSprite][]) image(MAP_TEX.peopleTown(f), s.url);
     for (const [look, s] of Object.entries(TOWN_LOOKS)) image(MAP_TEX.townLook(look), s.url);
     // The town's own sprites: the map draws its town from the city the town screen shows.
     keys.push(...queueTownArt(scene));

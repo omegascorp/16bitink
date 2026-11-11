@@ -22,10 +22,10 @@ function duel(a: CreatureId, d: CreatureId, at: Hex, dt: Hex, active: 0 | 1 = 0,
 const side = (s: BattleState, k: 0 | 1) => s.stacks.find((x) => x.side === k)!;
 
 describe('two-hex units: occupancy', () => {
-  it('gives two hexes to the griffin, centaur, companion, wolf, boar, hydra, sphinx and Gigas (with their upgrades); three to the chariot, crocodile, petsuchos, lion, Serpent of Apep and Ammit; one to everyone else', () => {
+  it('gives two hexes to the griffin, centaur, companion, wolf, boar, hydra, sphinx, Gigas, War Boar, Valkyrie, Frost Dragon, Winter Wolf and Frost Giant (with their upgrades); three to the chariot, crocodile, petsuchos, lion, Serpent of Apep, Ammit and Sköll; one to everyone else', () => {
     const lines = (n: number): CreatureId[] => [...new Set(CREATURE_IDS.filter((id) => sizeOf(id) === n).map(lineOf))].sort();
-    expect(lines(2)).toEqual(['boar', 'gigas', 'griffin', 'hydra', 'lancer', 'monk', 'sphinx', 'wolf']);
-    expect(lines(3)).toEqual(['ammit', 'apep', 'chariot', 'crocodile', 'lion', 'petsuchos']);
+    expect(lines(2)).toEqual(['boar', 'dragon', 'frostGiant', 'gigas', 'griffin', 'hydra', 'lancer', 'monk', 'sphinx', 'valkyrie', 'warBoar', 'wolf', 'wolfWinter']);
+    expect(lines(3)).toEqual(['ammit', 'apep', 'chariot', 'crocodile', 'lion', 'petsuchos', 'skoll']);
     // A line keeps its size through its upgrades.
     for (const id of CREATURE_IDS) expect(sizeOf(id), id).toBe(sizeOf(lineOf(id)));
   });

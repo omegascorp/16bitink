@@ -3,6 +3,7 @@ import type { BattleEvent, BattleState, Effect, Stack } from './battleTypes';
 import { creature } from './creatures';
 import { hurt } from './damage';
 import { roll } from './rng';
+import { isRune } from './spells';
 
 /**
  * The traits that put something on a stack or come between it and a blow
@@ -22,10 +23,11 @@ const mortal = (s: Stack): boolean => alive(s) && !creature(s.creature).undead;
 /** Effects that put each other out: a stack can't be both blessed and cursed. */
 const OPPOSITE: Readonly<Partial<Record<Effect['kind'], Effect['kind']>>> = { bless: 'curse', curse: 'bless' };
 
-/** Puts `effect` on stack `id`, in place of one of its kind (and of its opposite). */
+/** Puts `effect` on stack `id`, in place of one of its kind (and of its opposite); a rune replaces any rune (a stack bears one). */
 export function putEffect(s: BattleState, id: number, effect: Effect): BattleState {
   const out = OPPOSITE[effect.kind];
-  return update(s, id, (x) => ({ ...x, effects: [...x.effects.filter((e) => e.kind !== effect.kind && e.kind !== out), effect] }));
+  const rune = isRune(effect.kind);
+  return update(s, id, (x) => ({ ...x, effects: [...x.effects.filter((e) => e.kind !== effect.kind && e.kind !== out && !(rune && isRune(e.kind))), effect] }));
 }
 
 /** After `att`'s strike landed on stack `d`, dealing `dealt`: a curser may curse it, a poisoner poisons it (never the undead). */
@@ -73,7 +75,13 @@ export function wound(s: BattleState, id: number, damage: number, events: Battle
   const soaked = Math.min(left, damage);
   const effects = !ward ? st.effects : soaked >= left ? st.effects.filter((e) => e !== ward) : st.effects.map((e) => (e === ward ? { ...e, left: left - soaked } : e));
   const { stack, kills } = hurt({ ...st, effects }, damage - soaked);
-  return { state: update(s, id, () => rise(st, stack, events)), damage: damage - soaked, kills, soaked };
+  return { state: update(s, id, () => rise(st, tiwazGrows(stack, kills), events)), damage: damage - soaked, kills, soaked };
+}
+
+/** Tiwaz grows +1 each time its stack loses creatures, up to its cap. */
+function tiwazGrows(st: Stack, kills: number): Stack {
+  if (kills <= 0 || st.count <= 0) return st;
+  return { ...st, effects: st.effects.map((e) => (e.kind === 'tiwaz' && (e.bonus ?? 0) < (e.cap ?? 0) ? { ...e, bonus: (e.bonus ?? 0) + 1 } : e)) };
 }
 
 /** A rebirther wiped out for the first time this battle rises with half the creatures it had (at least 1), or all of them. */

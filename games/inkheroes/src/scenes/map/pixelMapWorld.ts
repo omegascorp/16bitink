@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { KEMET_TOWN, MAP_COVER, TOWN_LOOKS } from '../../art/pixel/map';
+import { MAP_COVER, TOWN_LOOKS } from '../../art/pixel/map';
 import { BACKDROP } from '../../art/palette';
 import type { MapDef } from '../../level/types';
 import { gridOf, isSeen, liveObjects, ourHeroes, rivalHeroes, type Adventure } from '../../logic/adventure';
@@ -17,9 +17,10 @@ import { putBuffer, texturePixels, UI_TEX } from '../battle/pixelUi';
 import { coverPlacements } from './mapCover';
 import { factionOf } from '../../logic/factions';
 import type { BuildingId } from '../../logic/buildings';
+import type { TownFaction } from '../../logic/creatures';
 import { renderMapTown, type CityArt } from '../town/cityRender';
 import { TOWN_TEX } from '../town/townTex';
-import { MAP_TEX, siteArtOf, siteSprite } from './pixelMapArt';
+import { MAP_TEX, peopleTownOf, siteArtOf, siteSprite } from './pixelMapArt';
 import { composeFog, fogPieces, GROUND_BORDER, MAP_TILE, touchedPieces, type PixelRect } from './pixelGround';
 import { groundNow } from './groundPrep';
 import { Ride, RIDE_FPS } from './ride';
@@ -197,12 +198,13 @@ export class PixelMapWorld {
   }
 
   /** The town as its own screen shows it: the city for what is built, shrunk to a map sprite (redrawn as it grows). */
-  private townSprite(id: string, built: readonly BuildingId[], kemet = false): { key: string; sprite: { w: number; h: number; footX: number; footY: number } } {
+  private townSprite(id: string, built: readonly BuildingId[], faction?: TownFaction): { key: string; sprite: { w: number; h: number; footX: number; footY: number } } {
     // A town with a picture of its own (Nubt's red banners), drawn whole.
     const look = this.def.towns?.find((t) => t.id === id)?.look;
     if (look && TOWN_LOOKS[look]) return { key: MAP_TEX.townLook(look), sprite: TOWN_LOOKS[look]! };
-    // Egypt's town is drawn whole (walled, pylons, obelisk); it does not grow with the buildings.
-    if (kemet) return { key: MAP_TEX.kemetTown, sprite: KEMET_TOWN };
+    // Egypt's town and the Norse ring fort are drawn whole; they do not grow with the buildings.
+    const people = peopleTownOf({ faction });
+    if (people) return people;
     const px = (key: string): Pixels => texturePixels(this.scene, key);
     const art: CityArt = {
       piece: (a) => px(TOWN_TEX.piece(a)),
@@ -215,7 +217,7 @@ export class PixelMapWorld {
   }
 
   private addTown(t: Town): void {
-    const s = this.townSprite(t.id, t.built, factionOf(t) === 'kemet');
+    const s = this.townSprite(t.id, t.built, factionOf(t));
     const feet = tileFeet(t.x, t.y);
     // The gatehouse's doorstep stands on the gate tile, so the roads that end there lead to the door.
     const img = this.place(s.key, s.sprite, feet.x, feet.y, FIGURE_DEPTH + feet.y);
@@ -332,7 +334,7 @@ export class PixelMapWorld {
       if (!drawn || drawn.built === t.built.join()) continue;
       // Built in town: the map's town grows with it.
       drawn.built = t.built.join();
-      const s = this.townSprite(t.id, t.built, factionOf(t) === 'kemet');
+      const s = this.townSprite(t.id, t.built, factionOf(t));
       const feet = tileFeet(t.x, t.y);
       drawn.img.setTexture(s.key).setDisplayOrigin(s.sprite.footX, s.sprite.footY).setPosition(feet.x, feet.y);
     }

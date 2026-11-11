@@ -141,6 +141,11 @@ function object(v: unknown, g: { w: number; h: number }): MapObject {
     if (!isCreatureId(v.creature) || !int(v.count, 1, MAX_COUNT)) throw new Error('bad monster');
     Object.assign(o, { creature: v.creature, count: v.count });
     if (v.brood !== undefined) o.brood = slot(v.brood);
+    if (v.name !== undefined) o.name = text(v.name, 'monster name');
+    if (v.line !== undefined) {
+      if (!isLineId(v.line)) throw new Error('bad monster line');
+      o.line = v.line;
+    }
   }
   if (v.drop !== undefined || v.item !== undefined) {
     for (const k of ['drop', 'item'] as const) if (v[k] !== undefined && !isItemId(v[k])) throw new Error(`bad ${k}`);

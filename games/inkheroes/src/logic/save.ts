@@ -317,8 +317,10 @@ function parseHero(raw: Record<string, unknown>, def: MapDef, h: HeroDef = def.h
   const skills = Object.fromEntries(SKILL_IDS.filter((k) => (raw.skills as Record<string, unknown>)[k]).map((k) => [k, (raw.skills as Record<string, Rank>)[k]]));
   // Their people come from the map; Ankhs from the save (a save from before Egypt has none).
   const ankhs = isInt(raw.ankhs, 1, MAX_ANKHS) ? raw.ankhs : 0;
+  // A Mead Hall's morale, still to spend in their next battle.
+  const mead = isInt(raw.mead, 1, 3) ? raw.mead : 0;
   const hero = {
-    id: h.id, name: h.name, heroClass: h.heroClass, x: raw.x, y: raw.y, ...(h.faction ? { faction: h.faction } : {}), ...(ankhs ? { ankhs } : {}),
+    id: h.id, name: h.name, heroClass: h.heroClass, x: raw.x, y: raw.y, ...(h.faction ? { faction: h.faction } : {}), ...(ankhs ? { ankhs } : {}), ...(mead ? { mead } : {}),
     attack: raw.attack as number, defense: raw.defense as number, power: raw.power as number, knowledge: raw.knowledge as number,
     mana: raw.mana, xp: raw.xp, level: Math.min(raw.level, levelFor(raw.xp)), skills, spells: [...new Set(raw.spells)], army, mp: raw.mp, visited: raw.visited as string[],
     ...bookFromFlag(raw, parseGear(raw)),

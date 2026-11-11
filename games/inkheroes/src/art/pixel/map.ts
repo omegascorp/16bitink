@@ -46,6 +46,7 @@ import siteTownKemet from './map/site-town-kemet.png?url';
 import siteTownKemetRed from './map/site-town-kemet-red.png?url';
 import siteTownLykosoura from './map/site-town-lykosoura.png?url';
 import siteTownAvaris from './map/site-town-avaris.png?url';
+import siteTownNorse from './map/site-town-norse.png?url';
 import vignetteAshford from './map/vignette-ashford.png?url';
 import vignetteThornwood from './map/vignette-thornwood.png?url';
 import vignetteBlackBanner from './map/vignette-blackBanner.png?url';
@@ -54,6 +55,7 @@ import vignetteAbu from './map/vignette-abu.png?url';
 import vignetteRedLand from './map/vignette-redLand.png?url';
 import vignetteOthrys from './map/vignette-othrys.png?url';
 import vignetteDelta from './map/vignette-delta.png?url';
+import vignetteHladir from './map/vignette-hladir.png?url';
 import tree0 from './map/tree-0.png?url';
 import tree1 from './map/tree-1.png?url';
 import tree2 from './map/tree-2.png?url';
@@ -146,8 +148,11 @@ export const LYKOSOURA_TOWN: MapSprite = { url: siteTownLykosoura, w: 221, h: 15
 /** Avaris: the same town under dark green Hyksos banners (Apepi's towns; same footprint, anchor and size as KEMET_TOWN). */
 export const AVARIS_TOWN: MapSprite = { url: siteTownAvaris, w: 192, h: 118, footX: 96, footY: 117 };
 
+/** The Norse ring fort (earth bank, timber palisade, longhouses, snow), drawn whole like Egypt's town: chapter 3's towns (faction 'norse'). */
+export const NORSE_TOWN: MapSprite = { url: siteTownNorse, w: 216, h: 123, footX: 108, footY: 122 };
+
 /** Towns with a picture of their own, by `look` (a town's `look` in a MapDef). */
-export const TOWN_LOOKS: Readonly<Record<string, MapSprite>> = { nubt: KEMET_TOWN_RED, kemetRed: KEMET_TOWN_RED, lykosoura: LYKOSOURA_TOWN, avaris: AVARIS_TOWN };
+export const TOWN_LOOKS: Readonly<Record<string, MapSprite>> = { nubt: KEMET_TOWN_RED, kemetRed: KEMET_TOWN_RED, lykosoura: LYKOSOURA_TOWN, avaris: AVARIS_TOWN, norse: NORSE_TOWN };
 
 /** The campaign menu's picture of each map (192 x 96), by map or planned-map id. */
 export const MAP_VIGNETTES: Readonly<Record<string, string>> = {
@@ -159,6 +164,7 @@ export const MAP_VIGNETTES: Readonly<Record<string, string>> = {
   'red-land': vignetteRedLand,
   'othrys': vignetteOthrys,
   'delta': vignetteDelta,
+  'hladir': vignetteHladir,
 };
 
 /** Trees, mountains, boulders and the bridge, a few of each to vary. */

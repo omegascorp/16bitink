@@ -2,6 +2,7 @@ import type { ItemId } from './items';
 import type { CreatureId } from './creatures';
 import type { Amount, Resource } from './resources';
 import type { SpellId } from './spells';
+import type { LineId } from '../narration/lines';
 
 export type Owner = 'player' | 'neutral' | 'rival';
 
@@ -56,6 +57,10 @@ export interface MapObject {
   readonly brood?: { readonly creature: CreatureId; readonly count: number };
   /** Monster: the piece it leaves when beaten. */
   readonly drop?: ItemId;
+  /** Monster: a name of its own, a boss's (Hrímgrímnir, the frost giant of the fjord), where the map names it. */
+  readonly name?: string;
+  /** Monster: the narrator's line told the first time a hero of ours sees it (src/narration/lines.ts). */
+  readonly line?: LineId;
   /** Spellbook: the book itself; item: the piece lying there; bank: the piece in its prize. */
   readonly item?: ItemId;
   /** Shrine or spellbook: the spell it teaches. */

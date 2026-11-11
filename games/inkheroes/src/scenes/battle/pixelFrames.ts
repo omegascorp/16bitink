@@ -346,6 +346,8 @@ export const RIBBONS = {
   olympian: RIMS.gold,
   // Sacred Rites: the Nile's turquoise.
   rites: { light: [120, 222, 206, 255], mid: [32, 150, 140, 255], dark: [14, 72, 68, 255] },
+  // Rune Magic: the frost's pale blue.
+  runes: { light: [196, 228, 246, 255], mid: [104, 156, 196, 255], dark: [36, 64, 98, 255] },
   red: { light: [232, 104, 80, 255], mid: [168, 42, 32, 255], dark: [92, 20, 14, 255] },
 } as const satisfies Record<string, Rim>;
 

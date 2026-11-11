@@ -7,7 +7,7 @@ export const BUILDING_IDS = [
   'guardhouse', 'archeryRange', 'griffinTower', 'barracks', 'monastery', 'stables', 'tiltyard', 'seraphSpire',
   'guardhouse2', 'guardhouse3', 'archeryRange2', 'archeryRange3', 'griffinTower2', 'griffinTower3', 'barracks2', 'barracks3',
   'monastery2', 'monastery3', 'tiltyard2', 'tiltyard3', 'seraphSpire2', 'seraphSpire3',
-  'templeOsiris',
+  'templeOsiris', 'meadHall',
   'portal', 'portal2', 'portal3',
 ] as const;
 export type BuildingId = (typeof BUILDING_IDS)[number];
@@ -23,6 +23,8 @@ export interface BuildingDef {
   readonly only?: TownFaction;
   /** Ankhs it makes a week, for a hero of ours in the town. */
   readonly ankhs?: number;
+  /** Morale a hero takes from a night in the town, until the end of their next battle (the Norse Mead Hall). */
+  readonly mead?: number;
   /** Gold a day (halls replace each other's income: the best counts). */
   readonly income?: number;
   /** Extra weekly growth for every dwelling (fraction of base). */
@@ -78,6 +80,7 @@ export const BUILDINGS: Readonly<Record<BuildingId, BuildingDef>> = {
   portal3: { name: 'Great Portal', cost: { gold: 4000, ore: 5, crystal: 5 }, needs: ['portal2', 'treasury'], says: 'A hero in town with movement left steps through to another town of yours with a Great Portal; it ends their day' },
   // A people's own buildings.
   templeOsiris: { name: 'Temple of Osiris', cost: { gold: 2000, wood: 5, ore: 5 }, needs: ['mageGuild1'], says: 'One Ankh a week for a hero in town: the Rite of Osiris needs one', only: 'kemet', ankhs: 1 },
+  meadHall: { name: 'Mead Hall', cost: { gold: 1500, wood: 10 }, needs: ['villageHall'], says: 'A hero who spends the night here rides out with +1 morale, until the end of their next battle', only: 'norse', mead: 1 },
 };
 
 export const isBuildingId = (v: unknown): v is BuildingId => typeof v === 'string' && (BUILDING_IDS as readonly string[]).includes(v);

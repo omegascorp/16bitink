@@ -4,7 +4,8 @@ import type { Army } from '../../logic/army';
 import { hasSpellbook } from '../../logic/items';
 import type { Town } from '../../logic/town';
 import type { BuildingId } from '../../logic/buildings';
-import { creature, type CreatureId, type TownFaction } from '../../logic/creatures';
+import { creature, type CreatureId } from '../../logic/creatures';
+import type { TownPeople } from './townKit';
 import { factionOf } from '../../logic/factions';
 import { SPELLS } from '../../logic/spells';
 import { bestUnit, buildingIn, buildOrderOf, cantBuild, dwellings, growthOf, guildSpells, has, hireable, hireAll, SPELLBOOK_COST, stockOf, suggestBuilding, towersOf, upgradeAll } from '../../logic/town';
@@ -84,8 +85,8 @@ function glow(scene: Phaser.Scene, x: number, y: number, w: number, h: number): 
 }
 
 /** A strip of the grass country, w × h, its horizon `horizon` rows down. */
-function countryside(scene: Phaser.Scene, w: number, h: number, horizon: number, seed: number, faction: TownFaction = 'crown'): Pixels {
-  const atlas = texturePixels(scene, PX_TEX.scenery(faction === 'kemet' ? 'sand' : TERRAIN));
+function countryside(scene: Phaser.Scene, w: number, h: number, horizon: number, seed: number, faction: TownPeople = 'crown'): Pixels {
+  const atlas = texturePixels(scene, PX_TEX.scenery(townKit(faction).terrain));
   return composeScenery(atlas, townScenery(faction), { x: 40 + seed * 37, y: HORIZON_Y - horizon, w, h }, seed);
 }
 
@@ -106,7 +107,7 @@ function label(scene: Phaser.Scene, text: string, x: number, y: number, opts: Co
 }
 
 /** A building standing in the grass country, w × h. */
-function buildingPicture(scene: Phaser.Scene, id: BuildingId, w: number, h: number, seed: number, faction: TownFaction = 'crown'): Pixels {
+function buildingPicture(scene: Phaser.Scene, id: BuildingId, w: number, h: number, seed: number, faction: TownPeople = 'crown'): Pixels {
   const art = buildingArt(id, faction);
   const s = spriteOf(townKit(faction), art);
   const by = fitFactor(s.w, s.h, w - 8, h - 6);
@@ -115,7 +116,7 @@ function buildingPicture(scene: Phaser.Scene, id: BuildingId, w: number, h: numb
 }
 
 /** The picture on the suggestion's plate. */
-export const platePicture = (scene: Phaser.Scene, id: BuildingId, faction: TownFaction = 'crown'): Pixels => buildingPicture(scene, id, PLATE.pic.w, PLATE.pic.h, 3, faction);
+export const platePicture = (scene: Phaser.Scene, id: BuildingId, faction: TownPeople = 'crown'): Pixels => buildingPicture(scene, id, PLATE.pic.w, PLATE.pic.h, 3, faction);
 
 /** The hall: the suggested building first and framed in gold, then a card for each on this map (its next step for an upgrade), coloured by whether it can be built today. */
 export function hallScreen(scene: Phaser.Scene, adv: Adventure, town: Town, off: readonly BuildingId[], act: ScreenActions): GridSpec {

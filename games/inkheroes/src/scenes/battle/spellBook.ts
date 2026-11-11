@@ -39,7 +39,7 @@ const INK_OFF: Rgba = [150, 128, 100, 255];
 /** A school's name on its page, in red ink. */
 const INK_RED: Rgba = [130, 34, 22, 255];
 /** Each tab's emblem: a spell of its school. */
-const TAB_ICON: Readonly<Record<SpellSchool, SpellId>> = { common: 'magicArrow', olympian: 'lightningBolt', rites: 'rebirth' };
+const TAB_ICON: Readonly<Record<SpellSchool, SpellId>> = { common: 'magicArrow', olympian: 'lightningBolt', rites: 'rebirth', runes: 'thurisaz' };
 
 /**
  * The hero's spellbook, as Heroes 3's: an open book with a ribbon tab per

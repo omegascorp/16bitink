@@ -24,18 +24,18 @@ import { ITEM_IDS, itemQuality, QUALITIES, QUALITY_NAMES } from '../src/logic/it
 import { armyUnitInfo } from '../src/scenes/battle/unitCard';
 import { columnsThatFit, compareColumns, compareLayout } from '../src/scenes/battle/unitCompare';
 
-/** Every Greek and Egyptian line, by its base unit. */
-const BASES = CREATURE_IDS.filter((id) => !creature(id).line && (creature(id).faction === 'crown' || creature(id).faction === 'kemet'));
+/** Every Greek, Egyptian and Norse line, by its base unit. */
+const BASES = CREATURE_IDS.filter((id) => !creature(id).line && (creature(id).faction === 'crown' || creature(id).faction === 'kemet' || creature(id).faction === 'norse'));
 const NEW_IDS = CREATURE_IDS.filter((id) => tierOf(id) >= 4);
 const STATS = ['attack', 'defense', 'minDmg', 'maxDmg', 'hp', 'speed'] as const;
 /** The traits a rank keeps from the one below it (numbers may only rise). */
-const FLAGS = ['flies', 'undead', 'noRetaliation', 'charge', 'cleave', 'guardian', 'shieldWall', 'noRangePenalty', 'noMeleePenalty', 'wide'] as const;
-const NUMBERS = ['shots', 'retaliations', 'regen', 'petrify', 'curse', 'poison', 'morale', 'hexes'] as const;
+const FLAGS = ['flies', 'undead', 'noRetaliation', 'charge', 'cleave', 'guardian', 'shieldWall', 'noRangePenalty', 'noMeleePenalty', 'wide', 'breath', 'shootsTwice', 'skis'] as const;
+const NUMBERS = ['shots', 'retaliations', 'regen', 'petrify', 'curse', 'poison', 'morale', 'hexes', 'rage'] as const;
 
 describe('rarity: the five ranks', () => {
-  it('adds 28 units, ranks 4 and 5 of every Greek and Egyptian line, each a full def of its line', () => {
-    expect(BASES).toHaveLength(14);
-    expect(NEW_IDS).toHaveLength(28);
+  it('adds 42 units, ranks 4 and 5 of every Greek, Egyptian and Norse line, each a full def of its line', () => {
+    expect(BASES).toHaveLength(21);
+    expect(NEW_IDS).toHaveLength(42);
     for (const id of NEW_IDS) {
       const c = creature(id);
       const base = creature(lineOf(id));
@@ -45,7 +45,7 @@ describe('rarity: the five ranks', () => {
       expect(c.name.length).toBeGreaterThan(0);
       expect(c.plural.length).toBeGreaterThan(0);
     }
-    expect(new Set(NEW_IDS.map((id) => creature(id).name)).size).toBe(28);
+    expect(new Set(NEW_IDS.map((id) => creature(id).name)).size).toBe(42);
     for (const b of BASES) expect(lineUnits(b).map(tierOf)).toEqual([1, 2, 3, 4, 5]);
   });
 
@@ -109,6 +109,34 @@ describe('rarity: the five ranks', () => {
     expect(creature('mummy5').rebirth).toBe('half');
     expect(creature('sphinx5').cleave).toBe(true);
     expect(creature('bennu5').regen).toBe(30);
+    // The Norse (chapter 3).
+    expect(creature('shieldmaiden5').rebirth).toBe('half');
+    expect(creature('hunter5').noMeleePenalty).toBe(true);
+    expect(creature('berserker5').noRetaliation).toBe(true);
+    expect(creature('dwarf5').guardian).toBe(true);
+    expect(creature('warBoar5').cleave).toBe(true);
+    expect(creature('valkyrie5').noRetaliation).toBe(true);
+    expect(creature('dragon5').poison).toBeCloseTo(0.1);
+  });
+
+  it('carries the Norse table’s numbers, Epic and Legendary from the formula', () => {
+    const row = (id: CreatureId): string => {
+      const c = creature(id);
+      return `${c.name} ${c.attack}/${c.defense}, ${c.minDmg}–${c.maxDmg}, ${c.hp}, ${c.speed}, ${c.cost.gold}${c.cost.gems ? ` + ${c.cost.gems}` : ''}`;
+    };
+    expect(['shieldmaiden4', 'shieldmaiden5', 'hunter4', 'hunter5', 'berserker4', 'berserker5', 'dwarf4', 'dwarf5', 'warBoar4', 'warBoar5', 'valkyrie4', 'valkyrie5', 'dragon4', 'dragon5'].map((id) => row(id as CreatureId))).toEqual([
+      'Lagertha’s Guard 9/9, 3–5, 18, 6, 130', 'Einherjar 10/11, 4–6, 21, 7, 170',
+      'Huntsman of Skadi 9/5, 4–5, 14, 7, 230', 'Archer of Ýdalir 10/6, 5–6, 16, 8, 310',
+      'Úlfheðinn 15/7, 5–9, 31, 9, 365', 'Chosen of Odin 17/8, 6–10, 34, 10, 465',
+      'Dwarf Lord 13/18, 8–11, 54, 6, 535', 'Son of Ivaldi 14/20, 9–12, 60, 7, 675',
+      'Hildisvíni 18/13, 13–17, 60, 8, 625', 'Gullinbursti 20/14, 14–18, 65, 9, 765',
+      'Valkyrie Captain 21/18, 22–30, 130, 12, 1950 + 1', 'Valkyrie of Fólkvangr 23/19, 24–32, 145, 13, 2550 + 2',
+      'Elder Dragon 29/24, 55–65, 310, 16, 5600 + 4', 'Níðhöggr 32/26, 60–70, 350, 17, 7200 + 5',
+    ]);
+    // Rage counts double from the Berserker of Odin up; skis from the Ski Bowman; two shots from the Archer of Ullr.
+    expect(lineUnits('berserker').map((id) => creature(id).rage)).toEqual([1, 1, 2, 2, 2]);
+    expect(lineUnits('hunter').map((id) => !!creature(id).skis)).toEqual([false, true, true, true, true]);
+    expect(lineUnits('hunter').map((id) => !!creature(id).shootsTwice)).toEqual([false, false, true, true, true]);
   });
 
   it('names the ranks, for the town peoples only', () => {
@@ -121,11 +149,11 @@ describe('rarity: the five ranks', () => {
 });
 
 describe('towns never go past Rare', () => {
-  const finished = (faction?: 'kemet'): Town => buildAll({ ...startAdventure(OTHRYS).towns[0]!, ...(faction ? { faction } : {}), built: ['villageHall'], builtToday: false }, []);
+  const finished = (faction?: 'kemet' | 'norse'): Town => buildAll({ ...startAdventure(OTHRYS).towns[0]!, ...(faction ? { faction } : {}), built: ['villageHall'], builtToday: false }, []);
   const rich: Purse = purse({ gold: 1e6, wood: 999, ore: 999, mercury: 999, sulfur: 999, crystal: 999, gems: 999 });
 
   it('hires and upgrades to rank 3 at most, Greek or Egyptian, with everything built', () => {
-    for (const t of [finished(), finished('kemet')]) {
+    for (const t of [finished(), finished('kemet'), finished('norse')]) {
       expect(dwellings(t)).toHaveLength(7);
       for (const b of dwellings(t)) {
         expect(tierOf(bestUnit(t, b)!)).toBe(3);

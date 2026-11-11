@@ -1,0 +1,9 @@
+import type { FlagSpot } from '../../scenes/town/townFlags';
+
+/** The ring fort's banners are painted into its sprites and do not wave (no cloth is cut out for flyingFlags.ts yet). */
+export const NORSE_FLAGS: Readonly<Partial<Record<NorseArt, readonly FlagSpot[]>>> = {};
+
+/** Chimney flues: the Dwarf Forge's (the Shipwright's and the Tavern's smoke is painted in), pixels from the sprite's top-left. */
+export const NORSE_CHIMNEYS: Readonly<Partial<Record<NorseArt, { readonly x: number; readonly y: number }>>> = {
+  barracks: { x: 77, y: 3 },
+};

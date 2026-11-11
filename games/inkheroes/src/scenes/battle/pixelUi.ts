@@ -48,8 +48,14 @@ export const INK = {
 } as const satisfies Record<string, Rgba>;
 
 /** Pieces not drawn yet borrow a drawn one's icon (Egypt's art is still to come). */
-const SPELL_STAND_IN: Readonly<Partial<Record<SpellId, SpellId>>> = {};
-const ITEM_STAND_IN: Readonly<Partial<Record<ItemId, ItemId>>> = {};
+const SPELL_STAND_IN: Readonly<Partial<Record<SpellId, SpellId>>> = {
+  // The Norse runes, until their own icons are drawn.
+  tiwaz: 'bloodlust', isa: 'slow', thurisaz: 'lightningBolt',
+};
+const ITEM_STAND_IN: Readonly<Partial<Record<ItemId, ItemId>>> = {
+  // The rune staff and the rams, until theirs are drawn.
+  noviceRuneStaff: 'noviceSpellbook', ram: 'catapult', ram2: 'catapult2', ram3: 'catapult3',
+};
 
 /** Each id with its own picture, or its stand-in's. */
 function withStandIns<K extends string>(drawn: Readonly<Partial<Record<K, string>>>, standIn: Readonly<Partial<Record<K, K>>>): [K, string][] {

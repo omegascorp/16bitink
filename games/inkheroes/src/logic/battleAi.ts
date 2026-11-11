@@ -4,8 +4,8 @@ import { bestCast, lastToAct } from './battleCasts';
 import { creature, strengthOf } from './creatures';
 import { damageRange, killsBy } from './damage';
 import { distance, HEX_COUNT, neighbours, type Hex } from './hex';
-import { occupiedHexes, shotDistance } from './footprint';
-import { aimFor, insideWalls, moatFor, PART_HEX, rampDone, rampFoot, rampStretch, standing, TOWERS, wallsAgainst, type SiegePart, type TowerPart } from './siege';
+import { occupiedHexes, shotDistance, touching } from './footprint';
+import { aimFor, BRIDGE, insideWalls, moatFor, PART_HEX, rampDone, rampFoot, rampStretch, standing, TOWERS, wallsAgainst, type SiegePart, type TowerPart } from './siege';
 
 /** A lord who can leave the field does once his army is cut down this far and the enemy's is this much stronger. */
 const FLEE = { kept: 0.6, odds: 2 } as const;
@@ -45,7 +45,9 @@ function tradeOn(state: BattleState, me: Stack, e: Stack, moved: number): number
   // A curse takes about a third off its blows for a few rounds; poison three ticks of a share of the blow (a fresh one replaces the old).
   const curse = mortal && !hasEffect(e, 'curse') ? (c.curse ?? 0) * threat * 0.3 : 0;
   const poison = mortal && c.poison ? worth(e, 3 * dealt * c.poison) : 0;
-  return worth(e, dealt) - back * 0.8 + stone + curse + poison;
+  // Thor's rune on it brings lightning down on whoever strikes it.
+  const bolt = worth(me, e.effects.find((x) => x.kind === 'thurisaz')?.dose ?? 0);
+  return worth(e, dealt) - back * 0.8 + stone + curse + poison - bolt;
 }
 
 const hasEffect = (s: Stack, kind: string): boolean => s.effects.some((x) => x.kind === kind);
@@ -81,6 +83,8 @@ function stackAction(state: BattleState, me: Stack): { action: Action; score: nu
     const best = maxBy(enemies, (e) => worth(e, average(damageRange(state, me, e, { ranged: true, distance: shotDistance(me, e), moved: 0 }))));
     if (best) return { action: { type: 'shoot', target: best.id }, score: worth(best, average(damageRange(state, me, best, { ranged: true, distance: shotDistance(me, best), moved: 0 }))) };
   }
+  const glide = skiAway(state, me, enemies);
+  if (glide) return glide;
   let bestStrike: { action: Action; score: number } | null = null;
   for (const e of enemies) {
     for (const [from, moved] of strikeFrom(state, e)) {
@@ -100,6 +104,23 @@ function stackAction(state: BattleState, me: Stack): { action: Action; score: nu
   const go = minBy(reach, nearest);
   if (go !== null && nearest(go) < nearest(me.hex)) return { action: { type: 'move', to: go }, score: 0 };
   return { action: { type: 'defend' }, score: 0 };
+}
+
+/**
+ * A skier on snow with an enemy beside it glides off to the hex it shoots
+ * best from (no enemy beside it there), its turn held for the shot.
+ */
+function skiAway(state: BattleState, me: Stack, enemies: readonly Stack[]): { action: Action; score: number } | null {
+  if (!me.skiing || me.shots <= 0 || canShoot(state, me) || state.held) return null;
+  const near = enemies.filter((e) => e.tower === undefined);
+  const clear = (h: Hex): boolean => !near.some((e) => touching([h], occupiedHexes(e)));
+  const shotFrom = (h: Hex): number => Math.max(0, ...enemies.map((e) => {
+    const at = { ...me, hex: h };
+    return worth(e, average(damageRange(state, at, e, { ranged: true, distance: shotDistance(at, e), moved: 0 })));
+  }));
+  const spots = [...moves(state).keys()].filter((h) => h !== me.hex && clear(h));
+  const best = maxBy(spots, shotFrom);
+  return best === null ? null : { action: { type: 'move', to: best, hold: true }, score: shotFrom(best) };
 }
 
 /** A garrison on foot fights from behind its walls: it doesn't open its gate to march out at a foe still outside them. */
@@ -149,9 +170,10 @@ function stepsToFoe(state: BattleState, me: Stack, enemies: readonly Stack[]): (
   const steps = stepsFrom(hexes, new Set(wallsAgainst(state.siege, me.side)));
   if (steps.has(me.hex)) return (h) => steps.get(h) ?? Infinity;
   const moat = moatFor(state.siege, me.side);
-  // A ramp going up: wait near its foot, ready to go up it.
+  // A ramp going up: wait near its foot, ready to go up it; a ram at the gate: wait before the gate, ready to pour through.
   const ramp = me.side === 0 ? state.siege.ramps?.find((r) => !rampDone(r)) : undefined;
-  const toward = ramp ? (h: Hex): number => distance(h, rampFoot(ramp.part)) : straight;
+  const ram = me.side === 0 && standing(state.siege, 'gate') && state.stacks.some((s) => s.side === 0 && alive(s) && creature(s.creature).ram);
+  const toward = ramp ? (h: Hex): number => distance(h, rampFoot(ramp.part)) : ram ? (h: Hex): number => distance(h, BRIDGE) : straight;
   return (h) => (moat.has(h) ? Infinity : toward(h));
 }
 

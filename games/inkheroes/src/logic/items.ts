@@ -113,6 +113,8 @@ export const ITEMS = {
   noviceSpellbook: { name: 'Novice’s Spellbook', slot: 'book', quality: 'gray', gives: { knowledge: 1 } },
   // Egypt's spellbook: the same grade as the Greeks' first.
   novicePapyrus: { name: 'Novice’s Papyrus', slot: 'book', quality: 'gray', gives: { knowledge: 1 } },
+  // The Norse spellbook: a staff the runes are cut on (chapter 3, part 2).
+  noviceRuneStaff: { name: 'Novice’s Rune Staff', slot: 'book', quality: 'gray', gives: { knowledge: 1 } },
   oracleSpellbook: { name: 'Oracle’s Spellbook', slot: 'book', quality: 'green', gives: { knowledge: 1, power: 1 } },
   alexandrianCodex: { name: 'Alexandrian Codex', slot: 'book', quality: 'blue', gives: { knowledge: 2, power: 1 } },
   // Othrys's prize (part 4): forged by the Titans, kept by the Gigantes on the summit. The chapter's first Legendary piece.
@@ -126,6 +128,10 @@ export const ITEMS = {
   ramp: { name: 'Earth Ramp', slot: 'machine', quality: 'gray', gives: {}, machine: 'ramp' },
   ramp2: { name: 'Brick Ramp', slot: 'machine', quality: 'green', gives: {}, machine: 'ramp2' },
   ramp3: { name: 'Ramp of the Pyramid Builders', slot: 'machine', quality: 'blue', gives: {}, machine: 'ramp3' },
+  // The Norse war machine: a battering ram that breaks the gate (chapter 3, from part 3).
+  ram: { name: 'Ram', slot: 'machine', quality: 'gray', gives: {}, machine: 'ram' },
+  ram2: { name: 'Iron Ram', slot: 'machine', quality: 'green', gives: {}, machine: 'ram2' },
+  ram3: { name: 'Ram of the Sea-Kings', slot: 'machine', quality: 'blue', gives: {}, machine: 'ram3' },
 } as const satisfies Record<string, ItemDef>;
 
 export type ItemId = keyof typeof ITEMS;
@@ -135,7 +141,7 @@ export type Gear = Readonly<Partial<Record<Slot, ItemId>>>;
 export const itemDef = (id: ItemId): ItemDef => ITEMS[id];
 
 /** What the Blacksmith sells; finer machines are prizes. */
-export const SOLD_MACHINES = ['catapult', 'catapult2', 'ramp', 'ramp2'] as const satisfies readonly ItemId[];
+export const SOLD_MACHINES = ['catapult', 'catapult2', 'ramp', 'ramp2', 'ram', 'ram2'] as const satisfies readonly ItemId[];
 export type SoldMachine = (typeof SOLD_MACHINES)[number];
 
 /** A piece's grade. */
@@ -146,6 +152,8 @@ export const hasSpellbook = (h: Pick<Hero, 'gear'>): boolean => !!h.gear?.book;
 
 /** A machine in words: "Breaks walls: 2 stones a round", "A ramp where you choose, ready on round 3". */
 function machineSays(id: MachineId): string {
+  const ram = creature(id).ram;
+  if (ram) return `Breaks the gate at the end of round ${ram.round}${ram.towers ? ', and cracks the wall beside it' : ''}`;
   const ramp = creature(id).ramp;
   if (ramp) return `A ramp up the wall where you choose, ready on round ${ramp.ready}${ramp.second ? `, and a second on round ${ramp.second}` : ''}`;
   const { throws, crit } = creature(id).stones!;

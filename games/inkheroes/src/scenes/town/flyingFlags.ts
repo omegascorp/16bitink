@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import type { TownFaction } from '../../logic/creatures';
+import type { TownPeople } from './townKit';
 import { putBuffer, texturePixels } from '../battle/pixelUi';
 import { cutFlags, FLAG_FRAME_MS, FLAG_FRAMES, flagAmp, flagsOf } from './townFlags';
 import { spriteOf, townKit, type PieceId } from './townKit';
@@ -12,7 +12,7 @@ interface FlagTextures {
 }
 
 /** The textures for `art`'s flags, cut once and kept (null: it flies none). */
-export function flagTextures(scene: Phaser.Scene, art: PieceId, faction: TownFaction = 'crown'): FlagTextures | null {
+export function flagTextures(scene: Phaser.Scene, art: PieceId, faction: TownPeople = 'crown'): FlagTextures | null {
   const spots = flagsOf(art, faction);
   if (!spots) return null;
   const base = TOWN_TEX.piece(art, faction);
@@ -37,7 +37,7 @@ export class FlyingFlags {
   private readonly flags: { readonly img: Phaser.GameObjects.Image; readonly frames: readonly string[]; readonly phase: number }[] = [];
   private t = 0;
 
-  constructor(private readonly scene: Phaser.Scene, private readonly faction: TownFaction = 'crown') {}
+  constructor(private readonly scene: Phaser.Scene, private readonly faction: TownPeople = 'crown') {}
 
   /** For a sprite of `art` with its top-left at (x, y), mirrored with `flip`: the texture to draw it with, and its flags (add them just after it). */
   fly(art: PieceId, x: number, y: number, flip = false): { key: string; flags: Phaser.GameObjects.Image[] } {

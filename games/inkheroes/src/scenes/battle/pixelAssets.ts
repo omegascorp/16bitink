@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { BATTLE_BG, HERO_ART, OBSTACLE_ART, UNIT_ART, type Pose, type StillArt, type UnitArt } from '../../art/pixel/manifest';
 import { SCENERY } from '../../art/pixel/scenery';
-import { figureArt, type FigureArt } from './standIns';
+import { battleArtId, figureArt, type FigureArt } from './standIns';
 import type { BackdropSource } from './pixelBackdrop';
 import type { PixelBuffer, Rgba } from './pixelRaster';
 import { drawBadge } from './pixelRaster';
@@ -88,7 +88,8 @@ export function loadBattleArt(scene: Phaser.Scene, creatures: readonly string[],
     keys.push(key);
     if (!scene.textures.exists(key)) scene.load.image(key, url);
   };
-  for (const id of new Set(creatures)) {
+  // Each fighter's own art (its face for the turn order and card) and, a skier off snow, its picture on foot.
+  for (const id of new Set(creatures.flatMap((c) => [c, battleArtId(c, terrain)]))) {
     const art = unitArt(id);
     for (const pose of POSES) sheet(PX_TEX.unit(id, pose), art.url[pose], art);
   }

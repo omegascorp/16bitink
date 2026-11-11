@@ -62,7 +62,7 @@ export type TavernSide = 'player' | 'lord';
 
 /**
  * The story's villains on a campaign map: every rival lord of its chapter's
- * parts (Kassander, Lykaon). The player's Taverns never offer them; they stay
+ * parts (Kassander, Lykaon), and those the chapter names (Eirik, Gunnhild). The player's Taverns never offer them; they stay
  * in the roster for custom maps, and a lord's Taverns may hire them.
  */
 export function storyVillains(def: MapDef): Set<string> {
@@ -70,7 +70,8 @@ export function storyVillains(def: MapDef): Set<string> {
   const parts = chapter ? partsOf(chapter) : [];
   // A map not among the chapter's parts (a custom map) has no story villains.
   if (!parts.some((m) => m.id === def.id)) return new Set();
-  return new Set(parts.flatMap((m) => (m.rival ? [m.rival.hero.id] : [])));
+  // And the chapter's own (the Norse name theirs before their parts are built).
+  return new Set([...parts.flatMap((m) => (m.rival ? [m.rival.hero.id] : [])), ...(chapter?.villains ?? [])]);
 }
 
 /** A number for hero `id` at `town` in `week`, from the game's seed: the offer takes the lowest. */

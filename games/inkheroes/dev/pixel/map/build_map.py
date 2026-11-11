@@ -74,7 +74,7 @@ COVER = {
     'bridge': ['cover/bridge.png'],
 }
 # The campaign menu's map pictures, by map (or planned map) id.
-VIGNETTES = ('ashford', 'thornwood', 'blackBanner', 'nekhen', 'abu', 'redLand', 'othrys', 'delta')
+VIGNETTES = ('ashford', 'thornwood', 'blackBanner', 'nekhen', 'abu', 'redLand', 'othrys', 'delta', 'hladir')
 # files whose map id differs from the file name
 VIGNETTE_ID = {'redLand': 'red-land'}
 EDGE = (34, 24, 16, 255)
@@ -152,6 +152,7 @@ def main() -> None:
     kemet_town_red = sprite('site-town-kemet-red', trimmed(HERE / 'sites/town-kemet-red.png'))
     lykosoura = sprite('site-town-lykosoura', trimmed(HERE / 'sites/town-lykosoura.png'))
     avaris = sprite('site-town-avaris', trimmed(HERE / 'sites/town-avaris.png'))
+    norse_town = sprite('site-town-norse', trimmed(HERE / 'sites/town-norse.png'))
     vignette_rows = []
     for v in VIGNETTES:
         Image.open(HERE / 'vignettes' / f'{v}.png').convert('RGBA').save(OUT / f'vignette-{v}.png')
@@ -199,8 +200,11 @@ export const LYKOSOURA_TOWN: MapSprite = {lykosoura};
 /** Avaris: the same town under dark green Hyksos banners (Apepi's towns; same footprint, anchor and size as KEMET_TOWN). */
 export const AVARIS_TOWN: MapSprite = {avaris};
 
+/** The Norse ring fort (earth bank, timber palisade, longhouses, snow), drawn whole like Egypt's town: chapter 3's towns (faction 'norse'). */
+export const NORSE_TOWN: MapSprite = {norse_town};
+
 /** Towns with a picture of their own, by `look` (a town's `look` in a MapDef). */
-export const TOWN_LOOKS: Readonly<Record<string, MapSprite>> = {{ nubt: KEMET_TOWN_RED, kemetRed: KEMET_TOWN_RED, lykosoura: LYKOSOURA_TOWN, avaris: AVARIS_TOWN }};
+export const TOWN_LOOKS: Readonly<Record<string, MapSprite>> = {{ nubt: KEMET_TOWN_RED, kemetRed: KEMET_TOWN_RED, lykosoura: LYKOSOURA_TOWN, avaris: AVARIS_TOWN, norse: NORSE_TOWN }};
 
 /** The campaign menu's picture of each map (192 x 96), by map or planned-map id. */
 export const MAP_VIGNETTES: Readonly<Record<string, string>> = {{

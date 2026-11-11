@@ -280,6 +280,141 @@ import gigasAttack from './units/gigas-attack.png?url';
 import ammitIdle from './units/ammit-idle.png?url';
 import ammitWalk from './units/ammit-walk.png?url';
 import ammitAttack from './units/ammit-attack.png?url';
+import valkyrieIdle from './units/valkyrie-idle.png?url';
+import valkyrieWalk from './units/valkyrie-walk.png?url';
+import valkyrieAttack from './units/valkyrie-attack.png?url';
+import valkyrie2Idle from './units/valkyrie2-idle.png?url';
+import valkyrie2Walk from './units/valkyrie2-walk.png?url';
+import valkyrie2Attack from './units/valkyrie2-attack.png?url';
+import valkyrie3Idle from './units/valkyrie3-idle.png?url';
+import valkyrie3Walk from './units/valkyrie3-walk.png?url';
+import valkyrie3Attack from './units/valkyrie3-attack.png?url';
+import valkyrie4Idle from './units/valkyrie4-idle.png?url';
+import valkyrie4Walk from './units/valkyrie4-walk.png?url';
+import valkyrie4Attack from './units/valkyrie4-attack.png?url';
+import dragonIdle from './units/dragon-idle.png?url';
+import dragonWalk from './units/dragon-walk.png?url';
+import dragonAttack from './units/dragon-attack.png?url';
+import dragon2Idle from './units/dragon2-idle.png?url';
+import dragon2Walk from './units/dragon2-walk.png?url';
+import dragon2Attack from './units/dragon2-attack.png?url';
+import dragon3Idle from './units/dragon3-idle.png?url';
+import dragon3Walk from './units/dragon3-walk.png?url';
+import dragon3Attack from './units/dragon3-attack.png?url';
+import trollIdle from './units/troll-idle.png?url';
+import trollWalk from './units/troll-walk.png?url';
+import trollAttack from './units/troll-attack.png?url';
+import frostGiantIdle from './units/frostGiant-idle.png?url';
+import frostGiantWalk from './units/frostGiant-walk.png?url';
+import frostGiantAttack from './units/frostGiant-attack.png?url';
+import skollIdle from './units/skoll-idle.png?url';
+import skollWalk from './units/skoll-walk.png?url';
+import skollAttack from './units/skoll-attack.png?url';
+import draugrIdle from './units/draugr-idle.png?url';
+import draugrWalk from './units/draugr-walk.png?url';
+import draugrAttack from './units/draugr-attack.png?url';
+import barrowKingIdle from './units/barrowKing-idle.png?url';
+import barrowKingWalk from './units/barrowKing-walk.png?url';
+import barrowKingAttack from './units/barrowKing-attack.png?url';
+import valkyrie5Idle from './units/valkyrie5-idle.png?url';
+import valkyrie5Walk from './units/valkyrie5-walk.png?url';
+import valkyrie5Attack from './units/valkyrie5-attack.png?url';
+import dragon4Idle from './units/dragon4-idle.png?url';
+import dragon4Walk from './units/dragon4-walk.png?url';
+import dragon4Attack from './units/dragon4-attack.png?url';
+import dragon5Idle from './units/dragon5-idle.png?url';
+import dragon5Walk from './units/dragon5-walk.png?url';
+import dragon5Attack from './units/dragon5-attack.png?url';
+import wolfWinterIdle from './units/wolfWinter-idle.png?url';
+import wolfWinterWalk from './units/wolfWinter-walk.png?url';
+import wolfWinterAttack from './units/wolfWinter-attack.png?url';
+import shieldmaidenIdle from './units/shieldmaiden-idle.png?url';
+import shieldmaidenWalk from './units/shieldmaiden-walk.png?url';
+import shieldmaidenAttack from './units/shieldmaiden-attack.png?url';
+import shieldmaiden2Idle from './units/shieldmaiden2-idle.png?url';
+import shieldmaiden2Walk from './units/shieldmaiden2-walk.png?url';
+import shieldmaiden2Attack from './units/shieldmaiden2-attack.png?url';
+import shieldmaiden3Idle from './units/shieldmaiden3-idle.png?url';
+import shieldmaiden3Walk from './units/shieldmaiden3-walk.png?url';
+import shieldmaiden3Attack from './units/shieldmaiden3-attack.png?url';
+import shieldmaiden4Idle from './units/shieldmaiden4-idle.png?url';
+import shieldmaiden4Walk from './units/shieldmaiden4-walk.png?url';
+import shieldmaiden4Attack from './units/shieldmaiden4-attack.png?url';
+import shieldmaiden5Idle from './units/shieldmaiden5-idle.png?url';
+import shieldmaiden5Walk from './units/shieldmaiden5-walk.png?url';
+import shieldmaiden5Attack from './units/shieldmaiden5-attack.png?url';
+import berserkerIdle from './units/berserker-idle.png?url';
+import berserkerWalk from './units/berserker-walk.png?url';
+import berserkerAttack from './units/berserker-attack.png?url';
+import berserker2Idle from './units/berserker2-idle.png?url';
+import berserker2Walk from './units/berserker2-walk.png?url';
+import berserker2Attack from './units/berserker2-attack.png?url';
+import berserker3Idle from './units/berserker3-idle.png?url';
+import berserker3Walk from './units/berserker3-walk.png?url';
+import berserker3Attack from './units/berserker3-attack.png?url';
+import berserker4Idle from './units/berserker4-idle.png?url';
+import berserker4Walk from './units/berserker4-walk.png?url';
+import berserker4Attack from './units/berserker4-attack.png?url';
+import berserker5Idle from './units/berserker5-idle.png?url';
+import berserker5Walk from './units/berserker5-walk.png?url';
+import berserker5Attack from './units/berserker5-attack.png?url';
+import dwarfIdle from './units/dwarf-idle.png?url';
+import dwarfWalk from './units/dwarf-walk.png?url';
+import dwarfAttack from './units/dwarf-attack.png?url';
+import dwarf2Idle from './units/dwarf2-idle.png?url';
+import dwarf2Walk from './units/dwarf2-walk.png?url';
+import dwarf2Attack from './units/dwarf2-attack.png?url';
+import dwarf3Idle from './units/dwarf3-idle.png?url';
+import dwarf3Walk from './units/dwarf3-walk.png?url';
+import dwarf3Attack from './units/dwarf3-attack.png?url';
+import dwarf4Idle from './units/dwarf4-idle.png?url';
+import dwarf4Walk from './units/dwarf4-walk.png?url';
+import dwarf4Attack from './units/dwarf4-attack.png?url';
+import dwarf5Idle from './units/dwarf5-idle.png?url';
+import dwarf5Walk from './units/dwarf5-walk.png?url';
+import dwarf5Attack from './units/dwarf5-attack.png?url';
+import hunterIdle from './units/hunter-idle.png?url';
+import hunterWalk from './units/hunter-walk.png?url';
+import hunterAttack from './units/hunter-attack.png?url';
+import hunter2Idle from './units/hunter2-idle.png?url';
+import hunter2Walk from './units/hunter2-walk.png?url';
+import hunter2Attack from './units/hunter2-attack.png?url';
+import hunter2FootIdle from './units/hunter2Foot-idle.png?url';
+import hunter2FootWalk from './units/hunter2Foot-walk.png?url';
+import hunter2FootAttack from './units/hunter2Foot-attack.png?url';
+import hunter3Idle from './units/hunter3-idle.png?url';
+import hunter3Walk from './units/hunter3-walk.png?url';
+import hunter3Attack from './units/hunter3-attack.png?url';
+import warBoarIdle from './units/warBoar-idle.png?url';
+import warBoarWalk from './units/warBoar-walk.png?url';
+import warBoarAttack from './units/warBoar-attack.png?url';
+import warBoar2Idle from './units/warBoar2-idle.png?url';
+import warBoar2Walk from './units/warBoar2-walk.png?url';
+import warBoar2Attack from './units/warBoar2-attack.png?url';
+import warBoar3Idle from './units/warBoar3-idle.png?url';
+import warBoar3Walk from './units/warBoar3-walk.png?url';
+import warBoar3Attack from './units/warBoar3-attack.png?url';
+import warBoar4Idle from './units/warBoar4-idle.png?url';
+import warBoar4Walk from './units/warBoar4-walk.png?url';
+import warBoar4Attack from './units/warBoar4-attack.png?url';
+import warBoar5Idle from './units/warBoar5-idle.png?url';
+import warBoar5Walk from './units/warBoar5-walk.png?url';
+import warBoar5Attack from './units/warBoar5-attack.png?url';
+import hunter4Idle from './units/hunter4-idle.png?url';
+import hunter4Walk from './units/hunter4-walk.png?url';
+import hunter4Attack from './units/hunter4-attack.png?url';
+import hunter4FootIdle from './units/hunter4Foot-idle.png?url';
+import hunter4FootWalk from './units/hunter4Foot-walk.png?url';
+import hunter4FootAttack from './units/hunter4Foot-attack.png?url';
+import hunter5Idle from './units/hunter5-idle.png?url';
+import hunter5Walk from './units/hunter5-walk.png?url';
+import hunter5Attack from './units/hunter5-attack.png?url';
+import hunter5FootIdle from './units/hunter5Foot-idle.png?url';
+import hunter5FootWalk from './units/hunter5Foot-walk.png?url';
+import hunter5FootAttack from './units/hunter5Foot-attack.png?url';
+import hunter3FootIdle from './units/hunter3Foot-idle.png?url';
+import hunter3FootWalk from './units/hunter3Foot-walk.png?url';
+import hunter3FootAttack from './units/hunter3Foot-attack.png?url';
 import hero_playerIdle from './units/hero_player-idle.png?url';
 import hero_playerWalk from './units/hero_player-walk.png?url';
 import hero_playerAttack from './units/hero_player-attack.png?url';
@@ -340,6 +475,36 @@ import hero_tiyeAttack from './units/hero_tiye-attack.png?url';
 import hero_nebetIdle from './units/hero_nebet-idle.png?url';
 import hero_nebetWalk from './units/hero_nebet-walk.png?url';
 import hero_nebetAttack from './units/hero_nebet-attack.png?url';
+import hero_hervorIdle from './units/hero_hervor-idle.png?url';
+import hero_hervorWalk from './units/hero_hervor-walk.png?url';
+import hero_hervorAttack from './units/hero_hervor-attack.png?url';
+import hero_eirikIdle from './units/hero_eirik-idle.png?url';
+import hero_eirikWalk from './units/hero_eirik-walk.png?url';
+import hero_eirikAttack from './units/hero_eirik-attack.png?url';
+import hero_einarIdle from './units/hero_einar-idle.png?url';
+import hero_einarWalk from './units/hero_einar-walk.png?url';
+import hero_einarAttack from './units/hero_einar-attack.png?url';
+import hero_sigurdIdle from './units/hero_sigurd-idle.png?url';
+import hero_sigurdWalk from './units/hero_sigurd-walk.png?url';
+import hero_sigurdAttack from './units/hero_sigurd-attack.png?url';
+import hero_haraldIdle from './units/hero_harald-idle.png?url';
+import hero_haraldWalk from './units/hero_harald-walk.png?url';
+import hero_haraldAttack from './units/hero_harald-attack.png?url';
+import hero_heidIdle from './units/hero_heid-idle.png?url';
+import hero_heidWalk from './units/hero_heid-walk.png?url';
+import hero_heidAttack from './units/hero_heid-attack.png?url';
+import hero_gunnhildIdle from './units/hero_gunnhild-idle.png?url';
+import hero_gunnhildWalk from './units/hero_gunnhild-walk.png?url';
+import hero_gunnhildAttack from './units/hero_gunnhild-attack.png?url';
+import hero_thorbjorgIdle from './units/hero_thorbjorg-idle.png?url';
+import hero_thorbjorgWalk from './units/hero_thorbjorg-walk.png?url';
+import hero_thorbjorgAttack from './units/hero_thorbjorg-attack.png?url';
+import hero_brynhildIdle from './units/hero_brynhild-idle.png?url';
+import hero_brynhildWalk from './units/hero_brynhild-walk.png?url';
+import hero_brynhildAttack from './units/hero_brynhild-attack.png?url';
+import hero_egilIdle from './units/hero_egil-idle.png?url';
+import hero_egilWalk from './units/hero_egil-walk.png?url';
+import hero_egilAttack from './units/hero_egil-attack.png?url';
 import bgGrass from './battle/bg-grass.png?url';
 import bgDirt from './battle/bg-dirt.png?url';
 import bgRough from './battle/bg-rough.png?url';
@@ -963,6 +1128,295 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     face: { x: 123, y: 33 },
     url: { idle: ammitIdle, walk: ammitWalk, attack: ammitAttack },
   },
+  valkyrie: {
+    name: "Valkyrie", w: 128, h: 112, footX: 56, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    flies: true,
+    face: { x: 61, y: 31 },
+    url: { idle: valkyrieIdle, walk: valkyrieWalk, attack: valkyrieAttack },
+  },
+  valkyrie2: {
+    name: "Battle Valkyrie", w: 128, h: 112, footX: 56, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    flies: true,
+    face: { x: 61, y: 31 },
+    url: { idle: valkyrie2Idle, walk: valkyrie2Walk, attack: valkyrie2Attack },
+  },
+  valkyrie3: {
+    name: "Valkyrie of Odin", w: 128, h: 112, footX: 61, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    flies: true,
+    face: { x: 66, y: 31 },
+    url: { idle: valkyrie3Idle, walk: valkyrie3Walk, attack: valkyrie3Attack },
+  },
+  valkyrie4: {
+    name: "Valkyrie Captain", w: 128, h: 112, footX: 57, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    flies: true,
+    face: { x: 62, y: 31 },
+    url: { idle: valkyrie4Idle, walk: valkyrie4Walk, attack: valkyrie4Attack },
+  },
+  dragon: {
+    name: "Frost Dragon", w: 224, h: 160, footX: 96, footY: 154,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    flies: true,
+    face: { x: 140, y: 58 },
+    url: { idle: dragonIdle, walk: dragonWalk, attack: dragonAttack },
+  },
+  dragon2: {
+    name: "Ice Dragon", w: 224, h: 160, footX: 96, footY: 154,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    flies: true,
+    face: { x: 140, y: 58 },
+    url: { idle: dragon2Idle, walk: dragon2Walk, attack: dragon2Attack },
+  },
+  dragon3: {
+    name: "F\u00e1fnir's Kin", w: 224, h: 160, footX: 96, footY: 154,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    flies: true,
+    face: { x: 140, y: 58 },
+    url: { idle: dragon3Idle, walk: dragon3Walk, attack: dragon3Attack },
+  },
+  troll: {
+    name: "Troll", w: 128, h: 120, footX: 47, footY: 114,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 5,
+    face: { x: 71, y: 39 },
+    url: { idle: trollIdle, walk: trollWalk, attack: trollAttack },
+  },
+  frostGiant: {
+    name: "Frost Giant", w: 144, h: 120, footX: 64, footY: 114,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 69, y: 33 },
+    url: { idle: frostGiantIdle, walk: frostGiantWalk, attack: frostGiantAttack },
+  },
+  skoll: {
+    name: "Sk\u00f6ll", w: 176, h: 120, footX: 64, footY: 114,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 123, y: 39 },
+    url: { idle: skollIdle, walk: skollWalk, attack: skollAttack },
+  },
+  draugr: {
+    name: "Draugr", w: 96, h: 104, footX: 46, footY: 98,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 44, y: 26 },
+    url: { idle: draugrIdle, walk: draugrWalk, attack: draugrAttack },
+  },
+  barrowKing: {
+    name: "Barrow King", w: 112, h: 120, footX: 52, footY: 114,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 60, y: 25 },
+    url: { idle: barrowKingIdle, walk: barrowKingWalk, attack: barrowKingAttack },
+  },
+  valkyrie5: {
+    name: "Valkyrie of F\u00f3lkvangr", w: 128, h: 112, footX: 56, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    flies: true,
+    face: { x: 61, y: 31 },
+    url: { idle: valkyrie5Idle, walk: valkyrie5Walk, attack: valkyrie5Attack },
+  },
+  dragon4: {
+    name: "Elder Dragon", w: 224, h: 160, footX: 95, footY: 154,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    flies: true,
+    face: { x: 139, y: 58 },
+    url: { idle: dragon4Idle, walk: dragon4Walk, attack: dragon4Attack },
+  },
+  dragon5: {
+    name: "N\u00ed\u00f0h\u00f6ggr", w: 224, h: 160, footX: 89, footY: 154,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    flies: true,
+    face: { x: 133, y: 59 },
+    url: { idle: dragon5Idle, walk: dragon5Walk, attack: dragon5Attack },
+  },
+  wolfWinter: {
+    name: "Winter Wolf", w: 112, h: 96, footX: 46, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 75, y: 50 },
+    url: { idle: wolfWinterIdle, walk: wolfWinterWalk, attack: wolfWinterAttack },
+  },
+  shieldmaiden: {
+    name: "Shieldmaiden", w: 96, h: 96, footX: 43, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 42, y: 34 },
+    url: { idle: shieldmaidenIdle, walk: shieldmaidenWalk, attack: shieldmaidenAttack },
+  },
+  shieldmaiden2: {
+    name: "Spear Maiden", w: 96, h: 96, footX: 43, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 42, y: 34 },
+    url: { idle: shieldmaiden2Idle, walk: shieldmaiden2Walk, attack: shieldmaiden2Attack },
+  },
+  shieldmaiden3: {
+    name: "Jarl's Shieldmaiden", w: 96, h: 96, footX: 43, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 42, y: 34 },
+    url: { idle: shieldmaiden3Idle, walk: shieldmaiden3Walk, attack: shieldmaiden3Attack },
+  },
+  shieldmaiden4: {
+    name: "Lagertha's Guard", w: 96, h: 96, footX: 46, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 42, y: 34 },
+    url: { idle: shieldmaiden4Idle, walk: shieldmaiden4Walk, attack: shieldmaiden4Attack },
+  },
+  shieldmaiden5: {
+    name: "Einherjar", w: 96, h: 96, footX: 46, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 42, y: 34 },
+    url: { idle: shieldmaiden5Idle, walk: shieldmaiden5Walk, attack: shieldmaiden5Attack },
+  },
+  berserker: {
+    name: "Berserker", w: 96, h: 96, footX: 45, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 46, y: 30 },
+    url: { idle: berserkerIdle, walk: berserkerWalk, attack: berserkerAttack },
+  },
+  berserker2: {
+    name: "Bear Warrior", w: 96, h: 96, footX: 45, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 46, y: 30 },
+    url: { idle: berserker2Idle, walk: berserker2Walk, attack: berserker2Attack },
+  },
+  berserker3: {
+    name: "Berserker of Odin", w: 96, h: 96, footX: 39, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 46, y: 30 },
+    url: { idle: berserker3Idle, walk: berserker3Walk, attack: berserker3Attack },
+  },
+  berserker4: {
+    name: "\u00dalfhe\u00f0inn", w: 96, h: 96, footX: 39, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 46, y: 30 },
+    url: { idle: berserker4Idle, walk: berserker4Walk, attack: berserker4Attack },
+  },
+  berserker5: {
+    name: "Chosen of Odin", w: 96, h: 96, footX: 39, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 46, y: 30 },
+    url: { idle: berserker5Idle, walk: berserker5Walk, attack: berserker5Attack },
+  },
+  dwarf: {
+    name: "Dwarf", w: 96, h: 96, footX: 47, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 46, y: 40 },
+    url: { idle: dwarfIdle, walk: dwarfWalk, attack: dwarfAttack },
+  },
+  dwarf2: {
+    name: "Dwarf Guard", w: 96, h: 96, footX: 47, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 46, y: 40 },
+    url: { idle: dwarf2Idle, walk: dwarf2Walk, attack: dwarf2Attack },
+  },
+  dwarf3: {
+    name: "Rune-Forged Dwarf", w: 96, h: 96, footX: 47, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 46, y: 40 },
+    url: { idle: dwarf3Idle, walk: dwarf3Walk, attack: dwarf3Attack },
+  },
+  dwarf4: {
+    name: "Dwarf Lord", w: 96, h: 96, footX: 41, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 46, y: 40 },
+    url: { idle: dwarf4Idle, walk: dwarf4Walk, attack: dwarf4Attack },
+  },
+  dwarf5: {
+    name: "Son of Ivaldi", w: 96, h: 96, footX: 41, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    face: { x: 46, y: 40 },
+    url: { idle: dwarf5Idle, walk: dwarf5Walk, attack: dwarf5Attack },
+  },
+  hunter: {
+    name: "Hunter", w: 96, h: 96, footX: 43, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 5,
+    shotFrom: { x: 68, y: 46 },
+    face: { x: 46, y: 37 },
+    url: { idle: hunterIdle, walk: hunterWalk, attack: hunterAttack },
+  },
+  hunter2: {
+    name: "Ski Bowman", w: 96, h: 96, footX: 43, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 5,
+    shotFrom: { x: 70, y: 41 },
+    face: { x: 37, y: 36 },
+    url: { idle: hunter2Idle, walk: hunter2Walk, attack: hunter2Attack },
+  },
+  hunter2Foot: {
+    name: "Ski Bowman", w: 96, h: 96, footX: 45, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 5,
+    shotFrom: { x: 66, y: 44 },
+    face: { x: 44, y: 33 },
+    url: { idle: hunter2FootIdle, walk: hunter2FootWalk, attack: hunter2FootAttack },
+  },
+  hunter3: {
+    name: "Archer of Ullr", w: 96, h: 96, footX: 43, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 5,
+    shotFrom: { x: 70, y: 41 },
+    face: { x: 37, y: 36 },
+    url: { idle: hunter3Idle, walk: hunter3Walk, attack: hunter3Attack },
+  },
+  warBoar: {
+    name: "War Boar", w: 152, h: 112, footX: 55, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 100, y: 59 },
+    url: { idle: warBoarIdle, walk: warBoarWalk, attack: warBoarAttack },
+  },
+  warBoar2: {
+    name: "Iron Boar", w: 152, h: 112, footX: 58, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 103, y: 62 },
+    url: { idle: warBoar2Idle, walk: warBoar2Walk, attack: warBoar2Attack },
+  },
+  warBoar3: {
+    name: "Boar of Freyr", w: 152, h: 112, footX: 58, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 103, y: 62 },
+    url: { idle: warBoar3Idle, walk: warBoar3Walk, attack: warBoar3Attack },
+  },
+  warBoar4: {
+    name: "Hildisv\u00edni", w: 152, h: 112, footX: 58, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 103, y: 62 },
+    url: { idle: warBoar4Idle, walk: warBoar4Walk, attack: warBoar4Attack },
+  },
+  warBoar5: {
+    name: "Gullinbursti", w: 152, h: 112, footX: 57, footY: 106,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    face: { x: 102, y: 62 },
+    url: { idle: warBoar5Idle, walk: warBoar5Walk, attack: warBoar5Attack },
+  },
+  hunter4: {
+    name: "Huntsman of Skadi", w: 96, h: 96, footX: 43, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 5,
+    shotFrom: { x: 70, y: 41 },
+    face: { x: 37, y: 36 },
+    url: { idle: hunter4Idle, walk: hunter4Walk, attack: hunter4Attack },
+  },
+  hunter4Foot: {
+    name: "Huntsman of Skadi", w: 96, h: 96, footX: 35, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 5,
+    shotFrom: { x: 66, y: 44 },
+    face: { x: 44, y: 33 },
+    url: { idle: hunter4FootIdle, walk: hunter4FootWalk, attack: hunter4FootAttack },
+  },
+  hunter5: {
+    name: "Archer of \u00dddalir", w: 96, h: 96, footX: 43, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 5,
+    shotFrom: { x: 70, y: 41 },
+    face: { x: 37, y: 36 },
+    url: { idle: hunter5Idle, walk: hunter5Walk, attack: hunter5Attack },
+  },
+  hunter5Foot: {
+    name: "Archer of \u00dddalir", w: 96, h: 96, footX: 39, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 5,
+    shotFrom: { x: 66, y: 44 },
+    face: { x: 44, y: 33 },
+    url: { idle: hunter5FootIdle, walk: hunter5FootWalk, attack: hunter5FootAttack },
+  },
+  hunter3Foot: {
+    name: "Archer of Ullr", w: 96, h: 96, footX: 38, footY: 90,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 5,
+    shotFrom: { x: 68, y: 42 },
+    face: { x: 40, y: 33 },
+    url: { idle: hunter3FootIdle, walk: hunter3FootWalk, attack: hunter3FootAttack },
+  },
 };
 
 /** The hero standing beside the field. Keyed by the ids in units.json `heroes`. */
@@ -1092,6 +1546,76 @@ export const HERO_ART: Readonly<Record<string, UnitArt>> = {
     walkFootX: 52,
     face: { x: 60, y: 29 },
     url: { idle: hero_nebetIdle, walk: hero_nebetWalk, attack: hero_nebetAttack },
+  },
+  hervor: {
+    name: "Hervor", w: 132, h: 139, footX: 49, footY: 134,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    walkFootX: 56,
+    face: { x: 46, y: 29 },
+    url: { idle: hero_hervorIdle, walk: hero_hervorWalk, attack: hero_hervorAttack },
+  },
+  eirik: {
+    name: "Eirik Bloodaxe", w: 132, h: 139, footX: 50, footY: 134,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    walkFootX: 59,
+    face: { x: 56, y: 25 },
+    url: { idle: hero_eirikIdle, walk: hero_eirikWalk, attack: hero_eirikAttack },
+  },
+  einar: {
+    name: "Einar", w: 132, h: 139, footX: 51, footY: 134,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 4,
+    walkFootX: 61,
+    face: { x: 50, y: 19 },
+    url: { idle: hero_einarIdle, walk: hero_einarWalk, attack: hero_einarAttack },
+  },
+  sigurd: {
+    name: "Sigurd", w: 132, h: 139, footX: 48, footY: 134,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    walkFootX: 57,
+    face: { x: 53, y: 30 },
+    url: { idle: hero_sigurdIdle, walk: hero_sigurdWalk, attack: hero_sigurdAttack },
+  },
+  harald: {
+    name: "Harald Hardrada", w: 132, h: 139, footX: 50, footY: 134,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    walkFootX: 60,
+    face: { x: 50, y: 22 },
+    url: { idle: hero_haraldIdle, walk: hero_haraldWalk, attack: hero_haraldAttack },
+  },
+  heid: {
+    name: "Heid", w: 132, h: 139, footX: 47, footY: 134,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    walkFootX: 57,
+    face: { x: 41, y: 32 },
+    url: { idle: hero_heidIdle, walk: hero_heidWalk, attack: hero_heidAttack },
+  },
+  gunnhild: {
+    name: "Gunnhild", w: 132, h: 139, footX: 49, footY: 134,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    walkFootX: 56,
+    face: { x: 59, y: 23 },
+    url: { idle: hero_gunnhildIdle, walk: hero_gunnhildWalk, attack: hero_gunnhildAttack },
+  },
+  thorbjorg: {
+    name: "Thorbjorg", w: 132, h: 139, footX: 47, footY: 134,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    walkFootX: 56,
+    face: { x: 50, y: 40 },
+    url: { idle: hero_thorbjorgIdle, walk: hero_thorbjorgWalk, attack: hero_thorbjorgAttack },
+  },
+  brynhild: {
+    name: "Brynhild", w: 132, h: 139, footX: 54, footY: 134,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    walkFootX: 62,
+    face: { x: 56, y: 23 },
+    url: { idle: hero_brynhildIdle, walk: hero_brynhildWalk, attack: hero_brynhildAttack },
+  },
+  egil: {
+    name: "Egil", w: 132, h: 139, footX: 48, footY: 134,
+    frames: { idle: 4, walk: 8, attack: 8 }, strike: 3,
+    walkFootX: 53,
+    face: { x: 50, y: 28 },
+    url: { idle: hero_egilIdle, walk: hero_egilWalk, attack: hero_egilAttack },
   },
 };
 

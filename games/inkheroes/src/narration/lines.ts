@@ -27,7 +27,10 @@ export type LineId =
   | 'part-redLand'
   | 'redLand-won'
   | 'part-delta'
-  | 'twoLands-won';
+  | 'twoLands-won'
+  | 'part-hladir'
+  | 'hrimgrimnir'
+  | 'hladir-won';
 
 export interface NarratedLine {
   /** Who's speaking, named on the strip. */
@@ -68,6 +71,9 @@ export const LINES: Readonly<Record<LineId, NarratedLine>> = {
   'redLand-won': told('Set’s banner falls', "[triumphant] Sethi falls, and Set's red banner comes down over Nubt! [joyful] The south is one at last… [uneasy] but a boat comes up the river with bad news. [grim] In the north a foreign king holds the Delta: Apepi of Avaris, who took the name of the serpent of chaos! [urgent] And he rides for Iunu, the city of the sun."),
   'part-delta': told('The Delta', "[grand, storytelling] North of the Red Land the Nile spreads into a thousand channels… the Delta, green and wide, all the way to the sea. [ominous] There Apepi, a king of the Hyksos, rules from Avaris. His people came over Sinai with horses and took Egypt's gods as their own! [awed] He rides for Iunu, where the Benben stone stands, the hill the Bennu first landed on. Whoever holds it has the Bennu's flight! [warning] He scouts, he hires captains, he waits for his moment… [wry] Three ways lead in, by the White Walls, the north wadi or the desert road behind Nubt: none of them is easy. [resolute] Take Avaris and Per-Bastet… and bring the serpent-king down!"),
   'twoLands-won': told('The Two Lands are one', "[triumphant] Apepi falls, and the serpent banners fall from the walls of Avaris! [solemn] The Hyksos ride back over Sinai… [joyful] and from the cataract to the sea, the Two Lands are one! [awed] Over Iunu the Bennu wheels in the morning light. [warm] From Nekhen's sluice to the marshes of the Delta, the Nile runs free… [hopeful] and Neferet's name is sung on every boat that sails it."),
+  'part-hladir': told('Hlaðir', "[grand, storytelling] It is the third winter with no summer… the Fimbulwinter, the great winter before the end of the world. [grim] The fjord is frozen, the ships can't sail, and the steadings are starving. [ominous] At the fjord's mouth the frost giant Hrímgrímnir sits on the ice with his wolves… and no ship has passed him in three winters. [proud] But Hlaðir has a shieldmaiden! Hervor, whose father and his eleven brothers were berserkers. [wry] Wound a berserker, and he only hits harder… [resolute] Raise the hall's warriors, and drive the giant off the ice!"),
+  'hrimgrimnir': told('Hrímgrímnir', "[ominous] There, out on the ice… Hrímgrímnir! [awed] Tall as a mast, with frost in his beard, and he answers every blow that's struck at him. [grim] His wolves circle, hungry. [eager] Good! Let him strike the berserkers… every wound only makes them angrier!"),
+  'hladir-won': told('The ice breaks', "[triumphant] Hrímgrímnir falls, and the ice at the fjord's mouth cracks like thunder! [joyful] The longships can sail again, and Hlaðir eats tonight. [uneasy] But the sun still won't climb above the hills… [mysterious] and the winter isn't ending. [resolute] Over the mountains, the great temple at Uppsala keeps the old lore. Hervor rides south to ask who is keeping the sun away!"),
 };
 
 /** Chapter 1's places and people the lines name: a line is told only where its words are true. */

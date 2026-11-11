@@ -285,8 +285,11 @@ export class MapScene extends Phaser.Scene {
     if (!o) return '';
     if (o.kind === 'monster') {
       const c = creature(o.creature!);
+      const goal = o.id === def.goal.target ? ' (your goal)' : '';
+      // A boss with a name of its own: who he is, and the brood beside him.
+      if (o.name) return `${o.name}, the ${c.name.toLowerCase()}${o.brood ? `, and ${sizeWord(o.brood.count)} ${creature(o.brood.creature).plural}` : ''}${goal}`;
       const words = sizeWord(o.count ?? 1);
-      return `${words[0]!.toUpperCase()}${words.slice(1)} ${c.plural}${o.id === def.goal.target ? ' (your goal)' : ''}`;
+      return `${words[0]!.toUpperCase()}${words.slice(1)} ${c.plural}${goal}`;
     }
     if (o.kind === 'mine') return `${MINE_NAMES[o.resource!]}: +${MINE_OUTPUT[o.resource!]} ${o.resource} a day${o.owner === 'player' ? ' (yours)' : ''}`;
     if (o.kind === 'pile') return `A pile of ${o.resource}`;
