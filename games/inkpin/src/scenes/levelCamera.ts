@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { LevelDef } from '../logic/level';
 import type { Creature } from '../logic/world';
+import { clampZoom, zoomAbout, zoomRange, type ZoomRange } from '../logic/zoom';
 import { DPR, screenSize } from './hidpi';
 
 /** Space kept for the interface: above the board, and around it (CSS px). */
@@ -27,10 +28,14 @@ const EASE = 4;
  * The level's camera: fits the level between the interface bar and the
  * screen's edges, or, for a level bigger than the screen, shows part of it
  * and follows Nib, leading a little the way Nib faces. The player can drag
- * to look around; the camera holds there until Nib moves on.
+ * to look around, and zoom in (or out, on a big level, until all of it
+ * shows); the camera holds where they looked until Nib moves on.
  */
 export class LevelCamera {
   private zoom = 1;
+  /** The zoom that fits the level (or SHOWN of it) on screen. */
+  private fitZoom = 1;
+  private range: ZoomRange = { min: 1, max: 1 };
   private scrolls = false;
   private intro = 0;
   private hold = 0;
@@ -38,7 +43,8 @@ export class LevelCamera {
   /** Where the camera wants its middle (board px), before clamping. */
   private target = { x: 0, y: 0 };
 
-  constructor(private readonly scene: Phaser.Scene, private readonly level: LevelDef) {}
+  /** @param scale the player's zoom, as a multiple of the fit: kept across a restart of the level. */
+  constructor(private readonly scene: Phaser.Scene, private readonly level: LevelDef, private scale = 1) {}
 
   private get cam(): Phaser.Cameras.Scene2D.Camera {
     return this.scene.cameras.main;
@@ -49,16 +55,27 @@ export class LevelCamera {
     return this.scrolls;
   }
 
+  /** The player's zoom, as a multiple of the level's fit. */
+  get zoomScale(): number {
+    return this.scale;
+  }
+
+  get canZoomIn(): boolean {
+    return this.zoom < this.range.max - 1e-6;
+  }
+
+  get canZoomOut(): boolean {
+    return this.zoom > this.range.min + 1e-6;
+  }
+
   /** Fits the camera to the screen; a scrolling level opens on its far end first when `opening`. */
   fit(nib: Creature, opening = false): void {
-    const { width, height } = screenSize(this.scene.scale);
     const { view } = this.level;
-    const availW = width - MARGIN * 2;
-    const availH = height - HUD_TOP - HUD_BOTTOM;
-    this.zoom = Math.min(availW / Math.min(view.w, SHOWN.w), availH / Math.min(view.h, SHOWN.h));
-    this.scrolls = availW / this.zoom < view.w - 1 || availH / this.zoom < view.h - 1;
+    const { w: availW, h: availH } = this.avail();
+    this.fitZoom = Math.min(availW / Math.min(view.w, SHOWN.w), availH / Math.min(view.h, SHOWN.h));
+    this.range = zoomRange(this.fitZoom, Math.min(availW / view.w, availH / view.h));
     this.cam.setSize(this.scene.scale.width, this.scene.scale.height);
-    this.cam.setZoom(this.zoom * DPR);
+    this.setZoom(clampZoom(this.fitZoom * this.scale, this.range));
     if (!this.scrolls) {
       // Centre the view in the space below the bar.
       this.cam.centerOn(view.x + view.w / 2, view.y + view.h / 2 - this.offset());
@@ -90,13 +107,48 @@ export class LevelCamera {
     this.place(Math.min(1, (delta / 1000) * EASE));
   }
 
-  /** The player drags the board by (dx, dy) screen px: the camera moves with it and holds there. */
+  /** The player drags the board by (dx, dy) CSS px: the camera moves with it and holds there. */
   look(dx: number, dy: number, nib: Creature): void {
     if (!this.scrolls) return;
-    this.intro = 0;
-    const k = this.cam.zoom;
     const mid = this.cam.midPoint;
-    this.target = { x: mid.x - dx / k, y: mid.y + this.offset() - dy / k };
+    this.holdAt({ x: mid.x - dx / this.zoom, y: mid.y - dy / this.zoom }, nib);
+  }
+
+  /**
+   * Zooms by `factor` about the screen point `at` (CSS px; the middle of the
+   * board's space when left out), keeping the board under it in place.
+   * False when the zoom was already at its limit.
+   */
+  zoomBy(factor: number, nib: Creature, at?: { x: number; y: number }): boolean {
+    const z2 = clampZoom(this.zoom * factor, this.range);
+    if (Math.abs(z2 - this.zoom) < 1e-6) return false;
+    const { width, height } = screenSize(this.scene.scale);
+    const about = at ?? { x: width / 2, y: HUD_TOP + (height - HUD_TOP - HUD_BOTTOM) / 2 };
+    const mid = zoomAbout(this.cam.midPoint, about, { x: width / 2, y: height / 2 }, this.zoom, z2);
+    this.scale = z2 / this.fitZoom;
+    this.setZoom(z2);
+    this.holdAt(mid, nib);
+    return true;
+  }
+
+  /** The space the level shows in, below the bar (CSS px). */
+  private avail(): { w: number; h: number } {
+    const { width, height } = screenSize(this.scene.scale);
+    return { w: width - MARGIN * 2, h: height - HUD_TOP - HUD_BOTTOM };
+  }
+
+  private setZoom(zoom: number): void {
+    const { view } = this.level;
+    const { w, h } = this.avail();
+    this.zoom = zoom;
+    this.scrolls = w / zoom < view.w - 1 || h / zoom < view.h - 1;
+    this.cam.setZoom(zoom * DPR);
+  }
+
+  /** Puts the camera's middle at `mid` (board px, kept inside the level) and holds it there until Nib moves on. */
+  private holdAt(mid: { x: number; y: number }, nib: Creature): void {
+    this.intro = 0;
+    this.target = { x: mid.x, y: mid.y + this.offset() };
     this.hold = LOOK_HOLD_MS;
     this.heldAt = { x: nib.x, y: nib.y };
     this.place(1);

@@ -13,7 +13,7 @@ import { COIN, STEPS_PER_SECOND } from '../logic/particles';
 import { World, type BlotEnd, type WorldEvent, type WorldSave } from '../logic/world';
 import { DPR, screenSize } from './hidpi';
 import { NibView } from './nibView';
-import { hudTook, readControls, saveControls, type ControlMode } from './controls';
+import { BoardInput } from './boardInput';
 import { DarkLayer } from './darkLayer';
 import { BodiesView } from './bodies';
 import { Effects } from './effects';
@@ -29,26 +29,12 @@ const S = 1 / ART_RES;
 const STEP_MS = 1000 / STEPS_PER_SECOND;
 /** Most simulation steps run in one frame, so a slow phone slows the game down rather than freezing. */
 const MAX_STEPS_PER_FRAME = 5;
-/** Joystick: how far (CSS px) a drag must go before Nib walks, and its full throw. */
-const STICK_DEAD = 14;
-const STICK_RANGE = 46;
-/** A tap this close to Nib (board px) makes Nib jump, in tap-to-go mode. */
-const NIB_TAP = 30;
-const KEY_DIR: Record<string, -1 | 1> = { ArrowLeft: -1, a: -1, A: -1, ArrowRight: 1, d: 1, D: 1 };
-/** Up and down climb a vine Nib is on or next to (up jumps otherwise). */
-const CLIMB_KEY: Record<string, -1 | 1> = { ArrowUp: -1, w: -1, W: -1, ArrowDown: 1, s: 1, S: 1 };
 /** A slow coin is redrawn only once it has moved this far (board px), so a settling heap doesn't twitch. */
 const COIN_HOLD = 2;
 /** How far the surroundings reach past the board on each side (a multiple of the tiles' sizes). */
 const SURROUND = 2048;
 /** The sky's colour above its tile: the tile's top edge (the jungle's, and the volcano's dusk). */
 const SKY_TOP_HEX = 0xc3d4d8;
-/** A press that moves further than this (CSS px) is a drag to look around, not a tap. */
-const DRAG_LOOK = 10;
-/** In joystick mode, a drag that starts above this share of the screen looks around instead of walking Nib. */
-const LOOK_ZONE = 0.45;
-
-
 
 /** Hearts per level: each loss before the last winds the level back to just before the last pin pulled. */
 export const HEARTS = 3;
@@ -93,6 +79,8 @@ interface Session {
   tries: number;
   /** The plates' line ("they open with weight") has been shown on this level. */
   plateNote?: boolean;
+  /** The player's zoom on this level, as a multiple of its fit. */
+  zoom?: number;
 }
 
 /** Shown once per level, the first time a plate or a door is tapped. */
@@ -142,8 +130,7 @@ export class GameScene extends Phaser.Scene {
   private index = 0;
   private camera!: LevelCamera;
   private fx!: Effects;
-  /** A press on the board that isn't the joystick: a tap when it lifts, or a drag to look around. */
-  private press: { id: number; x: number; y: number; moved: boolean; pin: string | null } | null = null;
+  private input2!: BoardInput;
   private pins!: PinsView;
   private chest: Phaser.GameObjects.Image | null = null;
   private acc = 0;
@@ -154,11 +141,6 @@ export class GameScene extends Phaser.Scene {
   /** True while a lost heart's fail plays, before the rewind. */
   private rewinding = false;
   private session!: Session;
-  private controls: ControlMode = 'tap';
-  /** The joystick while a drag is held: where it started (screen px) and the direction it gives. */
-  private stick: { id: number; x: number; y: number; dir: -1 | 0 | 1; climb: -1 | 0 | 1; walked: boolean } | null = null;
-  private keyDir: -1 | 0 | 1 = 0;
-  private climbKey: -1 | 0 | 1 = 0;
 
   constructor() {
     super('game');
@@ -219,33 +201,34 @@ export class GameScene extends Phaser.Scene {
     if (level.dark) this.dark = new DarkLayer(this, this.world0, level);
     this.checkpoint = this.world.save();
     this.sfx.bed(bedOf(level.ruin ?? 'jungle'));
-    this.camera = new LevelCamera(this, level);
+    this.camera = new LevelCamera(this, level, this.session.zoom);
     this.camera.fit(this.world.nib, true);
-    this.press = null;
     this.scale.on('resize', this.refit, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.run?.quit();
       this.sfx.bed(null);
       this.scale.off('resize', this.refit, this);
       this.game.events.off('cmd:restart', this.restart, this);
-      this.game.events.off('cmd:controls', this.onControls, this);
+      this.game.events.off('cmd:zoom', this.onZoom, this);
       this.game.events.off('cmd:jump', this.onJump, this);
       this.game.events.off('cmd:leave', this.onLeave, this);
       this.game.events.off('cmd:level', this.onLevel, this);
       this.game.events.off('cmd:map', this.onMap, this);
     });
-    this.controls = readControls();
-    this.stick = null;
-    this.keyDir = 0;
-    this.climbKey = 0;
-    this.input.on('pointerdown', this.onPointerDown, this);
-    this.input.on('pointermove', this.onPointerMove, this);
-    this.input.on('pointerup', this.onPointerUp, this);
-    this.input.on('pointerupoutside', this.onPointerUp, this);
-    this.input.on('wheel', (_p: unknown, _o: unknown, dx: number, dy: number) => this.camera.look(-dx, -dy, this.world.nib));
-    this.input.keyboard?.on('keydown', this.onKey, this);
-    this.input.keyboard?.on('keyup', this.onKeyUp, this);
-    this.game.events.on('cmd:controls', this.onControls, this);
+    this.input2 = new BoardInput(this, this.world, this.camera, {
+      pinAt: (p) => this.pinAt(p.x, p.y),
+      tapPin: (id) => this.tryTap(id),
+      poke: (p) => this.pokeTomb(p),
+      hover: (p) => {
+        const id = this.world.finished ? null : this.pinAt(p.x, p.y);
+        if (this.pins.setHover(id)) this.input.setDefaultCursor(id ? 'pointer' : 'default');
+      },
+      zoomed: () => this.zoomed(),
+      restart: () => this.restart(),
+      map: () => this.onMap(),
+      unlock: () => this.sfx.unlock(),
+    });
+    this.game.events.on('cmd:zoom', this.onZoom, this);
     this.game.events.on('cmd:jump', this.onJump, this);
     this.game.events.on('cmd:restart', this.restart, this);
     this.game.events.on('cmd:leave', this.onLeave, this);
@@ -256,6 +239,7 @@ export class GameScene extends Phaser.Scene {
     // Kept for the interface too, in case it starts after this.
     this.registry.set('levelInfo', info);
     this.game.events.emit('hud:reset', info);
+    this.zoomed();
     this.drawWorld(0, 0);
   }
 
@@ -345,10 +329,12 @@ export class GameScene extends Phaser.Scene {
     this.shrine.resync();
     this.tomb.resync();
     this.nib.reset();
+    this.input2.resync();
   }
 
   private refit(): void {
     this.camera.fit(this.world.nib);
+    this.zoomed();
   }
 
   update(time: number, delta: number): void {
@@ -363,7 +349,10 @@ export class GameScene extends Phaser.Scene {
     }
     if (steps === MAX_STEPS_PER_FRAME) this.acc = Math.min(this.acc, STEP_MS);
     this.drawWorld(time, delta);
-    if (!this.ended) this.camera.update(delta, this.world.nib);
+    if (!this.ended) {
+      this.input2.update();
+      this.camera.update(delta, this.world.nib);
+    }
     if (!this.ended && !this.rewinding && this.world.finished) {
       if (this.world.status.state === 'lost' && this.hearts > 1) this.loseHeart();
       else this.finish();
@@ -533,54 +522,6 @@ export class GameScene extends Phaser.Scene {
     return this.pins.pinAt(this.cameras.main.getWorldPoint(px, py));
   }
 
-  private onPointerDown(p: Phaser.Input.Pointer): void {
-    this.sfx.unlock();
-    // A tap on the interface (buttons, the card) isn't a tap on the board.
-    if (hudTook(p) || this.world.finished) return;
-    const pin = this.pinAt(p.x, p.y);
-    const looking = this.camera.scrolling && p.y / DPR < screenSize(this.scale).height * LOOK_ZONE;
-    if (this.controls === 'stick' && !pin && !looking) {
-      // Joystick: a drag off the pins walks Nib.
-      this.stick = { id: p.id, x: p.x, y: p.y, dir: 0, climb: 0, walked: false };
-      this.game.events.emit('stick:show', { x: p.x / DPR, y: p.y / DPR });
-      return;
-    }
-    this.press = { id: p.id, x: p.x, y: p.y, moved: false, pin };
-  }
-
-  private onPointerUp(p: Phaser.Input.Pointer): void {
-    if (this.press && this.press.id === p.id) {
-      const { moved, pin } = this.press;
-      this.press = null;
-      if (!moved && !this.world.finished) this.tap(p, pin);
-      return;
-    }
-    if (!this.stick || this.stick.id !== p.id) return;
-    // A joystick press that never walked is a tap: it may be on a plate or a door.
-    if (!this.stick.walked && !this.world.finished) this.pokeTomb(p);
-    this.stick = null;
-    this.game.events.emit('stick:hide');
-    if (this.keyDir === 0) this.world.command({ kind: 'stay' });
-  }
-
-  /** A tap on the board: pulls the pin under it (or pushes a gate back in), or (tap to go) jumps Nib or sends it there. */
-  private tap(p: Phaser.Input.Pointer, pin: string | null): void {
-    if (pin) {
-      this.tryTap(pin);
-      return;
-    }
-    // A plate or a door answers the tap, and Nib still goes there in tap mode.
-    this.pokeTomb(p);
-    if (this.controls !== 'tap') return;
-    const wp = this.cameras.main.getWorldPoint(p.x, p.y);
-    if (Math.hypot(wp.x - this.world.nib.x, wp.y - this.world.nib.y) < NIB_TAP) {
-      this.world.jump();
-      return;
-    }
-    this.world.command({ kind: 'goto', x: wp.x, y: wp.y });
-    this.markSpot(wp.x);
-  }
-
   /** A tap on a plate or a door: it shakes and lights its groove; the first time on a level, the HUD says how plates work. */
   private pokeTomb(p: Phaser.Input.Pointer): void {
     const wp = this.cameras.main.getWorldPoint(p.x, p.y);
@@ -589,22 +530,15 @@ export class GameScene extends Phaser.Scene {
     this.game.events.emit('hud:note', PLATE_NOTE);
   }
 
-  /** A small ink cross on the floor where Nib was sent, fading. */
-  private markSpot(x: number): void {
-    const y = this.world.nib.y + 22;
-    const g = this.add.graphics();
-    g.lineStyle(3, 0x26316a, 0.85);
-    g.lineBetween(x - 7, y - 7, x + 7, y + 7);
-    g.lineBetween(x - 7, y + 7, x + 7, y - 7);
-    this.world0.add(g);
-    this.tweens.add({ targets: g, alpha: 0, duration: 700, delay: 200, onComplete: () => g.destroy() });
+  /** The + or − button: one step in or out. */
+  private onZoom(dir: -1 | 1): void {
+    this.input2.zoomStep(dir);
   }
 
-  private onControls(mode: ControlMode): void {
-    this.controls = mode;
-    this.stick = null;
-    this.game.events.emit('stick:hide');
-    saveControls(mode);
+  /** The zoom changed: kept for a restart of this level, and the buttons show how much further it goes. */
+  private zoomed(): void {
+    this.session.zoom = this.camera.zoomScale;
+    this.game.events.emit('hud:zoom', { in: this.camera.canZoomIn, out: this.camera.canZoomOut });
   }
 
   private onJump(): void {
@@ -613,100 +547,6 @@ export class GameScene extends Phaser.Scene {
 
   private onLeave(): void {
     this.world.leave();
-  }
-
-  private walk(dir: -1 | 0 | 1): void {
-    this.world.command(dir === 0 ? { kind: 'stay' } : { kind: 'walk', dir });
-  }
-
-  private onPointerMove(p: Phaser.Input.Pointer): void {
-    const press = this.press;
-    if (press && press.id === p.id && p.isDown) {
-      // Dragging the board looks around a level bigger than the screen.
-      if (!press.moved && Math.hypot(p.x - press.x, p.y - press.y) / DPR > DRAG_LOOK && this.camera.scrolling) press.moved = true;
-      if (press.moved) {
-        this.camera.look(p.x - press.x, p.y - press.y, this.world.nib);
-        press.x = p.x;
-        press.y = p.y;
-      }
-      return;
-    }
-    if (this.stick && this.stick.id === p.id) {
-      const dx = (p.x - this.stick.x) / DPR;
-      const dy = (p.y - this.stick.y) / DPR;
-      // Mostly up or down by a vine: climb it.
-      if (Math.abs(dy) > STICK_DEAD && Math.abs(dy) > Math.abs(dx) && this.world.canClimb()) {
-        const climb: -1 | 1 = dy < 0 ? -1 : 1;
-        if (this.stick.climb !== climb) {
-          this.stick.climb = climb;
-          this.stick.walked = true;
-          this.stick.dir = 0;
-          this.world.command({ kind: 'climb', dir: climb });
-        }
-        return;
-      }
-      if (this.stick.climb) {
-        this.stick.climb = 0;
-        if (Math.abs(dx) <= STICK_DEAD) this.world.command({ kind: 'stay' });
-      }
-      const dir: -1 | 0 | 1 = dx > STICK_DEAD ? 1 : dx < -STICK_DEAD ? -1 : 0;
-      if (dir !== this.stick.dir) {
-        this.stick.dir = dir;
-        if (dir !== 0) this.stick.walked = true;
-        this.walk(dir);
-      }
-      this.game.events.emit('stick:move', { dx: Phaser.Math.Clamp(dx, -STICK_RANGE, STICK_RANGE) });
-      return;
-    }
-    const id = this.world.finished ? null : this.pinAt(p.x, p.y);
-    if (this.pins.setHover(id)) this.input.setDefaultCursor(id ? 'pointer' : 'default');
-  }
-
-  private onKey(e: KeyboardEvent): void {
-    this.sfx.unlock();
-    const dir = KEY_DIR[e.key];
-    if (dir !== undefined) {
-      if (dir !== this.keyDir) {
-        this.keyDir = dir;
-        this.walk(dir);
-      }
-      return;
-    }
-    if (e.key === 'Enter') {
-      this.world.leave();
-      return;
-    }
-    const climb = CLIMB_KEY[e.key];
-    if (climb !== undefined && this.world.canClimb()) {
-      e.preventDefault();
-      this.climbKey = climb;
-      this.world.command({ kind: 'climb', dir: climb });
-      return;
-    }
-    if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
-      e.preventDefault();
-      this.world.jump();
-      return;
-    }
-    if (e.key === 'Escape' || e.key === 'm' || e.key === 'M') this.onMap();
-    else if (e.key === 'r' || e.key === 'R') this.restart();
-    else if (/^[1-9]$/.test(e.key)) {
-      // Number keys pull the pins in the order the level lists them (and push a gate that's out back in).
-      const pin = this.world.pins[Number(e.key) - 1];
-      if (pin) this.tryTap(pin.def.id);
-    }
-  }
-
-  private onKeyUp(e: KeyboardEvent): void {
-    if (CLIMB_KEY[e.key] !== undefined && CLIMB_KEY[e.key] === this.climbKey) {
-      this.climbKey = 0;
-      if (this.world.onVine && this.world.nibOrder.kind === 'climb') this.world.command({ kind: 'stay' });
-      return;
-    }
-    const dir = KEY_DIR[e.key];
-    if (dir === undefined || dir !== this.keyDir) return;
-    this.keyDir = 0;
-    if (!this.stick) this.walk(0);
   }
 
   private openChest(): void {
@@ -765,7 +605,8 @@ export class GameScene extends Phaser.Scene {
   private closeUp(x: number, y: number): void {
     const cam = this.cameras.main;
     const { height } = screenSize(this.scale);
-    const zoom = Math.min(cam.zoom * 2.2, DPR * 2.4);
+    // Never out from where the player had zoomed in.
+    const zoom = Math.max(cam.zoom, Math.min(cam.zoom * 2.2, DPR * 2.4));
     this.scale.off('resize', this.refit, this);
     cam.zoomTo(zoom, 650, 'Cubic.easeInOut');
     cam.pan(x, y - (height * 0.2 * DPR) / zoom, 650, 'Cubic.easeInOut');

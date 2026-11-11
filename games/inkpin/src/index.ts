@@ -37,7 +37,8 @@ export function mount(parent: HTMLElement, host: GameHost, options: MountOptions
     backgroundColor: PAPER,
     scale: { mode: Phaser.Scale.NONE, width: Math.round(width * DPR), height: Math.round(height * DPR), zoom: 1 / DPR, fullscreenTarget: parent },
     render: { antialias: true, antialiasGL: false, roundPixels: false, powerPreference: 'high-performance', maxTextures: 8 },
-    input: { activePointers: 2 },
+    // A thumb on the stick, and two more fingers to jump, tap a pin or pinch.
+    input: { activePointers: 3 },
     audio: { noAudio: true },
     scene: [BootScene, MenuScene, GameScene, HudScene],
   });

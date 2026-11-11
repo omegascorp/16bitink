@@ -7,7 +7,7 @@ All 50 levels at a glance: 5 ruins with 10 levels each. The ruins, materials, Bl
 Nib walks, jumps (about 55 px), climbs a ledge up to about 44 px and swims. Each ruin adds one new kind of ground, taught on its level 1. The rules:
 
 1. **Movement is part of the puzzle, never a reflex test.** Where Nib stands is a choice like which pin to pull: wait in an alcove while the lava passes, stand on a plate to hold a door, float up on the water you let in.
-2. **Every level can be finished with tap-to-go.** No precise jumps and no timed runs. A loss comes from the pin order or where Nib waited, never from a slipped thumb. Bosses act on a beat, but a slow one with a wide window.
+2. **Every level can be finished by simply walking.** No precise jumps and no timed runs. A loss comes from the pin order or where Nib waited, never from a slipped thumb. Bosses act on a beat, but a slow one with a wide window.
 3. **The way to the chest needs only walking and the small jump.** Harder movement leads to **bonus gold**: from level 3 of each chapter, most levels have an alcove of coins reached by that ruin's movement. It counts toward the "every treasure" blot and the bank, so casual players never get stuck on it.
 4. **One screen, no falling to your death.** Tall levels scroll (level 7 of each chapter), but Nib never dies from a missed jump. He just lands lower and climbs back.
 
@@ -32,7 +32,7 @@ Goals are from the design doc: **Treasure** (the chest's relic and the coin targ
 
 Levels are numbered straight through the game: chapter 2 is levels 11–20, chapter 5 is 41–50. Every level must meet its row before it ships. The audit (test/audit.ts) and the lab (test/lab.test.ts, `AUDIT=1`) print the numbers.
 
-**Later chapters are deeper, not bigger.** Every level stays 2–3 screens wide (or two tall), at most ~700 grains, 3–5 stages, a hint of about 25–120 s (from the puzzle, never from empty floor to walk), and can be finished with tap-to-go. Bigger boards are harder to read on a phone, slower to simulate and dearer to build, and they add walking, not thinking.
+**Later chapters are deeper, not bigger.** Every level stays 2–3 screens wide (or two tall), at most ~700 grains, 3–5 stages, a hint of about 25–120 s (from the puzzle, never from empty floor to walk), and can be finished by simply walking. Bigger boards are harder to read on a phone, slower to simulate and dearer to build, and they add walking, not thinking.
 
 | Chapters | Levels | Pins | What each level asks | Win share (levels 1–3 / 4–10 of the chapter) | Lessons | Top lesson | Late losses |
 |---|---|---|---|---|---|---|---|
@@ -147,7 +147,7 @@ The audit's player is eager: after every pull it walks Nib on along the level, s
 4. **A tempting wrong pin** from level 4 on: the most obvious pull (the big tank over the danger, the pin nearest Nib) is a trap.
 5. **Every wrong order ends in a funny fail,** never a silent dead end where nothing happens.
 6. **Targets** (from the audit): win share at most 35% on levels 2–3 and at most 15% from level 4; at least 3 lessons on levels 2–3 and at least 4 from level 4; no lesson behind more than half the losses; at most 10% of orders stuck.
-7. **Kept from round 2:** 2–3 screens wide or two tall, 3–5 stages, 60–90 s, at most ~700 grains, every level can be finished with tap-to-go, washing a guard at most once per level, the boulder-in-a-drain plug only in levels 3, 5 and 10.
+7. **Kept from round 2:** 2–3 screens wide or two tall, 3–5 stages, 60–90 s, at most ~700 grains, every level can be finished by simply walking, washing a guard at most once per level, the boulder-in-a-drain plug only in levels 3, 5 and 10.
 
 **Tricks and where they live**
 
@@ -195,9 +195,9 @@ The audit's player is eager: after every pull it walks Nib on along the level, s
 | **Pin** | Plain pins, pins that block pins | **The gate pin:** tap it again to push it back in. Puzzles ask *how much* as well as *which first*: cut the water once the lava is stone, share one tank between two jobs, switch a pour from one channel to another |
 | **Puzzle types** | Which order; where Nib waits | **How much** (gates), **which way** (one-way ledges, so plan the route before walking it), **build it** (pour your own floor), **ferry it** (rafts across lava) |
 
-**Gate pins and tap-to-go.** A gate's right moment is always shown by the board, never a stopwatch: "when the moat is stone", "when the basin's lip is wet". The window is at least about 1.5 s wide, and the hint says when to tap. A gate can't be pushed back into Nib, a guard or a body.
+**Gate pins and simple walking.** A gate's right moment is always shown by the board, never a stopwatch: "when the moat is stone", "when the basin's lip is wet". The window is at least about 1.5 s wide, and the hint says when to tap. A gate can't be pushed back into Nib, a guard or a body.
 
-**Rules** (round 3's rules carry over: stages depend on each other, at most one gate holding only Nib, a tempting wrong pin from level 4, every wrong order ends in a funny fail, the audit targets, 2–3 screens, 3–5 stages, 60–90 s, at most ~700 grains, tap-to-go):
+**Rules** (round 3's rules carry over: stages depend on each other, at most one gate holding only Nib, a tempting wrong pin from level 4, every wrong order ends in a funny fail, the audit targets, 2–3 screens, 3–5 stages, 60–90 s, at most ~700 grains, simple walking):
 
 1. A Chapter 2 level's signature is one of this chapter's ideas; Chapter 1's tricks may appear only as a supporting stage, at most one per level.
 2. Washing a guard with water at most twice per level (salamanders need water, so once is too few for this chapter), and never twice the same way.

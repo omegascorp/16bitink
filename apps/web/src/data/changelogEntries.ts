@@ -283,6 +283,15 @@ export const GAME_ENTRIES: Readonly<Record<string, readonly ChangelogEntry[]>> =
   ],
   inkpin: [
     {
+      date: "2026-11-11",
+      title: "Thumbstick and zoom",
+      changes: [
+        "Added a thumbstick for phones in the lower-left corner: push it to walk Nib, or up and down to climb a vine. The round button still jumps.",
+        "You can zoom now: pinch, or use the + and − buttons (ctrl + wheel or the + − keys on a computer). Zoom out to see a whole level, or in to see the details.",
+        "Removed tap-to-go: tapping the floor no longer sends Nib walking, so a missed pin tap can't move him by mistake.",
+      ],
+    },
+    {
       date: "2026-11-01",
       title: "InkPin launches",
       changes: [

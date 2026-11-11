@@ -22,7 +22,7 @@ Runners-up: **InkHeist**, which has no conflicts but is darker in tone, and **In
 
 ## Pillars
 
-1. **Pins first.** Every level is a pin puzzle, from the first minute to the last. You also move Nib, but movement is part of the puzzle (where Nib waits, what he stands on), never a reflex test: every level can be finished with tap-to-go, and harder movement only leads to bonus gold. The movement rules are in [inkpin-levels.md](inkpin-levels.md#how-movement-fits-in).
+1. **Pins first.** Every level is a pin puzzle, from the first minute to the last. You also move Nib, but movement is part of the puzzle (where Nib waits, what he stands on), never a reflex test: every level can be finished by simply walking (no precise jumps or timing), and harder movement only leads to bonus gold. The movement rules are in [inkpin-levels.md](inkpin-levels.md#how-movement-fits-in).
 2. **Real flow, same every time.** Everything that pours or falls is simulated, with a fixed step and no randomness. A level always plays out the same on every device, so a loss comes from your order and timing, never from luck.
 3. **Order and amount.** The ad puzzles only ask which pin comes first. Ours also ask how much. Gate pins can be pushed back in to cut a flow mid-pour, so "just enough water to cool the lava without washing the gold away" is a puzzle.
 4. **Read it, then pull.** Each level fits on one screen (the tall levels scroll), and every material always does the same thing. A careful player can solve it in their head first, and the "first try" blot rewards that.
@@ -36,11 +36,12 @@ Nib found the **Ink Atlas**, an old explorer's map of five lost ruins, each with
 
 The hero is **Nib**, a raccoon who explores ruins. Raccoons love shiny things, and they're happy in water. Nib wears a red headband, an olive field vest with a strap across it and a leather backpack with a coil of rope on top, and carries a lamp. The name is a pen nib.
 
-**You move Nib** (changed Oct 27, 2026; Nib used to walk by itself as in the ads). Nib can go back and forth and jump, so levels can ask Nib to wait on a ledge while lava passes, fetch something and come back, or sweep a room for gold. The prototype has two control schemes to compare:
-- **Tap to go:** tap the floor and Nib walks there and stops; tap Nib to jump.
-- **Joystick:** arrow keys (or A/D) and Space to jump on a keyboard; on a phone, drag anywhere off the pins to walk, and a round button jumps.
+**You move Nib** (changed Oct 27, 2026; Nib used to walk by itself as in the ads). Nib can go back and forth and jump, so levels can ask Nib to wait on a ledge while lava passes, fetch something and come back, or sweep a room for gold. Controls (changed Nov 11, 2026; the prototype also had tap-to-go, tap the floor and Nib walks there, which was removed):
+- **Keyboard:** arrow keys (or A/D) walk, ↑ ↓ climb a vine, Space jumps.
+- **Phone:** a thumbstick in the lower-left corner walks Nib (pushed up or down by a vine, it climbs), and a round button in the lower-right jumps. Dragging the board elsewhere looks around.
+- **Zoom:** pinch, ctrl + wheel, the + − keys or the + − buttons under restart. Out as far as the whole level, in up to 2.5× the level's fit; kept for a restart of the same level.
 
-A switch under the level's goal flips between them and remembers the choice. The jump is about 55 px: it clears a lip or a small gap, never a pit wall.
+The jump is about 55 px: it clears a lip or a small gap, never a pit wall.
 
 **When a level fails, Nib is funny, not hurt.** Nib jumps out of its fur, the backpack and lamp go flying, and coins spill out of the pack. Nib's eyes go huge and googly, with a mark for the cause: soot and smoke after lava, Blot-ink splats and a tongue out after a Blot, tears after the gold melts, dizzy spirals when stuck. The camera zooms in on Nib so the face reads even on a phone.
 

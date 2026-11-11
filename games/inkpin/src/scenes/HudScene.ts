@@ -1,26 +1,30 @@
 import Phaser from 'phaser';
 import { INK, PAPER, RED } from '../art/palette';
 import type { SoundBoard } from '../audio/sfx';
-import { hudTake, isDesktop, readControls, type ControlMode } from './controls';
+import { STICK } from '../logic/stick';
+import { STICK_REST, type StickHold } from './boardInput';
+import { hudTake, isDesktop } from './controls';
 import { HEARTS, type HudState, type LevelInfo, type Result } from './GameScene';
 import { chapterPlace } from './chapters';
 import { DPR, screenSize } from './hidpi';
 import { lossText } from './lossLines';
+import { ThumbStick } from './thumbStick';
 import { getHost, trackOffer } from '../host';
 import type { GuardAnimal } from '../logic/level';
 
 const FONT = 'Caveat';
 /** Hearts' size in the bar (the texture is painted at twice its size). */
 const HEART_SCALE = 0.44;
-const TIPS: Record<ControlMode, string> = {
-  tap: 'Tap a pin to pull it. Tap the floor to send Nib there, tap Nib to jump.',
-  stick: 'Tap a pin to pull it. Drag anywhere to walk Nib; jump with the button (keyboard: arrows and Space).',
-};
-/** How to play with a keyboard and mouse: shown on the first level, as there's no controls chip on a computer. */
-const DESKTOP_TIP = 'Click a pin to pull it. Walk Nib with ← → (or click the floor), Space to jump, ↑ ↓ to climb.';
+/** How to play on a touch screen: shown on the first level, and on levels without a tip of their own. */
+const TOUCH_TIP = 'Tap a pin to pull it. Walk Nib with the stick, jump with the button. Pinch to zoom.';
+/** How to play with a keyboard and mouse. */
+const DESKTOP_TIP = 'Click a pin to pull it. Walk Nib with ← →, Space to jump, ↑ ↓ to climb, + − to zoom.';
 /** The volcano's first tip, for its levels that have none of their own: its gates and ledges are new. */
 const VOLCANO_TIP = 'Striped gate pins go back in: tap one again to push it home. Ledges crumble once Nib steps off them.';
-const CONTROL_LABEL: Record<ControlMode, string> = { tap: 'Move: tap to go  ⇄', stick: 'Move: joystick  ⇄' };
+/** The touch controls' row: the stick's and the jump button's middles sit this far above the screen's bottom (CSS px). */
+const CONTROLS_UP = 130;
+/** The zoom buttons' radius. */
+const ZOOM_R = 18;
 
 /** The interface over the board: the level's name and goal, the coin count, buttons, and the result card. */
 export class HudScene extends Phaser.Scene {
@@ -35,11 +39,12 @@ export class HudScene extends Phaser.Scene {
   private lastCount = '';
   private chestIcon!: Phaser.GameObjects.Image;
   private chestTick!: Phaser.GameObjects.Text;
-  private controlChip!: Phaser.GameObjects.Text;
-  private controls: ControlMode = 'tap';
-  private stickBase!: Phaser.GameObjects.Graphics;
-  private stickKnob!: Phaser.GameObjects.Graphics;
+  /** The last press was a finger (or this is a phone): the stick and the jump button show. */
+  private touch = false;
+  private stick!: ThumbStick;
   private jumpButton!: Phaser.GameObjects.Container;
+  private zoomIn!: Phaser.GameObjects.Container;
+  private zoomOut!: Phaser.GameObjects.Container;
   /** Shown once the goal is met: Nib may leave now or stay for the rest of the gold. */
   private leaveButton!: Phaser.GameObjects.Text;
   private goalShown = false;
@@ -70,28 +75,22 @@ export class HudScene extends Phaser.Scene {
     this.chestIcon = this.add.image(0, 0, 'chest-closed').setScale(0.24);
     this.hearts = Array.from({ length: HEARTS }, () => this.add.image(0, 0, 'heart').setScale(HEART_SCALE));
     this.chestTick = text(26, '#2f7a3a').setText('✓').setOrigin(0.5).setVisible(false);
-    this.controls = readControls();
-    // On a computer the keyboard and a click both move Nib, so there's no mode to choose.
-    this.controlChip = text(18, INK, false).setText(CONTROL_LABEL[this.controls]).setBackgroundColor('rgba(255,250,240,0.85)').setPadding(10, 3, 10, 3).setVisible(!isDesktop());
-    this.controlChip.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
-      hudTake(p);
-      this.sfx.unlock();
-      this.sfx.play('tap');
-      this.controls = this.controls === 'tap' ? 'stick' : 'tap';
-      this.controlChip.setText(CONTROL_LABEL[this.controls]);
+    this.touch = !isDesktop();
+    // Whichever was pressed last, a finger or the mouse, decides whether the touch controls show.
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      if (p.wasTouch === this.touch) return;
+      this.touch = p.wasTouch;
       this.tip.setText(this.firstTip());
-      this.game.events.emit('cmd:controls', this.controls);
       this.layout();
     });
-    this.stickBase = this.add.graphics().setVisible(false);
-    this.stickBase.fillStyle(0xfffaf0, 0.55).fillCircle(0, 0, 50).lineStyle(2.5, 0x26316a, 0.7).strokeCircle(0, 0, 50);
-    this.stickKnob = this.add.graphics().setVisible(false);
-    this.stickKnob.fillStyle(0x26316a, 0.8).fillCircle(0, 0, 20);
-    this.tip = text(22, INK, false).setText(TIPS[this.controls]).setOrigin(0.5, 1).setAlpha(0.92);
+    this.stick = new ThumbStick(this);
+    this.tip = text(22, INK, false).setText(this.firstTip()).setOrigin(0.5, 1).setAlpha(0.92);
     // A paper label, so it reads over the rock.
     this.tip.setBackgroundColor('rgba(255,250,240,0.85)').setPadding(12, 4, 12, 4);
-    // A jump button for touch screens in joystick mode (keyboards have Space).
+    // A jump button for touch screens (keyboards have Space).
     this.jumpButton = this.button('⤒', () => this.game.events.emit('cmd:jump'), 34);
+    this.zoomIn = this.button('+', () => this.game.events.emit('cmd:zoom', 1), ZOOM_R);
+    this.zoomOut = this.button('−', () => this.game.events.emit('cmd:zoom', -1), ZOOM_R);
     this.leaveButton = text(26, PAPER).setOrigin(0.5).setBackgroundColor('#2f7a3a').setPadding(18, 6, 18, 6).setVisible(false);
     this.leaveButton.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
       hudTake(p);
@@ -119,9 +118,8 @@ export class HudScene extends Phaser.Scene {
     this.game.events.on('hud:reset', this.onReset, this);
     this.game.events.on('hud:rewind', this.onRewind, this);
     this.game.events.on('hud:note', this.onNote, this);
-    this.game.events.on('stick:show', this.stickShow, this);
-    this.game.events.on('stick:move', this.stickMove, this);
-    this.game.events.on('stick:hide', this.stickHide, this);
+    this.game.events.on('hud:zoom', this.onZoom, this);
+    this.game.events.on('stick:hold', this.onStick, this);
     const info = this.registry.get('levelInfo') as LevelInfo | undefined;
     if (info) this.onReset(info);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -131,9 +129,9 @@ export class HudScene extends Phaser.Scene {
       this.game.events.off('hud:reset', this.onReset, this);
       this.game.events.off('hud:rewind', this.onRewind, this);
       this.game.events.off('hud:note', this.onNote, this);
-      this.game.events.off('stick:show', this.stickShow, this);
-      this.game.events.off('stick:move', this.stickMove, this);
-      this.game.events.off('stick:hide', this.stickHide, this);
+      this.game.events.off('hud:zoom', this.onZoom, this);
+      this.game.events.off('stick:hold', this.onStick, this);
+      this.registry.set(STICK_REST, null);
     });
   }
 
@@ -176,19 +174,26 @@ export class HudScene extends Phaser.Scene {
     // The hearts, left of the chest (or of the coins, on a Loot level).
     const heartsRight = (this.chestIcon.visible ? chestX - 26 : countRight - this.count.width - 34) - 4;
     this.hearts.forEach((h, i) => h.setPosition(heartsRight - (HEARTS - 1 - i) * 27, countY));
-    this.controlChip.setPosition(x, narrow ? 76 : 86).setFontSize(narrow ? 16 : 18);
-    // The way back to the map sits beside the controls chip; on phones, under it.
-    const navY = narrow ? 108 : 86;
-    const besideChip = this.controlChip.visible ? this.controlChip.width + 10 : 0;
-    this.mapChip.setPosition(narrow ? x : x + besideChip, this.controlChip.visible ? navY - 2 : 84).setFontSize(narrow ? 19 : 22);
+    this.mapChip.setPosition(x, narrow ? 76 : 84).setFontSize(narrow ? 19 : 22);
     this.levelLabel.setPosition(this.mapChip.x + this.mapChip.width + 6, this.mapChip.y + 2).setFontSize(narrow ? 16 : 18);
-    const touch = this.sys.game.device.input.touch;
-    this.jumpButton.setPosition(width - 52, height - 130).setVisible(touch && this.controls === 'stick');
-    // Centred, but clear of the jump button in the bottom-right corner.
+    // Zoom: a column under the restart button (on phones, under the coin count too).
+    const zoomY = narrow ? 122 : 90;
+    this.zoomIn.setPosition(right - 24, zoomY);
+    this.zoomOut.setPosition(right - 24, zoomY + ZOOM_R * 2 + 10);
+    this.zoomIn.setVisible(!this.card);
+    this.zoomOut.setVisible(!this.card);
+    // The touch controls: the stick in the lower-left corner, the jump button in the lower-right.
+    const controls = this.touch && !this.card;
+    const rowY = height - CONTROLS_UP;
+    this.stick.place(24 + STICK.radius, rowY);
+    this.stick.setVisible(controls);
+    this.registry.set(STICK_REST, controls ? this.stick.restAt : null);
+    this.jumpButton.setPosition(width - 52, rowY).setVisible(controls);
+    // The tip along the bottom, and the way out above it: both lifted over the touch controls while they show.
+    const tipBottom = controls ? rowY - STICK.radius - 10 : height - 10;
+    this.tip.setPosition(width / 2, tipBottom).setFontSize(narrow ? 19 : 22).setWordWrapWidth(width - 24).setAlign('center');
     this.leaveButton.setFontSize(narrow ? 24 : 26);
-    const leaveRoom = this.jumpButton.visible ? width - 104 : width;
-    this.leaveButton.setPosition(Math.min(width / 2, leaveRoom - this.leaveButton.width / 2 - 8), height - (narrow ? 96 : 70));
-    this.tip.setPosition(width / 2, height - 10).setFontSize(narrow ? 19 : 22).setWordWrapWidth(width - 24).setAlign('center');
+    this.leaveButton.setPosition(width / 2, tipBottom - (narrow ? 86 : 60));
     if (this.card) this.card.setPosition(width / 2, this.cardY(this.card.getData('h') as number));
   }
 
@@ -261,13 +266,14 @@ export class HudScene extends Phaser.Scene {
     this.lastCount = '';
     this.chestTick.setVisible(false);
     this.chestIcon.setTexture('chest-closed');
-    this.stickHide();
+    this.onStick(null);
+    this.layout();
   }
 
   /** The level's own tip, else the volcano's, else how to play; the first level leads with how to play. */
   private firstTip(): string {
     const level = this.info?.level;
-    const howTo = isDesktop() ? DESKTOP_TIP : TIPS[this.controls];
+    const howTo = this.touch ? TOUCH_TIP : DESKTOP_TIP;
     if (this.info?.index === 0) return level?.tip ? `${howTo}\n${level.tip}` : howTo;
     return level?.tip ?? (level?.ruin === 'volcano' ? VOLCANO_TIP : howTo);
   }
@@ -303,18 +309,14 @@ export class HudScene extends Phaser.Scene {
     this.tweens.add({ targets: this.tip, alpha: 0, delay: 5000, duration: 600, onComplete: () => this.tip.setVisible(false) });
   }
 
-  private stickShow(at: { x: number; y: number }): void {
-    this.stickBase.setPosition(at.x, at.y).setVisible(true);
-    this.stickKnob.setPosition(at.x, at.y).setVisible(true);
+  private onStick(hold: StickHold | null): void {
+    this.stick.update(hold);
   }
 
-  private stickMove(m: { dx: number }): void {
-    this.stickKnob.setX(this.stickBase.x + m.dx);
-  }
-
-  private stickHide(): void {
-    this.stickBase.setVisible(false);
-    this.stickKnob.setVisible(false);
+  /** How much further the camera zooms each way: a button at its limit fades. */
+  private onZoom(z: { in: boolean; out: boolean }): void {
+    this.zoomIn.setAlpha(z.in ? 1 : 0.35);
+    this.zoomOut.setAlpha(z.out ? 1 : 0.35);
   }
 
   private showResult(r: Result): void {
@@ -390,6 +392,8 @@ export class HudScene extends Phaser.Scene {
     // In the upper part of the screen: the camera has zoomed in on Nib below it.
     this.card = this.add.container(width / 2, this.cardY(h), parts).setScale(0.7).setAlpha(0);
     this.card.setData('h', h);
+    // The level is over: the stick, the jump and the zoom buttons go.
+    this.layout();
     this.tweens.add({ targets: this.card, scale: 1, alpha: 1, duration: 260, ease: 'Back.out' });
   }
 }

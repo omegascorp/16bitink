@@ -1,32 +1,11 @@
 import type Phaser from 'phaser';
 
-/** How the player moves Nib: tap the floor to send Nib there, or walk with a joystick / arrow keys. */
-export type ControlMode = 'tap' | 'stick';
-const CONTROLS_KEY = 'inkpin.controls';
-
-/** A computer with a mouse: Nib walks by keyboard or a click, and there's no joystick to choose. */
+/** A computer with a mouse: Nib walks by keyboard, and the thumbstick stays hidden until a touch. */
 export function isDesktop(): boolean {
   try {
     return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
   } catch {
     return false;
-  }
-}
-
-export function readControls(): ControlMode {
-  if (isDesktop()) return 'tap';
-  try {
-    return window.localStorage.getItem(CONTROLS_KEY) === 'stick' ? 'stick' : 'tap';
-  } catch {
-    return 'tap';
-  }
-}
-
-export function saveControls(mode: ControlMode): void {
-  try {
-    window.localStorage.setItem(CONTROLS_KEY, mode);
-  } catch {
-    // Storage blocked: the choice lasts for this visit.
   }
 }
 
