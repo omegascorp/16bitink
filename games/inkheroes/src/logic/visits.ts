@@ -1,5 +1,5 @@
 import { STABLES_MP, tilesOf } from './map';
-import { itemLine, ourHeroes, type Adventure } from './adventure';
+import { itemLine, ourHeroes, toldPrompt, type Adventure } from './adventure';
 import type { MapDef } from '../level/types';
 import { mapById } from '../level/maps';
 import { chestPiece } from './loot';
@@ -7,7 +7,7 @@ import { lairWords, lairName } from './lairs';
 import { noRoomWords } from './lying';
 import { gainedXp, maxMana } from './hero';
 import { gainItem, hasSpellbook, itemSays, ITEMS, QUALITY_NAMES } from './items';
-import { bankName, CHEST_XP, LEARNING_XP, MINE_NAMES, MINE_OUTPUT, ONCE_PER_HERO, type MapObject } from './objects';
+import { bankKind, bankName, CHEST_XP, LEARNING_XP, MINE_NAMES, MINE_OUTPUT, ONCE_PER_HERO, type MapObject } from './objects';
 import { creature } from './creatures';
 import { dwellingName, dwellingStock } from './dwellings';
 import { addTo, RESOURCES } from './resources';
@@ -133,15 +133,17 @@ function visitDwelling(adv: Adventure, o: MapObject): VisitResult {
 /** A treasure keep, its guard beaten: its prize, once (a piece the bag has no room for waits inside for the hero to come back). */
 function lootKeep(adv: Adventure, o: MapObject): VisitResult {
   const name = bankName(o);
-  if (o.looted) return { adv: message(adv, name, `The ${o.look === 'mastaba' ? 'tomb' : 'keep'} stands empty: its treasure is gone.`), notes: [] };
+  if (o.looted) return { adv: message(adv, name, `The ${bankKind(o)} stands empty: its treasure is gone.`), notes: [] };
   const prize = o.prize ?? {};
   const got = RESOURCES.filter((r) => (prize[r] ?? 0) > 0).map((r) => `+${prize[r]} ${r}`);
   const piece = o.item ? gainItem(adv.hero, o.item) : null;
-  const lines = [got.length ? 'Behind the broken doors lies what its guards kept.' : 'The keep is bare but for one thing.', ...got];
-  if (o.item && piece) lines.push(`${ITEMS[o.item].name}: ${itemLine(o.item)}`, piece.worn ? `${adv.hero.name} puts it on.` : piece.kept ? 'It goes in the bag.' : 'The bag is full, so it stays in the keep: make room and come back for it.');
+  const lines = [got.length ? 'Behind the broken doors lies what its guards kept.' : `The ${bankKind(o)} is bare but for one thing.`, ...got];
+  if (o.item && piece) lines.push(`${ITEMS[o.item].name}: ${itemLine(o.item)}`, piece.worn ? `${adv.hero.name} puts it on.` : piece.kept ? 'It goes in the bag.' : `The bag is full, so it stays in the ${bankKind(o)}: make room and come back for it.`);
   const keeps = !!piece && !piece.kept;
   const next = setObj({ ...adv, purse: addTo(adv.purse, prize), hero: piece?.kept ? piece.hero : adv.hero }, o.id, keeps ? { prize: {} } : { prize: {}, looted: true });
-  return { adv: { ...next, prompts: [...next.prompts, { kind: 'message', title: name, text: lines.join('\n'), ...(o.item ? { item: o.item } : {}) }] }, notes: got };
+  // A keep with a line of its own (Angantyr's barrow: Tyrfing) has it told as it is opened.
+  const told = o.line ? [toldPrompt(o.line)] : [];
+  return { adv: { ...next, prompts: [...next.prompts, ...told, { kind: 'message', title: name, text: lines.join('\n'), ...(o.item ? { item: o.item } : {}) }] }, notes: got };
 }
 
 function siteTitle(o: MapObject): string {

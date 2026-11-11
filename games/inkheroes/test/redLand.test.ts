@@ -307,7 +307,7 @@ describe('the end of chapter 2', () => {
     const one = chapterEnd(chapterById('borderMarch'), adv, true, () => false);
     expect(one).toMatchObject({ title: 'Chapter 1 complete', next: { id: 'twoLands' } });
     expect(one.body.join(' ')).toMatch(/Chapter 2, The Two Lands, crosses to Egypt.*It is part of the full game\./);
-    expect(CHAPTERS.map((c) => c.ending)).toEqual(['chapter-won', 'twoLands-won', undefined]);
+    expect(CHAPTERS.map((c) => c.ending)).toEqual(['chapter-won', 'twoLands-won', 'longWinter-won']);
   });
 
   it('keeps its other parts as they were', () => {

@@ -51,6 +51,8 @@ export const GUNNHILD: HeroDef = {
 
 /** The chapter's villains: never offered at the player's Taverns. */
 export const NORSE_VILLAINS: readonly string[] = [EIRIK.id, GUNNHILD.id];
+/** The chapter's own heroes, ours by the story: never offered at a lord's Taverns (Gunnhild's), hired or not. */
+export const NORSE_CAMPAIGN: readonly string[] = [HERVOR.id, HEID.id];
 
 export const NORSE_ROSTER: readonly HeroDef[] = [
   HERVOR,

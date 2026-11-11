@@ -16,6 +16,14 @@ export type Goal =
   /** Town `target` taken and the map's rival lord beaten, in either order. */
   | { readonly kind: 'overthrow'; readonly target: string; readonly text: string };
 
+/** A picture on the map that is nothing to visit (src/scenes/map/pixelMapArt.ts has the same shape): its id, its art's name, its feet's tile. */
+export interface MapLandmark {
+  readonly id: string;
+  readonly art: string;
+  readonly x: number;
+  readonly y: number;
+}
+
 /** A hand-made campaign map. */
 export interface MapDef {
   readonly id: string;
@@ -32,6 +40,8 @@ export interface MapDef {
   /** Rows of tile characters (see TILE_CHARS). */
   readonly rows: readonly string[];
   readonly objects: readonly MapObject[];
+  /** Pictures that stand on the map and are nothing to visit (Uppsala's temple): feet on tile (x, y), drawn by `art` (src/scenes/map/pixelMapArt.ts). The ground under them is blocked by the map's own tiles. */
+  readonly landmarks?: readonly MapLandmark[];
   readonly town: {
     readonly id: string;
     readonly name: string;
@@ -79,6 +89,19 @@ export interface MapDef {
     readonly heroes?: number;
     /** What his heroes start wearing, by hero id (his own and those his Taverns hire), at no cost to his balance: their four stats are lowered by what it adds (src/logic/lord/kit.ts). */
     readonly kit?: Readonly<Record<string, Gear>>;
+    /** A lord's town whose garrison stays behind its walls: his heroes never take it along (Avaldsnes's huscarls), so storming it is a siege while he rides. */
+    readonly holds?: string;
+    /**
+     * A lord's captains out of the story, riding with him from the part's
+     * start (Eirik, fled north to Gunnhild): played fresh, always; ridden on,
+     * only one the part before left alive (beaten in the field and fled, in
+     * its rival's `fallen`; not gone with his banner). Never hired at a Tavern.
+     */
+    readonly captains?: readonly HeroDef[];
+    /** What the narrator tells the first time a captain of his is seen (`captains`' first: Eirik's return). */
+    readonly captainLine?: LineId;
+    /** What the narrator tells the first time the lord himself is seen (Eirik's, Gunnhild's). */
+    readonly line?: LineId;
   };
   readonly purse: Amount;
   /** What the Crown sends when the chapter rides on into this part (a part played straight on from the one before keeps its purse). */

@@ -47,6 +47,29 @@ import siteTownKemetRed from './map/site-town-kemet-red.png?url';
 import siteTownLykosoura from './map/site-town-lykosoura.png?url';
 import siteTownAvaris from './map/site-town-avaris.png?url';
 import siteTownNorse from './map/site-town-norse.png?url';
+import siteNorseUppsalaTemple from './map/site-norse-uppsalaTemple.png?url';
+import siteNorseAltar from './map/site-norse-altar.png?url';
+import siteNorseRuneShrine from './map/site-norse-runeShrine.png?url';
+import siteNorseBarrow from './map/site-norse-barrow.png?url';
+import siteNorseMimirWell from './map/site-norse-mimirWell.png?url';
+import siteNorseAngantyr from './map/site-norse-angantyr.png?url';
+import siteNorseTreasureBarrow from './map/site-norse-treasureBarrow.png?url';
+import siteNorseBoarPen from './map/site-norse-boarPen.png?url';
+import siteNorseDragonHoard from './map/site-norse-dragonHoard.png?url';
+import siteNorseMineGold from './map/site-norse-mine-gold.png?url';
+import siteNorseMineWood from './map/site-norse-mine-wood.png?url';
+import siteNorseMineOre from './map/site-norse-mine-ore.png?url';
+import siteNorseMineGems from './map/site-norse-mine-gems.png?url';
+import siteNorseMineMercury from './map/site-norse-mine-mercury.png?url';
+import siteNorseMineSulfur from './map/site-norse-mine-sulfur.png?url';
+import siteNorseMineCrystal from './map/site-norse-mine-crystal.png?url';
+import siteNorseStables from './map/site-norse-stables.png?url';
+import siteNorseMercCamp from './map/site-norse-mercCamp.png?url';
+import siteNorseWatchtower from './map/site-norse-watchtower.png?url';
+import siteNorseWindmill from './map/site-norse-windmill.png?url';
+import siteNorseStandingStone from './map/site-norse-standingStone.png?url';
+import siteNorseLearningStone from './map/site-norse-learningStone.png?url';
+import siteNorseArena from './map/site-norse-arena.png?url';
 import vignetteAshford from './map/vignette-ashford.png?url';
 import vignetteThornwood from './map/vignette-thornwood.png?url';
 import vignetteBlackBanner from './map/vignette-blackBanner.png?url';
@@ -73,8 +96,12 @@ import mountain0 from './map/mountain-0.png?url';
 import mountain1 from './map/mountain-1.png?url';
 import mountain2 from './map/mountain-2.png?url';
 import mountain3 from './map/mountain-3.png?url';
+import mountain4 from './map/mountain-4.png?url';
+import mountain5 from './map/mountain-5.png?url';
 import peak0 from './map/peak-0.png?url';
 import peak1 from './map/peak-1.png?url';
+import peak2 from './map/peak-2.png?url';
+import peak3 from './map/peak-3.png?url';
 import rock0 from './map/rock-0.png?url';
 import bridge0 from './map/bridge-0.png?url';
 
@@ -136,6 +163,33 @@ export const MAP_SITES: Readonly<Partial<Record<SiteArt, MapSprite>>> = {
   'pile-gems': { url: sitePileGems, w: 33, h: 25, footX: 16, footY: 24 },
 };
 
+/** Chapter 3's (Norse) sites, standing on snow: the Norse maps' own altar, shrine and barrow lair, and part 4's sites (see siteSpriteOf in src/scenes/map/pixelMapArt.ts). */
+export const NORSE_SITES: Readonly<Record<string, MapSprite>> = {
+  'uppsalaTemple': { url: siteNorseUppsalaTemple, w: 139, h: 122, footX: 69, footY: 121 },
+  'altar': { url: siteNorseAltar, w: 62, h: 84, footX: 31, footY: 83 },
+  'runeShrine': { url: siteNorseRuneShrine, w: 64, h: 75, footX: 32, footY: 74 },
+  'barrow': { url: siteNorseBarrow, w: 89, h: 63, footX: 44, footY: 62 },
+  'mimirWell': { url: siteNorseMimirWell, w: 89, h: 94, footX: 44, footY: 93 },
+  'angantyr': { url: siteNorseAngantyr, w: 104, h: 90, footX: 52, footY: 89 },
+  'treasureBarrow': { url: siteNorseTreasureBarrow, w: 80, h: 68, footX: 40, footY: 67 },
+  'boarPen': { url: siteNorseBoarPen, w: 88, h: 76, footX: 44, footY: 75 },
+  'dragonHoard': { url: siteNorseDragonHoard, w: 95, h: 89, footX: 47, footY: 88 },
+  'mine-gold': { url: siteNorseMineGold, w: 110, h: 83, footX: 55, footY: 82 },
+  'mine-wood': { url: siteNorseMineWood, w: 92, h: 83, footX: 46, footY: 82 },
+  'mine-ore': { url: siteNorseMineOre, w: 106, h: 89, footX: 53, footY: 88 },
+  'mine-gems': { url: siteNorseMineGems, w: 88, h: 83, footX: 44, footY: 82 },
+  'mine-mercury': { url: siteNorseMineMercury, w: 79, h: 82, footX: 39, footY: 81 },
+  'mine-sulfur': { url: siteNorseMineSulfur, w: 76, h: 83, footX: 38, footY: 82 },
+  'mine-crystal': { url: siteNorseMineCrystal, w: 88, h: 80, footX: 44, footY: 79 },
+  'stables': { url: siteNorseStables, w: 108, h: 93, footX: 54, footY: 92 },
+  'mercCamp': { url: siteNorseMercCamp, w: 103, h: 79, footX: 51, footY: 78 },
+  'watchtower': { url: siteNorseWatchtower, w: 74, h: 122, footX: 37, footY: 121 },
+  'windmill': { url: siteNorseWindmill, w: 89, h: 122, footX: 44, footY: 121 },
+  'standingStone': { url: siteNorseStandingStone, w: 72, h: 99, footX: 36, footY: 98 },
+  'learningStone': { url: siteNorseLearningStone, w: 61, h: 63, footX: 30, footY: 62 },
+  'arena': { url: siteNorseArena, w: 75, h: 61, footX: 37, footY: 60 },
+};
+
 /** Egypt's walled town (sandstone, pylons, an obelisk), drawn whole: it does not grow with the buildings as the Greek town does. */
 export const KEMET_TOWN: MapSprite = { url: siteTownKemet, w: 188, h: 116, footX: 94, footY: 115 };
 
@@ -193,10 +247,14 @@ export const MAP_COVER: Readonly<Record<MapCover, readonly MapSprite[]>> = {
     { url: mountain1, w: 130, h: 95, footX: 65, footY: 94 },
     { url: mountain2, w: 134, h: 60, footX: 67, footY: 59 },
     { url: mountain3, w: 131, h: 86, footX: 65, footY: 85 },
+    { url: mountain4, w: 131, h: 95, footX: 65, footY: 94 },
+    { url: mountain5, w: 132, h: 95, footX: 66, footY: 94 },
   ],
   peak: [
     { url: peak0, w: 87, h: 80, footX: 43, footY: 79 },
     { url: peak1, w: 87, h: 75, footX: 43, footY: 74 },
+    { url: peak2, w: 87, h: 78, footX: 43, footY: 77 },
+    { url: peak3, w: 87, h: 75, footX: 43, footY: 74 },
   ],
   rock: [
     { url: rock0, w: 58, h: 38, footX: 29, footY: 37 },

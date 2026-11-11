@@ -19,8 +19,6 @@ const STAND_INS: Readonly<Partial<Record<CreatureId, CreatureId>>> = {
   shieldmaiden: 'spearman', hunter: 'bowman', berserker: 'jackal', dwarf: 'swordsman', warBoar: 'boar', valkyrie: 'lancer', dragon: 'griffin',
   // The north's neutrals: the nearest drawn kind.
   wolfWinter: 'wolf', draugr: 'skeleton', troll: 'ogre', barrowKing: 'mummy', frostGiant: 'gigas', skoll: 'lion',
-  // The battering rams: drawn as the catapults until theirs land.
-  ram: 'catapult', ram2: 'catapult2', ram3: 'catapult3',
 };
 
 /** The drawn creature `id` borrows its art from (its line's stand-in at the same level), if it has none of its own. */

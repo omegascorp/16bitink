@@ -415,6 +415,15 @@ import hunter5FootAttack from './units/hunter5Foot-attack.png?url';
 import hunter3FootIdle from './units/hunter3Foot-idle.png?url';
 import hunter3FootWalk from './units/hunter3Foot-walk.png?url';
 import hunter3FootAttack from './units/hunter3Foot-attack.png?url';
+import ramIdle from './units/ram-idle.png?url';
+import ramWalk from './units/ram-walk.png?url';
+import ramAttack from './units/ram-attack.png?url';
+import ram2Idle from './units/ram2-idle.png?url';
+import ram2Walk from './units/ram2-walk.png?url';
+import ram2Attack from './units/ram2-attack.png?url';
+import ram3Idle from './units/ram3-idle.png?url';
+import ram3Walk from './units/ram3-walk.png?url';
+import ram3Attack from './units/ram3-attack.png?url';
 import hero_playerIdle from './units/hero_player-idle.png?url';
 import hero_playerWalk from './units/hero_player-walk.png?url';
 import hero_playerAttack from './units/hero_player-attack.png?url';
@@ -1416,6 +1425,24 @@ export const UNIT_ART: Readonly<Record<string, UnitArt>> = {
     shotFrom: { x: 68, y: 42 },
     face: { x: 40, y: 33 },
     url: { idle: hunter3FootIdle, walk: hunter3FootWalk, attack: hunter3FootAttack },
+  },
+  ram: {
+    name: "Ram", w: 96, h: 96, footX: 45, footY: 90,
+    frames: { idle: 1, walk: 1, attack: 8 }, strike: 3,
+    face: { x: 48, y: 56 },
+    url: { idle: ramIdle, walk: ramWalk, attack: ramAttack },
+  },
+  ram2: {
+    name: "Iron Ram", w: 128, h: 96, footX: 42, footY: 90,
+    frames: { idle: 1, walk: 1, attack: 8 }, strike: 3,
+    face: { x: 48, y: 56 },
+    url: { idle: ram2Idle, walk: ram2Walk, attack: ram2Attack },
+  },
+  ram3: {
+    name: "Ram of the Sea-Kings", w: 128, h: 96, footX: 44, footY: 90,
+    frames: { idle: 1, walk: 1, attack: 8 }, strike: 3,
+    face: { x: 48, y: 56 },
+    url: { idle: ram3Idle, walk: ram3Walk, attack: ram3Attack },
   },
 };
 

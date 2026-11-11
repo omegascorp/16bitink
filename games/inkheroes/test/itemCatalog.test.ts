@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { lootFaction, pickPiece } from '../src/logic/loot';
 import { CATALOG_SETS, ITEMS, itemDef, type GearStat, type ItemDef, type Quality } from '../src/logic/items';
 import { CROWN_ITEMS, CROWN_SETS } from '../src/logic/itemCatalog/crown';
 import { KEMET_ITEMS, KEMET_SETS } from '../src/logic/itemCatalog/kemet';
+import { NORSE_ITEMS, NORSE_SETS } from '../src/logic/itemCatalog/norse';
 
 const ARMOR = ['helm', 'cuirass', 'bracers', 'belt', 'greaves', 'boots'];
 const PERKS: GearStat[] = ['sight', 'gold', 'travel'];
@@ -9,6 +11,7 @@ const GRADES: Quality[] = ['gray', 'green', 'blue', 'purple'];
 const FACTIONS = [
   { faction: 'crown', items: CROWN_ITEMS as Record<string, ItemDef>, sets: CROWN_SETS },
   { faction: 'kemet', items: KEMET_ITEMS as Record<string, ItemDef>, sets: KEMET_SETS },
+  { faction: 'norse', items: NORSE_ITEMS as Record<string, ItemDef>, sets: NORSE_SETS },
 ] as const;
 
 const stats = (d: ItemDef): [GearStat, number][] => Object.entries(d.gives) as [GearStat, number][];
@@ -103,17 +106,35 @@ describe('item catalog', () => {
     });
   }
 
-  it('has unique ids and names across both catalogs and items.ts', () => {
-    const all = [...Object.keys(CROWN_ITEMS), ...Object.keys(KEMET_ITEMS)];
+  it('has unique ids and names across all three catalogs and items.ts', () => {
+    const all = [...Object.keys(CROWN_ITEMS), ...Object.keys(KEMET_ITEMS), ...Object.keys(NORSE_ITEMS)];
     expect(new Set(all).size).toBe(all.length);
     const names = Object.values(ITEMS).map((i) => i.name);
     expect(new Set(names).size).toBe(names.length);
-    expect([...Object.values(CROWN_ITEMS), ...Object.values(KEMET_ITEMS)].every((i) => i.name.length <= 24)).toBe(true);
+    expect([...Object.values(CROWN_ITEMS), ...Object.values(KEMET_ITEMS), ...Object.values(NORSE_ITEMS)].every((i) => i.name.length <= 24)).toBe(true);
   });
 
   it('lists every set once in CATALOG_SETS, with unique ids', () => {
-    expect(CATALOG_SETS).toHaveLength(16);
-    expect(new Set(CATALOG_SETS.map((s) => s.id)).size).toBe(16);
+    expect(CATALOG_SETS).toHaveLength(24);
+    expect(new Set(CATALOG_SETS.map((s) => s.id)).size).toBe(24);
     expect(itemDef('corinthianHelm').set).toBe('corinthian');
+  });
+
+  it('gives the Norse a gray fighter set of six, Hladir’s drops, and Tyrfing as the Legendary prize', () => {
+    const hide = Object.entries(ITEMS).filter(([, d]) => (d as ItemDef).set === 'hide');
+    expect(hide.map(([, d]) => d.slot).sort()).toEqual([...ARMOR].sort());
+    expect(hide.every(([, d]) => d.quality === 'gray' && (d as ItemDef).faction === 'norse' && points(d as ItemDef) === 1)).toBe(true);
+    expect(Object.values(ITEMS).filter((d) => (d as ItemDef).set === 'volva')).toHaveLength(6);
+    expect(itemDef('tyrfing')).toMatchObject({ slot: 'weapon', quality: 'gold' });
+    expect(Object.keys(NORSE_ITEMS)).not.toContain('tyrfing');
+  });
+
+  it('drops Norse pieces on a Norse hero’s map, never Tyrfing', () => {
+    expect(lootFaction({ hero: { faction: 'norse' } } as Parameters<typeof lootFaction>[0])).toBe('norse');
+    for (const grade of GRADES) for (let i = 0; i < 40; i++) {
+      const id = pickPiece('norse', grade, i % 3 === 0, i / 40, []);
+      expect(id && itemDef(id).faction, `${grade} ${i}`).toBe('norse');
+      expect(id).not.toBe('tyrfing');
+    }
   });
 });

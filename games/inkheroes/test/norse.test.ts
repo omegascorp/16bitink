@@ -440,9 +440,9 @@ describe('the Norse heroes', () => {
 });
 
 describe("chapter 3's skeleton", () => {
-  it('is a paid chapter of its own, parts 9 to 12, its own save slot, part 1 (Hladir) built', () => {
+  it('is a paid chapter of its own, parts 9 to 12, its own save slot, all four parts built (Hladir, Uppsala, the Bloodaxe, Halogaland)', () => {
     const c = chapterById('longWinter');
-    expect(c).toMatchObject({ n: 3, name: 'The Long Winter', first: 9, last: 12, paid: true, slot: 'longWinter', parts: [{ id: 'hladir', n: 9, name: 'Hladir' }] });
+    expect(c).toMatchObject({ n: 3, name: 'The Long Winter', first: 9, last: 12, paid: true, slot: 'longWinter', parts: [{ id: 'hladir', n: 9, name: 'Hladir' }, { id: 'uppsala', n: 10, name: 'Uppsala' }, { id: 'bloodaxe', n: 11, name: 'The Bloodaxe' }, { id: 'halogaland', n: 12, name: 'Halogaland' }] });
     expect(comingSoon(c)).toBe(false);
     expect(comingSoon(chapterById('twoLands'))).toBe(false);
     expect(c.planned!.map((p) => p.name)).toEqual(['Hladir', 'Uppsala', 'The Bloodaxe', 'Halogaland']);

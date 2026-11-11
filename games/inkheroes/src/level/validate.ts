@@ -16,7 +16,7 @@ import { rosterHero } from '../logic/roster';
 import { RESOURCES, type Amount, type Resource } from '../logic/resources';
 import { isSkillId, type Rank, type Skills } from '../logic/skills';
 import { isSpellId, type SpellId } from '../logic/spells';
-import { isLineId } from '../narration/lines';
+import { isLineId, type LineId } from '../narration/lines';
 import { CHAPTERS, MAPS } from './maps';
 import type { Goal, HeroDef, MapDef } from './types';
 
@@ -171,6 +171,10 @@ function object(v: unknown, g: { w: number; h: number }): MapObject {
     if (!BANK_LOOKS.includes(v.look as BankLook)) throw new Error('bad keep');
     o.look = v.look;
     if (v.prize !== undefined) o.prize = amount(v.prize, 'prize');
+    if (v.line !== undefined) {
+      if (!isLineId(v.line)) throw new Error('bad keep line');
+      o.line = v.line;
+    }
   }
   if (kind === 'lair') {
     if (!isCreatureId(v.creature) || !int(v.count, 1, MAX_COUNT) || !LAIR_LOOKS.includes(v.look as LairLook)) throw new Error('bad lair');
@@ -210,12 +214,19 @@ function rival(v: unknown, g: { w: number; h: number }): NonNullable<MapDef['riv
   if (v.headStart !== undefined && (typeof v.headStart !== 'number' || !(v.headStart >= 0 && v.headStart <= 1))) throw new Error('bad rival head start');
   if (v.heroes !== undefined && (!Number.isInteger(v.heroes) || !((v.heroes as number) >= 1 && (v.heroes as number) <= 8))) throw new Error('bad rival hero count');
   if (v.mind !== undefined && v.mind !== 'lord') throw new Error('bad rival mind');
+  if (v.holds !== undefined && (typeof v.holds !== 'string' || !/^[a-z0-9-]{1,40}$/.test(v.holds))) throw new Error('bad rival holds');
+  if (v.captains !== undefined && (!Array.isArray(v.captains) || v.captains.length > 3)) throw new Error('bad rival captains');
+  for (const k of ['line', 'captainLine'] as const) if (v[k] !== undefined && !isLineId(v[k])) throw new Error(`bad rival ${k}`);
   return {
     hero: hero(v.hero, g), build: ids<BuildingId>(v.build, 60, 'rival build', isBuildingId), purse: amount(v.purse, 'rival purse'),
     ...(v.headStart !== undefined ? { headStart: v.headStart as number } : {}),
     ...(v.heroes !== undefined ? { heroes: v.heroes as number } : {}),
     ...(v.mind !== undefined ? { mind: 'lord' as const } : {}),
     ...(v.kit !== undefined ? { kit: kit(v.kit) } : {}),
+    ...(v.holds !== undefined ? { holds: v.holds as string } : {}),
+    ...(v.captains !== undefined ? { captains: (v.captains as unknown[]).map((c) => hero(c, g)) } : {}),
+    ...(v.line !== undefined ? { line: v.line as LineId } : {}),
+    ...(v.captainLine !== undefined ? { captainLine: v.captainLine as LineId } : {}),
   };
 }
 
@@ -286,6 +297,12 @@ function map(v: unknown): MapDef {
     ...(v.story !== undefined ? { story: v.story } : {}),
     goal: goal(v.goal), parDays: v.parDays, rows,
     objects: list(v.objects, MAX_OBJECTS, 'objects', (o) => object(o, g)),
+    ...(v.landmarks !== undefined ? {
+      landmarks: list(v.landmarks, 20, 'landmarks', (l) => {
+        if (!isObj(l) || typeof l.id !== 'string' || !/^[a-z0-9-]{1,40}$/i.test(l.id) || typeof l.art !== 'string' || !/^[a-zA-Z0-9]{1,40}$/.test(l.art) || !int(l.x, 0, g.w - 1) || !int(l.y, 0, g.h - 1)) throw new Error('bad landmark');
+        return { id: l.id, art: l.art, x: l.x as number, y: l.y as number };
+      }),
+    } : {}),
     town: town(v.town, g, false),
     ...(v.towns !== undefined ? { towns: list(v.towns, MAX_TOWNS, 'towns', (t) => town(t, g, true) as NonNullable<MapDef['towns']>[number]) } : {}),
     hero: hero(v.hero, g),
@@ -299,7 +316,7 @@ function map(v: unknown): MapDef {
     off: ids<BuildingId>(v.off, 80, 'off', isBuildingId),
     seed: v.seed,
   };
-  const problems = [...lairProblems(out), ...kitProblems(out)];
+  const problems = [...lairProblems(out), ...kitProblems(out, out.rival ? [out.rival.hero, ...(out.rival.captains ?? [])] : [])];
   if (problems.length) throw new Error(problems[0]);
   return out;
 }

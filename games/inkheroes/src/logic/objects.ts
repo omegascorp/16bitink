@@ -26,18 +26,18 @@ export type ObjectKind =
   | 'sanctum';
 
 /** How an outer dwelling is drawn (a map sprite key of the same name; src/scenes/map/pixelMapArt.ts falls back while one isn't drawn). */
-export type DwellingLook = 'cyclopsCave' | 'griffinCliff' | 'titanForge' | 'crocodileMarsh' | 'lionRocks' | 'benbenHouse';
-export const DWELLING_LOOKS: readonly DwellingLook[] = ['cyclopsCave', 'griffinCliff', 'titanForge', 'crocodileMarsh', 'lionRocks', 'benbenHouse'];
-/** How a treasure keep is drawn: Othrys's ruined keep, or the Delta's mastaba (a tomb). */
-export type BankLook = 'keep' | 'mastaba';
-export const BANK_LOOKS: readonly BankLook[] = ['keep', 'mastaba'];
+export type DwellingLook = 'cyclopsCave' | 'griffinCliff' | 'titanForge' | 'crocodileMarsh' | 'lionRocks' | 'benbenHouse' | 'boarPen' | 'dragonHoard';
+export const DWELLING_LOOKS: readonly DwellingLook[] = ['cyclopsCave', 'griffinCliff', 'titanForge', 'crocodileMarsh', 'lionRocks', 'benbenHouse', 'boarPen', 'dragonHoard'];
+/** How a treasure keep is drawn: Othrys's ruined keep, the Delta's mastaba (a tomb), or Halogaland's barrows (a treasure barrow, Angantyr's). */
+export type BankLook = 'keep' | 'mastaba' | 'treasureBarrow' | 'angantyrBarrow';
+export const BANK_LOOKS: readonly BankLook[] = ['keep', 'mastaba', 'treasureBarrow', 'angantyrBarrow'];
 /** How a lair is drawn: a cave in a Greek hillside, or a half-buried Egyptian tomb (a map sprite key of the same name, src/scenes/map/pixelMapArt.ts falls back while one isn't drawn). */
 export type LairLook = 'den' | 'tomb';
 export const LAIR_LOOKS: readonly LairLook[] = ['den', 'tomb'];
 
 /** How a legendary site is drawn and named: Othrys's forge of the smith god, or the Delta's temple of the sun (a map sprite key of the same name, src/scenes/map/pixelMapArt.ts falls back while one isn't drawn). */
-export type SanctumLook = 'hephaestusForge' | 'raTemple';
-export const SANCTUM_LOOKS: readonly SanctumLook[] = ['hephaestusForge', 'raTemple'];
+export type SanctumLook = 'hephaestusForge' | 'raTemple' | 'mimirsWell';
+export const SANCTUM_LOOKS: readonly SanctumLook[] = ['hephaestusForge', 'raTemple', 'mimirsWell'];
 
 /** A thing on the map. Fields beyond kind/x/y depend on the kind. */
 export interface MapObject {
@@ -120,7 +120,7 @@ export const SITE_NAMES: Readonly<Record<ObjectKind, string>> = {
   arena: 'Arena of Heroes', sanctum: 'Legendary Site',
 };
 /** Each legendary site's name on the map. */
-export const SANCTUM_NAMES: Readonly<Record<SanctumLook, string>> = { hephaestusForge: 'Forge of Hephaestus', raTemple: 'Temple of Ra' };
+export const SANCTUM_NAMES: Readonly<Record<SanctumLook, string>> = { hephaestusForge: 'Forge of Hephaestus', raTemple: 'Temple of Ra', mimirsWell: 'Mimir’s Well' };
 /** Each lair's name on the map. */
 export const LAIR_NAMES: Readonly<Record<LairLook, string>> = { den: 'Den', tomb: 'Tomb' };
 
@@ -128,10 +128,13 @@ export const LAIR_NAMES: Readonly<Record<LairLook, string>> = { den: 'Den', tomb
 export const DWELLING_NAMES: Readonly<Record<DwellingLook, string>> = {
   cyclopsCave: 'Cyclops Cave', griffinCliff: 'Griffin Cliff', titanForge: 'The Titans’ Forge',
   crocodileMarsh: 'Crocodile Marsh', lionRocks: 'Lion Rocks', benbenHouse: 'The House of the Benben',
+  boarPen: 'Boar Pen', dragonHoard: 'Dragon’s Hoard',
 };
 /** Each treasure keep's name on the map. */
-export const BANK_NAMES: Readonly<Record<BankLook, string>> = { keep: 'Treasure Keep', mastaba: 'Mastaba' };
-export const bankName = (o: Pick<MapObject, 'look'>): string => BANK_NAMES[o.look === 'mastaba' ? 'mastaba' : 'keep'];
+export const BANK_NAMES: Readonly<Record<BankLook, string>> = { keep: 'Treasure Keep', mastaba: 'Mastaba', treasureBarrow: 'Treasure Barrow', angantyrBarrow: 'Angantyr’s Barrow' };
+export const bankName = (o: Pick<MapObject, 'look'>): string => BANK_NAMES[BANK_LOOKS.includes(o.look as BankLook) ? (o.look as BankLook) : 'keep'];
+/** What a treasure keep is, in a sentence's middle ("The barrow stands empty"). */
+export const bankKind = (o: Pick<MapObject, 'look'>): string => (o.look === 'mastaba' ? 'tomb' : o.look === 'treasureBarrow' || o.look === 'angantyrBarrow' ? 'barrow' : 'keep');
 
 /** Experience a learning stone gives (before Learning). */
 export const LEARNING_XP = 1000;

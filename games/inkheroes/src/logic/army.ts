@@ -26,6 +26,20 @@ export function slotFor(a: Army, id: CreatureId): number {
   return same >= 0 ? same : a.findIndex((s) => !s);
 }
 
+/**
+ * The army with its like stacks joined: each creature's count in the first
+ * slot that holds it, the slots that frees left empty. (Raising a stack to a
+ * level another stack already has leaves two of them; a player drags one onto
+ * the other, the AI joins them with this.) The same army when none repeat.
+ */
+export function joinLike(a: Army): Army {
+  const first = new Map<CreatureId, number>();
+  a.forEach((s, i) => { if (s && !first.has(s.creature)) first.set(s.creature, i); });
+  if (first.size === a.filter((s) => s).length) return a;
+  const total = (id: CreatureId): number => a.reduce((n, s) => n + (s?.creature === id ? s.count : 0), 0);
+  return a.map((s, i) => (s && first.get(s.creature) === i ? { creature: s.creature, count: total(s.creature) } : s ? null : s));
+}
+
 /** The army with `count` more of `id` (merged into its slot), or null when there's no room. */
 export function addTroops(a: Army, id: CreatureId, count: number): Army | null {
   const i = slotFor(a, id);

@@ -2,7 +2,8 @@ import type { MapDef } from '../../level/types';
 import {
   afterBattle, answerPrompt, battleSides, fieldOf, GATE, liveObjects, ourHeroes, planPath, playerTowns, RIVAL, rivalHeroes, stepHero, townById, withTown, type Adventure,
 } from '../adventure';
-import { addTroops, type Army } from '../army';
+import type { Army } from '../army';
+import { strongestTo } from './companies';
 import { playerSide, survivors } from '../battle';
 import type { BattleState } from '../battleTypes';
 import { hireAtDwelling } from '../dwellings';
@@ -202,7 +203,7 @@ function retreat(adv: Adventure, id: string, st: BattleState, refuge: { x: numbe
   return a;
 }
 
-/** A runner meets the main hero (or any hero of the side): every company of the weaker that fits joins the stronger, but his weakest. */
+/** A runner meets the main hero (or any hero of the side): the stronger takes the strongest companies of both, the weaker keeps the rest (gives). */
 function handOver(adv: Adventure, otherId: string): Adventure | null {
   const other = ourHeroes(adv).find((h) => h.id === otherId);
   if (!other) return null;
@@ -211,18 +212,10 @@ function handOver(adv: Adventure, otherId: string): Adventure | null {
   return r ? withHero(withHero(adv, { ...giver, army: r.from }), { ...taker, army: r.to }) : null;
 }
 
-/** `from`'s companies that fit into `to` (a like one, or a free slot), all but its weakest; null when none moves. */
+/** At a meeting, the stronger army takes the strongest companies of both (companies.ts), the weaker keeping the rest and at least one; null when nothing moves. */
 export function gives(from: Army, to: Army): { from: Army; to: Army } | null {
-  const order = from.map((s, i) => ({ s, i })).filter((x) => x.s).sort((x, y) => armyStrength([y.s]) - armyStrength([x.s]));
-  let a = from;
-  let b = to;
-  for (const { s, i } of order.slice(0, -1)) {
-    const next = addTroops(b, s!.creature, s!.count);
-    if (!next) continue;
-    b = next;
-    a = a.map((x, j) => (j === i ? null : x));
-  }
-  return b === to ? null : { from: a, to: b };
+  const r = strongestTo(to, from, true);
+  return r ? { from: r.other, to: r.lead } : null;
 }
 
 /** The cards a lord's day raises, answered as he would: gold from chests, the first skill offered, all a dwelling has to hire. */

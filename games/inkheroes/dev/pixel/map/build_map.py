@@ -58,6 +58,15 @@ SITES = {
     'campfire': ('sites/campfire.png', None),
     **{f'pile-{r}': (f'sites/pile-{r}.png', None) for r in ('gold', 'wood', 'ore', 'mercury', 'sulfur', 'crystal', 'gems')},
 }
+# Chapter 3's sites (create_image_pixen, standing on snow; the Norse maps' own looks and part 4's sites): art key -> source in norse/.
+NORSE_SITES = {
+    'uppsalaTemple': 'norse/temple.png', 'altar': 'norse/altar.png', 'runeShrine': 'norse/runeShrine.png', 'barrow': 'norse/barrow.png',
+    'mimirWell': 'norse/mimirWell.png', 'angantyr': 'norse/angantyr.png', 'treasureBarrow': 'norse/treasure.png',
+    'boarPen': 'norse/boarPen.png', 'dragonHoard': 'norse/hoard.png',
+    # Norse looks of the Greek sites (create_image_pixen on snow, same footprint as the originals); siteArtOf picks them on Norse maps.
+    **{f'mine-{r}': f'norse/mine-{r}.png' for r in ('gold', 'wood', 'ore', 'gems', 'mercury', 'sulfur', 'crystal')},
+    **{k: f'norse/{k}.png' for k in ('stables', 'mercCamp', 'watchtower', 'windmill', 'standingStone', 'learningStone', 'arena')},
+}
 # Sites drawn on a mound whose earth rim is cut off.
 MOUNDED = {art for art, (src, _) in SITES.items() if src.startswith('iso/') and art != 'town'}
 SOIL_MAX = 10
@@ -68,8 +77,9 @@ COVER = {
     'pine': ['cover/split/tree-2.png', 'cover/split/tree-4.png'],
     'olive': ['cover/split/small-2.png', 'cover/split/small-3.png', 'cover/split/small-4.png', 'cover/split/small-5.png'],
     # edit_image_pixen from mountain-b (range-a, b, c), then from range-a (the rest), to keep one rock style.
-    'mountain': ['cover/range-a.png', 'cover/range-b.png', 'cover/range-c.png', 'cover/range-f.png'],
-    'peak': ['cover/peak-c.png', 'cover/peak-d.png'],
+    # Entries 4-5 and 2-3 are the snow maps' own (edit_image_pixen of range-a/b and peak-c/d: blue-grey granite under snow); pixelMapWorld.ts picks them on snow and ice only.
+    'mountain': ['cover/range-a.png', 'cover/range-b.png', 'cover/range-c.png', 'cover/range-f.png', 'cover/range-snow-a.png', 'cover/range-snow-b.png'],
+    'peak': ['cover/peak-c.png', 'cover/peak-d.png', 'cover/peak-snow-c.png', 'cover/peak-snow-d.png'],
     'rock': ['cover/rock-a.png'],
     'bridge': ['cover/bridge.png'],
 }
@@ -153,6 +163,7 @@ def main() -> None:
     lykosoura = sprite('site-town-lykosoura', trimmed(HERE / 'sites/town-lykosoura.png'))
     avaris = sprite('site-town-avaris', trimmed(HERE / 'sites/town-avaris.png'))
     norse_town = sprite('site-town-norse', trimmed(HERE / 'sites/town-norse.png'))
+    norse_rows = [f"  '{art}': {sprite(f'site-norse-{art}', soil(trimmed(HERE / src)))}," for art, src in NORSE_SITES.items()]
     vignette_rows = []
     for v in VIGNETTES:
         Image.open(HERE / 'vignettes' / f'{v}.png').convert('RGBA').save(OUT / f'vignette-{v}.png')
@@ -186,6 +197,11 @@ export const MAP_GROUND: Readonly<Partial<Record<string, string>>> = {{
 /** Each site's sprite. Mines not drawn yet borrow the gold mine. */
 export const MAP_SITES: Readonly<Partial<Record<SiteArt, MapSprite>>> = {{
 {chr(10).join(site_rows)}
+}};
+
+/** Chapter 3's (Norse) sites, standing on snow: the Norse maps' own altar, shrine and barrow lair, and part 4's sites (see siteSpriteOf in src/scenes/map/pixelMapArt.ts). */
+export const NORSE_SITES: Readonly<Record<string, MapSprite>> = {{
+{chr(10).join(norse_rows)}
 }};
 
 /** Egypt's walled town (sandstone, pylons, an obelisk), drawn whole: it does not grow with the buildings as the Greek town does. */

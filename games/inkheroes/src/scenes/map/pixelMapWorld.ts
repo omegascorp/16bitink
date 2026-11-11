@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { MAP_COVER, TOWN_LOOKS } from '../../art/pixel/map';
+import { MAP_COVER, TOWN_LOOKS, type MapCover } from '../../art/pixel/map';
 import { BACKDROP } from '../../art/palette';
 import type { MapDef } from '../../level/types';
 import { gridOf, isSeen, liveObjects, ourHeroes, rivalHeroes, type Adventure } from '../../logic/adventure';
@@ -20,7 +20,7 @@ import type { BuildingId } from '../../logic/buildings';
 import type { TownFaction } from '../../logic/creatures';
 import { renderMapTown, type CityArt } from '../town/cityRender';
 import { TOWN_TEX } from '../town/townTex';
-import { MAP_TEX, peopleTownOf, siteArtOf, siteSprite } from './pixelMapArt';
+import { isNorseMap, landmarkSprite, landmarksOf, landmarkTiles, type MapLandmark, MAP_TEX, peopleTownOf, siteArtOf, siteSprite } from './pixelMapArt';
 import { composeFog, fogPieces, GROUND_BORDER, MAP_TILE, touchedPieces, type PixelRect } from './pixelGround';
 import { groundNow } from './groundPrep';
 import { Ride, RIDE_FPS } from './ride';
@@ -98,6 +98,27 @@ function drawMark(kind: 'dot' | 'ring' | 'cross', ink: Rgba): PixelBuffer {
   return b;
 }
 
+/** Mountain and peak pictures by ground: the first four mountains and two peaks stand on every ground but snow and ice (the red desert range among them); snow and ice get the blue-grey snowy ones. */
+const MOUNTAINS: Readonly<Partial<Record<MapCover, { readonly plain: number; readonly snowy: readonly number[] }>>> = {
+  mountain: { plain: 4, snowy: [3, 4, 5] },
+  peak: { plain: 2, snowy: [2, 3] },
+};
+
+/** Which sprite of a cover kind a placement takes. */
+/** The grid as its cover is drawn: a landmark's own tiles bare (the fells that block them stand under the picture, unseen). */
+function underLandmarks(g: ReturnType<typeof gridOf>, landmarks: readonly MapLandmark[]): ReturnType<typeof gridOf> {
+  if (!landmarks.length) return g;
+  const bare = new Set(landmarks.flatMap((l) => landmarkTiles(l).filter((t) => t.x >= 0 && t.y >= 0 && t.x < g.w && t.y < g.h).map((t) => t.x + t.y * g.w)));
+  return { ...g, cover: g.cover.map((c, i) => (bare.has(i) ? 'none' : c)) };
+}
+
+function coverPick(g: ReturnType<typeof gridOf>, p: { kind: MapCover; pick: number; x: number; y: number }, n: number): number {
+  const m = MOUNTAINS[p.kind];
+  if (!m) return p.pick % n;
+  const ground = g.terrain[Math.floor(p.x / MAP_TILE) + Math.floor((p.y - 1) / MAP_TILE) * g.w];
+  return ground === 'snow' || ground === 'ice' ? m.snowy[p.pick % m.snowy.length]! : p.pick % m.plain;
+}
+
 /**
  * Everything drawn on the adventure map, as pixel art on the battle's grid:
  * the composed ground, cover (forests, mountain ranges, boulders, the
@@ -136,14 +157,18 @@ export class PixelMapWorld {
   /** Each town's picture and the buildings it was drawn with (it is redrawn as the town grows). */
   private readonly townImgs = new Map<string, { img: Phaser.GameObjects.Image; built: string }>();
 
+  /** A Norse map's borrowed sites (altar, shrine, lair) wear the Norse looks. */
+  private readonly norse: boolean;
+
   constructor(private readonly scene: Phaser.Scene, private readonly def: MapDef, adv: Adventure) {
     this.layer = scene.add.layer();
-    const g = gridOf(def);
+    this.norse = isNorseMap(def);
+    const g = underLandmarks(gridOf(def), landmarksOf(def));
     this.drawGround();
     for (const p of coverPlacements(g, def.seed)) {
       const list = MAP_COVER[p.kind];
       if (!list.length) continue;
-      const i = p.pick % list.length;
+      const i = coverPick(g, p, list.length);
       const s = list[i]!;
       // The bridge lies flat under whoever crosses it.
       const depth = p.kind === 'bridge' ? FIGURE_DEPTH - 1 : FIGURE_DEPTH + p.y;
@@ -153,6 +178,7 @@ export class PixelMapWorld {
     }
     for (const t of adv.towns) this.addTown(t);
     for (const o of def.objects) this.addObject(o);
+    for (const l of landmarksOf(def)) this.addLandmark(l);
     this.picked = adv.hero.id;
     for (const h of ourHeroes(adv)) this.addHero(h);
     for (const r of rivalHeroes(adv)) this.addRival(r);
@@ -252,13 +278,22 @@ export class PixelMapWorld {
       this.addLyingItem(o);
       return;
     }
-    const art = siteArtOf(o);
+    const art = siteArtOf(o, this.norse);
     const s = art ? siteSprite(art) : null;
     if (!s) return;
     const img = this.place(s.key, s.sprite, feet.x, feet.y + 2, FIGURE_DEPTH + feet.y - 1);
     this.sprites.set(o.id, img);
     // Mines and outer dwellings fly their holder's flag.
     if (o.kind === 'mine' || o.kind === 'dwelling') this.addFlag(o.id, 'neutral', feet.x + Math.floor(s.sprite.w * 0.25), feet.y - s.sprite.h + 12, FIGURE_DEPTH + feet.y);
+  }
+
+  /** A landmark: a picture with its feet on the tile (the great temple), waiting in the fog until it is seen. */
+  private addLandmark(l: MapLandmark): void {
+    const s = landmarkSprite(l.art);
+    if (!s) return;
+    const feet = tileFeet(l.x, l.y);
+    const img = this.place(s.key, s.sprite, feet.x, feet.y + 2, FIGURE_DEPTH + feet.y - 1);
+    this.shrouded.push({ obj: img, x: l.x, y: l.y });
   }
 
   /** A piece of gear on the ground, in its own icon at half size, where the monster that left it stood. */

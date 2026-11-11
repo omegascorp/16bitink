@@ -75,12 +75,16 @@ export function feetOn(hexes: readonly Hex[]): { x: number; y: number } {
 
 /** Where a company stands on each tower (TOWERS' order): on its top, far above its hex. */
 export const TOWER_FEET: readonly { readonly x: number; readonly y: number }[] = [{ x: 858, y: 136 }, { x: 689, y: 10 }, { x: 709, y: 471 }];
+/** The Norse hall's company keeps watch from its loft, not a roof: the hall's high log end, far lower than the Greek keep's top. */
+export const TOWER_FEET_NORSE: readonly { readonly x: number; readonly y: number }[] = [{ x: 850, y: 226 }, ...TOWER_FEET.slice(1)];
+/** The feet of a castle's tower companies (TOWERS' order). */
+export const towerFeetOf = (castle: 'greek' | 'norse'): readonly { readonly x: number; readonly y: number }[] => (castle === 'norse' ? TOWER_FEET_NORSE : TOWER_FEET);
 /** How far round those feet a tap counts as a tap on the tower's company. */
 const TOWER_REACH = { x: 22, up: 56, down: 8 } as const;
 
 /** The tower whose company stands under a native point, or null. */
-export function towerAtPx(x: number, y: number): number | null {
-  const i = TOWER_FEET.findIndex((t) => Math.abs(x - t.x) <= TOWER_REACH.x && y >= t.y - TOWER_REACH.up && y <= t.y + TOWER_REACH.down);
+export function towerAtPx(x: number, y: number, feet: readonly { readonly x: number; readonly y: number }[] = TOWER_FEET): number | null {
+  const i = feet.findIndex((t) => Math.abs(x - t.x) <= TOWER_REACH.x && y >= t.y - TOWER_REACH.up && y <= t.y + TOWER_REACH.down);
   return i < 0 ? null : i;
 }
 

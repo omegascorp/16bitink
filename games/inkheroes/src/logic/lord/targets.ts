@@ -59,8 +59,8 @@ const SAMPLE = 3;
 const COMMIT = 2.5;
 /** A neutral town not yet seen is worth this share of one he could take. */
 const UNSEEN_TOWN = 0.5;
-/** The outer dwellings of a people's top unit (Othrys's Titans' forge, the Delta's House of the Benben): worth VALUE.forge, fought for a little bolder. */
-const FORGES: ReadonlySet<string> = new Set(['titanForge', 'benbenHouse']);
+/** The outer dwellings of a people's top unit (Othrys's Titans' forge, the Delta's House of the Benben, Halogaland's Dragon's Hoard): worth VALUE.forge, fought for a little bolder. */
+const FORGES: ReadonlySet<string> = new Set(['titanForge', 'benbenHouse', 'dragonHoard']);
 const isForge = (o: MapObject): boolean => o.kind === 'dwelling' && FORGES.has(o.look ?? '');
 
 export interface Ctx {
@@ -142,7 +142,8 @@ function siteValue(ctx: Ctx, h: Hero, o: MapObject, job: Job): number {
     case 'learningStone': return o.visitedBy?.includes(h.id) ? 0 : VALUE.learningStone;
     case 'mercCamp': case 'watchtower': case 'standingStone': return h.visited.includes(o.id) ? 0 : VALUE.site;
     case 'shrine': return h.visited.includes(o.id) || !hasSpellbook(h) ? 0 : VALUE.site;
-    case 'bank': return o.looted || job === 'runner' ? 0 : VALUE.keep;
+    // Opened already, its gold taken and only a piece left that his bag has no room for: nothing (it would stop his day there, every day).
+    case 'bank': return o.looted || job === 'runner' || (o.item && !roomFor(h, o.item) && !Object.values(o.prize ?? {}).some((n) => (n ?? 0) > 0)) ? 0 : VALUE.keep;
     // Training sites aren't in a lord's plans yet: he rides past them.
     case 'arena': case 'sanctum': return 0;
     case 'dwelling': {

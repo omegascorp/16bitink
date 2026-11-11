@@ -74,6 +74,11 @@ export function storyVillains(def: MapDef): Set<string> {
   return new Set([...parts.flatMap((m) => (m.rival ? [m.rival.hero.id] : [])), ...(chapter?.villains ?? [])]);
 }
 
+/** Whom a lord's Taverns never offer on `def`: its chapter's campaign heroes (static, so the balance runs see them too) and the captains the map gives him. */
+export function lordBarred(def: MapDef): Set<string> {
+  return new Set([...(chapterOf(def)?.heroes ?? []), ...(def.rival?.captains ?? []).map((h) => h.id)]);
+}
+
 /** A number for hero `id` at `town` in `week`, from the game's seed: the offer takes the lowest. */
 function offerRank(seed: number, week: number, townId: string, id: string): number {
   return [...`${townId}|${id}`].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0, (seed ^ Math.imul(week, 0x9e3779b1)) >>> 0);
@@ -89,6 +94,8 @@ function offerRank(seed: number, week: number, townId: string, id: string): numb
 export function weekOffer(adv: Adventure, def: MapDef, town: Pick<Town, 'id' | 'faction'>, side: TavernSide = 'player'): HeroDef[] {
   const taken = heroesInPlay(adv, def);
   if (side === 'player') for (const id of storyVillains(def)) taken.add(id);
+  // A lord never hires the chapter's own heroes (Heid, never hired by us), nor the captains its story brings him (Eirik).
+  if (side === 'lord') for (const id of lordBarred(def)) taken.add(id);
   const week = weekOf(adv.day);
   const ours = playerTowns(adv);
   const at = ours.findIndex((t) => t.id === town.id);

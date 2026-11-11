@@ -3,9 +3,9 @@ import { chestPiece, dropOf } from './loot';
 import { soldOn } from '../level/unlocks';
 import type { MapDef } from '../level/types';
 import {
-  calendar, checkGoal, dayOfWeek, DEFEND, fledHome, GATE, groundAt, stormOf, townGuards, guardAt, lordSide, heroInGarrison, incomeOf, liveObjects, lyingItem, ourHeroes, playerArmy, RIVAL, rivalHero, rivalHeroes, revealAround, terrainView, toldPrompt, townAt, withTown, type Adventure, type Prompt,
+  calendar, checkGoal, dayOfWeek, DEFEND, fledHome, GATE, groundAt, stormOf, townGuards, guardAt, lordSide, heroInGarrison, incomeOf, liveObjects, lyingItem, ourHeroes, playerArmy, RIVAL, rivalHero, rivalHeroes, rivalSighted, revealAround, terrainView, toldPrompt, townAt, withTown, type Adventure, type Prompt,
 } from './adventure';
-import { CHAPTER1 } from '../narration/lines';
+import { CHAPTER1, CHAPTER3 } from '../narration/lines';
 import { armyMorale, armyOf, isEmptyArmy, splitMonster, type Army } from './army';
 import { survivors, type BattleSide, type SiegeSetup } from './battle';
 import type { BattleState } from './battleTypes';
@@ -102,7 +102,8 @@ export function rivalTurn(adv: Adventure, def: MapDef): { adv: Adventure; report
 /** A lord's night (src/logic/lord): his whole side played as a player plays, a fight with us left for the player. */
 function lordTurn(adv: Adventure, def: MapDef): { adv: Adventure; report: RivalReport } {
   const r = playLord(adv, def, 'stop');
-  const after = r.fight ? { adv: r.adv, notes: [] } : sighted(r.adv, def);
+  const told = rivalSighted(raceLost(adv, r.adv), def);
+  const after = r.fight ? { adv: told, notes: [] } : sighted(told, def);
   const notes = [...r.notes, ...after.notes];
   return { adv: withNews(after.adv, def, notes, r.fight), report: { path: r.path, notes, ...(r.fight ? { fight: r.fight } : {}) } };
 }
@@ -145,6 +146,14 @@ export function headStart(adv: Adventure, def: MapDef): Adventure {
 function lostAlly(foe: Hero, town: Town): Prompt {
   if (town.id === CHAPTER1.eudora && foe.id === CHAPTER1.kassander) return toldPrompt('eudora-lost');
   return { kind: 'message', title: `${town.name} has fallen`, text: `${foe.name} reached ${town.name} before you, and it flies his banner now. Take it back from him!` };
+}
+
+/** Kaupang taken by Eirik before us (the race lost): told by the narrator, as Eudora was. */
+function raceLost(before: Adventure, after: Adventure): Adventure {
+  const was = before.towns.find((t) => t.id === CHAPTER3.kaupang);
+  const now = after.towns.find((t) => t.id === CHAPTER3.kaupang);
+  if (was?.owner !== 'neutral' || now?.owner !== 'rival' || after.rival?.hero?.id === undefined) return after;
+  return { ...after, prompts: [...after.prompts, toldPrompt('kaupang-lost')] };
 }
 
 /** The towns of the map both sides race for (`race` on the map's town): never handed over, fought for. */

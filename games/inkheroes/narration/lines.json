@@ -196,5 +196,140 @@
     "voice": "BNgbHR0DNeZixGQVzloa",
     "model": "eleven_v4",
     "recorded": null
+  },
+  {
+    "line": "part-uppsala",
+    "title": "Uppsala",
+    "text": "Over the mountains, the road runs down to Uppsala, where the old kings sleep in their mounds… but they sleep no longer! The mounds have opened, and the dead walk the snow. At the great temple, Barrow Kings hold the gate, and Aun the Old holds the steps. On the temple's altar lies a rune staff. Win it, and Hervor can carve the runes: Tyr's rune makes a company fiercer with every man it loses! Uppsala's ring fort still holds out… and Heid the volva is there. Take the staff, and free the temple!",
+    "script": "[grand, storytelling] Over the mountains, the road runs down to Uppsala, where the old kings sleep in their mounds… [ominous] but they sleep no longer! The mounds have opened, and the dead walk the snow. [grim] At the great temple, Barrow Kings hold the gate, and Aun the Old holds the steps. [intrigued] On the temple's altar lies a rune staff. Win it, and Hervor can carve the runes: Tyr's rune makes a company fiercer with every man it loses! [warm] Uppsala's ring fort still holds out… and Heid the volva is there. [resolute] Take the staff, and free the temple!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "uppsala-joins",
+    "title": "Uppsala opens its gates",
+    "text": "Uppsala's gates swing open, and its people come out to meet Hervor! In the hall sits Heid, the volva, her staff across her knees. She has read the winter in the bones and the stars… and it isn't the gods' doing at all! Someone is singing it. A song of sorcery, sung in the far north, night after night… Hire Heid at your Tavern, and she'll ride with you to find the singer.",
+    "script": "[relieved] Uppsala's gates swing open, and its people come out to meet Hervor! [mysterious] In the hall sits Heid, the volva, her staff across her knees. She has read the winter in the bones and the stars… [shocked] and it isn't the gods' doing at all! [ominous] Someone is singing it. A song of sorcery, sung in the far north, night after night… [resolute] Hire Heid at your Tavern, and she'll ride with you to find the singer.",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "aun",
+    "title": "Aun the Old",
+    "text": "There, on the temple's steps… Aun the Old! He gave Odin nine of his own sons, one every ten years, to buy himself more life… and even death couldn't make him let go. The dead of all three mounds stand with him. Carve a rune on your army first… then send them up those steps!",
+    "script": "[ominous] There, on the temple's steps… Aun the Old! [disgusted] He gave Odin nine of his own sons, one every ten years, to buy himself more life… [grim] and even death couldn't make him let go. [uneasy] The dead of all three mounds stand with him. [eager] Carve a rune on your army first… then send them up those steps!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "uppsala-won",
+    "title": "The temple is free",
+    "text": "Aun the Old falls, and the dead lie down in their mounds again! Smoke rises from the temple's fire for the first time in three winters… but a rider comes up the frozen road with bad news. At Avaldsnes, on the western sea, Eirik Bloodaxe has raised his banner: the king who killed his own brothers for the crown! The starving jarls kneel to him one by one… and he means to be king of the whole hungry land.",
+    "script": "[triumphant] Aun the Old falls, and the dead lie down in their mounds again! [solemn] Smoke rises from the temple's fire for the first time in three winters… [uneasy] but a rider comes up the frozen road with bad news. [grim] At Avaldsnes, on the western sea, Eirik Bloodaxe has raised his banner: the king who killed his own brothers for the crown! [urgent] The starving jarls kneel to him one by one… and he means to be king of the whole hungry land.",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "part-bloodaxe",
+    "title": "The Bloodaxe",
+    "text": "South over the fells, the land runs down to the western sea… and there, at Avaldsnes, Eirik Bloodaxe has raised his banner! The king who killed his own brothers for the crown. The starving jarls kneel to him one by one… On the frozen bay in the east lies Kaupang, the market town, with the last grain ships of the north. He wants them. Get there first… or you'll be fighting him for every sack of grain! His ring fort has walls of timber and earth… but a Norse army doesn't climb walls. It breaks the gate! Buy a Ram at Kaupang's Shipwright, take Avaldsnes… and bring the Bloodaxe down!",
+    "script": "[grand, storytelling] South over the fells, the land runs down to the western sea… [grim] and there, at Avaldsnes, Eirik Bloodaxe has raised his banner! The king who killed his own brothers for the crown. [ominous] The starving jarls kneel to him one by one… [urgent] On the frozen bay in the east lies Kaupang, the market town, with the last grain ships of the north. He wants them. Get there first… or you'll be fighting him for every sack of grain! [sly] His ring fort has walls of timber and earth… but a Norse army doesn't climb walls. It breaks the gate! [resolute] Buy a Ram at Kaupang's Shipwright, take Avaldsnes… and bring the Bloodaxe down!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "eirik",
+    "title": "Eirik Bloodaxe",
+    "text": "There, under a red banner… Eirik Bloodaxe himself! He carries his brothers' blood in his name, and he's proud of it. His shieldmaidens fight harder for him than for any jarl in the north… Good! Let them meet Hervor's!",
+    "script": "[ominous] There, under a red banner… Eirik Bloodaxe himself! [grim] He carries his brothers' blood in his name, and he's proud of it. [wry] His shieldmaidens fight harder for him than for any jarl in the north… [eager] Good! Let them meet Hervor's!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "kaupang-lost",
+    "title": "Kaupang has fallen",
+    "text": "Too late… Eirik's riders reached Kaupang first! His banner flies over the grain ships now, and the hungry jarls will follow the bread. Take it back from him!",
+    "script": "[dismayed] Too late… Eirik's riders reached Kaupang first! [bitter] His banner flies over the grain ships now, and the hungry jarls will follow the bread. [determined] Take it back from him!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "eirik-flees",
+    "title": "Eirik flees",
+    "text": "The Bloodaxe turns his horse and runs! He's left his whole army in the snow… but he'll hire another at Avaldsnes. Take his ring fort, and he'll have nowhere left to run.",
+    "script": "[scornful] The Bloodaxe turns his horse and runs! [wry] He's left his whole army in the snow… [warning] but he'll hire another at Avaldsnes. Take his ring fort, and he'll have nowhere left to run.",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "bloodaxe-won",
+    "title": "The Bloodaxe flees north",
+    "text": "Avaldsnes falls, and Eirik's banner comes down over the western sea! Kaupang's grain ships sail for the steadings, and the north eats tonight… but the Bloodaxe isn't dead. He has fled north, to the far north where the sun no longer rises, to his queen: Gunnhild, Mother of Kings. And at night, from beyond the mountains, Heid hears her singing… Hervor rides north to Halogaland, to end the song!",
+    "script": "[triumphant] Avaldsnes falls, and Eirik's banner comes down over the western sea! [joyful] Kaupang's grain ships sail for the steadings, and the north eats tonight… [uneasy] but the Bloodaxe isn't dead. [grim] He has fled north, to the far north where the sun no longer rises, to his queen: Gunnhild, Mother of Kings. [ominous] And at night, from beyond the mountains, Heid hears her singing… [resolute] Hervor rides north to Halogaland, to end the song!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "part-halogaland",
+    "title": "Halogaland",
+    "text": "North of the fjords lies Halogaland, where the sun no longer rises… Only the northern lights burn over the snow, green and cold. And every night, from Bjarkoy and Steigen, a woman's voice carries over the ice. Gunnhild, Mother of Kings, is singing the winter! She learned her seidr from the Sami in the far north, and the jarls kneel to her husband because they're starving. At Mimir's Well, at a root of the world tree, the wolf Skoll waits… and while the song holds, he is closing on the sun. Two towns stand between her and the coast. Take them first… then take Bjarkoy and Steigen, and stop the song!",
+    "script": "[grand, storytelling] North of the fjords lies Halogaland, where the sun no longer rises… [awed] Only the northern lights burn over the snow, green and cold. [ominous] And every night, from Bjarkoy and Steigen, a woman's voice carries over the ice. Gunnhild, Mother of Kings, is singing the winter! [grim] She learned her seidr from the Sami in the far north, and the jarls kneel to her husband because they're starving. [uneasy] At Mimir's Well, at a root of the world tree, the wolf Skoll waits… and while the song holds, he is closing on the sun. [resolute] Two towns stand between her and the coast. Take them first… then take Bjarkoy and Steigen, and stop the song!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "gunnhild",
+    "title": "Gunnhild",
+    "text": "There, in a cloak of black feathers… Gunnhild herself! The snow goes quiet where she walks, and her runes turn a shield arm to ice. She doesn't need to win the fight… only to keep singing. Then don't give her time to finish the verse!",
+    "script": "[ominous] There, in a cloak of black feathers… Gunnhild herself! [awed] The snow goes quiet where she walks, and her runes turn a shield arm to ice. [wry] She doesn't need to win the fight… only to keep singing. [resolute] Then don't give her time to finish the verse!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "eirik-returns",
+    "title": "The Bloodaxe rides again",
+    "text": "Look, under the red banner again… Eirik Bloodaxe! He ran all the way north to his queen, and she gave him a new army. He fights for her now, and he fights hard: he has nowhere else to run. Good. This time, there's no Avaldsnes to flee to!",
+    "script": "[surprised] Look, under the red banner again… Eirik Bloodaxe! [scornful] He ran all the way north to his queen, and she gave him a new army. [grim] He fights for her now, and he fights hard: he has nowhere else to run. [eager] Good. This time, there's no Avaldsnes to flee to!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "skoll",
+    "title": "Skoll",
+    "text": "There, by the well at the world tree's root… Skoll, the wolf who hunts the sun! He's bigger than a longship, and every winter night he gets a little closer to it. Mimir's Well lies behind him. Its water gave Odin his wisdom, for the price of an eye… Beat the wolf, and the well will make your best warriors into legends!",
+    "script": "[awed] There, by the well at the world tree's root… Skoll, the wolf who hunts the sun! [ominous] He's bigger than a longship, and every winter night he gets a little closer to it. [intrigued] Mimir's Well lies behind him. Its water gave Odin his wisdom, for the price of an eye… [eager] Beat the wolf, and the well will make your best warriors into legends!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "tyrfing",
+    "title": "Tyrfing",
+    "text": "In the barrow's dark, across Angantyr's knees… Tyrfing! The sword the dwarves forged for a king, and cursed: it never misses, and every time it's drawn, it must kill. It was Hervor's father's sword. Now it's hers… and its curse with it. Let the curse fall on Gunnhild!",
+    "script": "[hushed, awed] In the barrow's dark, across Angantyr's knees… Tyrfing! [solemn] The sword the dwarves forged for a king, and cursed: it never misses, and every time it's drawn, it must kill. [warm] It was Hervor's father's sword. Now it's hers… [grim] and its curse with it. [resolute] Let the curse fall on Gunnhild!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
+  },
+  {
+    "line": "longWinter-won",
+    "title": "The sun rises",
+    "text": "Gunnhild falls, and in the middle of a verse… her song stops! For a moment the whole north holds its breath. Then, far away, Skoll lifts his head… he's lost the sun's scent! And over the fjord, for the first time in three winters, the sun comes up! The ice groans and cracks, the longships rock free, and on every steading roof the snow begins to drip. From Hladir to Halogaland, the north sings a new song now… and it's Hervor's!",
+    "script": "[triumphant] Gunnhild falls, and in the middle of a verse… her song stops! [hushed, awed] For a moment the whole north holds its breath. [relieved] Then, far away, Skoll lifts his head… he's lost the sun's scent! [joyful] And over the fjord, for the first time in three winters, the sun comes up! [warm] The ice groans and cracks, the longships rock free, and on every steading roof the snow begins to drip. [proud] From Hladir to Halogaland, the north sings a new song now… and it's Hervor's!",
+    "voice": "BNgbHR0DNeZixGQVzloa",
+    "model": "eleven_v4",
+    "recorded": null
   }
 ]

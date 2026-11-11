@@ -1,21 +1,25 @@
 import { lairOfGroup } from '../src/logic/loot';
 import type { MapDef } from '../src/level/types';
 import {
-  afterBattle, answerPrompt, battleSides, buyMachine, cantBuyMachine, dayOfWeek, endDay, heroTown, heroVisiting, liveObjects, monsterArmy, planPath, playerTowns, rivalAt, rivalHero, startAdventure, stepHero, withTown, type Adventure,
+  afterBattle, answerPrompt, battleSides, buyMachine, fieldOf, cantBuyMachine, dayOfWeek, endDay, garrisonHero, heroInGarrison, heroTown, leadOut, heroVisiting, liveObjects, monsterArmy, planPath, playerTowns, rivalAt, rivalHero, rivalHeroes, startAdventure, stepHero, withTown, type Adventure,
 } from '../src/logic/adventure';
 import { rideOn } from '../src/logic/chapter';
 import { soldOn } from '../src/level/unlocks';
 import type { PathStep } from '../src/logic/path';
-import { armyStrength, autoBattle, rivalTurn } from '../src/logic/rival';
+import { armyStrength, rivalTurn } from '../src/logic/rival';
 import { build, cantBuild, hireAll, suggestBuilding } from '../src/logic/town';
 import type { MapObject } from '../src/logic/objects';
 import { armyOf, moveAll } from '../src/logic/army';
 import { dailyMp } from '../src/logic/hero';
-import { hasAsGood } from '../src/logic/items';
+import { bagRoom, hasAsGood, hasSpellbook } from '../src/logic/items';
 import { tilesOf } from '../src/logic/map';
 import { canAfford } from '../src/logic/resources';
 import { has } from '../src/logic/town';
 import { creature, type CreatureId } from '../src/logic/creatures';
+import { act, activeStack, createBattle } from '../src/logic/battle';
+import { chooseAction } from '../src/logic/battleAi';
+import type { BattleState } from '../src/logic/battleTypes';
+import type { SpellId } from '../src/logic/spells';
 
 /**
  * A simple player for balancing a part on the real rules (the chapter-1
@@ -25,7 +29,7 @@ import { creature, type CreatureId } from '../src/logic/creatures';
  * monsters it is at least `edge` times stronger than), comes home at the
  * start of a week to hire, and takes on the goal once it is `bossEdge` times
  * stronger. Every fight is played out by the battle AI on both sides
- * (`autoBattle`), so the bot casts no spells: a person should lose less.
+ * (as `autoBattle` does), so the bot casts no spells unless `casts`: a person should lose less.
  */
 
 export interface Fight {
@@ -35,6 +39,8 @@ export interface Fight {
   readonly before: number;
   readonly after: number;
   readonly won: boolean;
+  /** The spells the hero cast in it, in order (only with `casts`). */
+  readonly cast: readonly SpellId[];
 }
 
 export interface BotRun {
@@ -71,6 +77,8 @@ export interface BotOptions {
   readonly wise?: boolean;
   /** Sees the adventure each morning, after the rival's night (for probes). */
   readonly morning?: (adv: Adventure) => void;
+  /** The hero casts in battle as Auto does (battleCasts.ts), once they have a spellbook: a part whose lesson is magic (Uppsala's runes) is balanced so. Left out, the hero casts nothing, as the older tables were measured. */
+  readonly casts?: boolean;
 }
 
 /** What a monster's army is worth (a boss's brood counts too). */
@@ -139,6 +147,8 @@ function worth(adv: Adventure, def: MapDef, o: MapObject, edge: number, bossEdge
   if (o.kind === 'mine') return o.owner !== 'player';
   // A lair is a door, never visited: only its groups are fought. Training sites aren't part of the plan either.
   if (o.kind === 'windmill' || o.kind === 'stables' || o.kind === 'item' || o.kind === 'lair' || o.kind === 'arena' || o.kind === 'sanctum') return false;
+  // A shrine is copied into a spellbook: without one there is nothing to ride there for.
+  if (o.kind === 'shrine' && !hasSpellbook(adv.hero)) return false;
   if (['mercCamp', 'watchtower', 'standingStone', 'shrine', 'spellbook'].includes(o.kind)) return !adv.hero.visited.includes(o.id);
   return true;
 }
@@ -192,6 +202,8 @@ function inHisReach(adv: Adventure, tile: { x: number; y: number }): boolean {
 /** A town of ours with a Blacksmith (Egypt's Workshop) selling a machine better than the hero's, and the way there. */
 function toBetterMachine(adv: Adventure, def: MapDef): PathStep[] | null {
   if (!soldOn(def.n).some((m) => !hasAsGood(adv.hero, m) && canAfford(adv.purse, creature(m).cost))) return null;
+  // A machine it would replace goes to the bag: with the bag full it can't buy, so it doesn't ride there (it rode there and back each day in Halogaland, Nov 11).
+  if (adv.hero.gear?.machine && !bagRoom(adv.hero)) return null;
   let best: PathStep[] | null = null;
   for (const t of playerTowns(adv).filter((x) => has(x, 'blacksmith'))) {
     if (heroTown(adv)?.id === t.id) return null;
@@ -240,10 +252,14 @@ function pickTargetAnywhere(adv: Adventure, def: MapDef, edge: number, bossEdge:
     // Straight for the goal once strong enough (a town of ours the rival took first, and the rival himself once his town is ours); until then, home to hire whatever the day.
     const ours = armyStrength(adv.hero.army);
     const lost = wise ? adv.towns.find((t) => t.owner === 'rival' && t.id !== def.goal.target && townStrength(adv, t.id) * edge <= ours) : undefined;
-    const goal = lost ?? adv.towns.find((t) => t.id === def.goal.target && t.owner !== 'player') ?? liveObjects(adv).find((o) => o.id === def.goal.target);
     // A wise bot rides at the rival's town while he is out and far from it (he comes home to defend it from 12 tiles).
     const away = (t: { x: number; y: number }): boolean => !!foe && Math.max(Math.abs(foe.x - t.x), Math.abs(foe.y - t.y)) > 12;
     const held = (t: Adventure['towns'][number]): number => (wise && away(t) ? armyStrength(t.garrison) : townStrength(adv, t.id));
+    const capital = adv.towns.find((t) => t.id === def.goal.target && t.owner !== 'player');
+    // Strong enough for his capital, a wise bot rides there before a lesser town he took back (Halogaland, Nov 11: retaking Gunnhild's empty-town raids, it never reached Bjarkoy).
+    // Only against a lord with captains, who raid the empty towns (Eirik rode alone in the Bloodaxe: its tables stand).
+    const forCapital = wise && !!lost && !!capital && rivalHeroes(adv).length > 1 && held(capital) * bossEdge <= ours;
+    const goal = (forCapital ? undefined : lost) ?? capital ?? liveObjects(adv).find((o) => o.id === def.goal.target);
     const strong = goal && ('built' in goal ? held(goal) * (goal === lost ? edge : bossEdge) : monsterStrength(goal) * bossEdge) <= ours;
     const hunt = wise && !goal && foe && armyStrength(foe.army) * bossEdge <= ours ? planPath(adv, def, foe.x, foe.y) : null;
     // Strong enough for a town's walls: first the best machine a Workshop of ours sells (coordinator, Nov 8).
@@ -291,7 +307,7 @@ function ride(adv: Adventure, def: MapDef, path: readonly PathStep[], fights: Fi
     moved = true;
     if (r.battle) {
       if (r.battle === def.goal.target) opts.beforeGoal?.(a);
-      a = fightOut(a, def, r.battle, fights, r.then);
+      a = fightOut(a, def, r.battle, fights, opts, r.then);
     }
     if (r.town) a = hireHome(a, def, opts.machine ?? true, opts.wise);
     if (r.stop) break;
@@ -299,26 +315,42 @@ function ride(adv: Adventure, def: MapDef, path: readonly PathStep[], fights: Fi
   return { adv: a, moved };
 }
 
-/** Plays out fight `id` by the battle AI on both sides (at walls a siege, war machines and all), and records it. */
-function fightOut(adv: Adventure, def: MapDef, id: string, fights: Fight[], then?: string): Adventure {
+/** A fight the battle AI plays out on both sides (as autoBattle does), with the spells side `me` casts on the way. */
+function playOut(setup: ReturnType<typeof battleSides>, casts: readonly [boolean, boolean], me: 0 | 1): { st: BattleState; cast: SpellId[] } {
+  let st = createBattle(setup.attacker, setup.defender, setup.seed, setup.siege, fieldOf(setup)).state;
+  const cast: SpellId[] = [];
+  for (let i = 0; i < 600 && st.winner === null; i++) {
+    const side = activeStack(st)?.side ?? 0;
+    const a = chooseAction(st, casts[side]);
+    if (a.type === 'cast' && side === me) cast.push(a.spell);
+    st = act(st, a).state;
+  }
+  return { st: st.winner === null ? { ...st, winner: 1 } : st, cast };
+}
+
+/** Plays out fight `id` by the battle AI on both sides (at walls a siege, war machines and all, on snow the skiers gliding), and records it. */
+function fightOut(adv: Adventure, def: MapDef, id: string, fights: Fight[], opts: BotOptions, then?: string): Adventure {
   const before = armyStrength(adv.hero.army);
-  const setup = battleSides(adv, id);
-  // The bot casts no spells (its tables were measured so); the other side's hero does.
-  const me = setup.siege?.me ?? 0;
-  const st = autoBattle(setup.attacker, setup.defender, setup.seed, setup.siege, me === 0 ? [false, true] : [true, false]);
+  const setup = battleSides(adv, id, def);
+  // The bot casts no spells unless `casts` (its older tables were measured so); the other side's hero does.
+  const me = (setup.siege?.me ?? 0) as 0 | 1;
+  const ours = !!opts.casts;
+  const { st, cast } = playOut(setup, me === 0 ? [ours, true] : [true, ours], me);
   const a = answerAll(afterBattle(adv, def, id, st, then));
-  fights.push({ id, day: a.day, before, after: a.status === 'lost' ? 0 : armyStrength(a.hero.army), won: a.status !== 'lost' });
+  fights.push({ id, day: a.day, before, after: a.status === 'lost' ? 0 : armyStrength(a.hero.army), won: a.status !== 'lost', cast });
   // A gate fought (either way): the town's walls come next, with what lived.
-  return a.rivalFight && a.status === 'playing' ? fightOut(a, def, a.rivalFight, fights) : a;
+  return a.rivalFight && a.status === 'playing' ? fightOut(a, def, a.rivalFight, fights, opts) : a;
 }
 
 /** The night: the day ends, the rival lord rides, and a fight he starts is played out. */
-function night(adv: Adventure, def: MapDef, fights: Fight[]): Adventure {
-  const ended = endDay(adv, def);
+function night(adv: Adventure, def: MapDef, fights: Fight[], opts: BotOptions): Adventure {
+  // A wise bot with the rival near and strong spends the night in the garrison of the town it stands in, as a person would: he must storm its walls, not catch it at the gate (Nov 11).
+  const held = opts.wise && threatened(adv) && heroTown(adv)?.owner === 'player' ? garrisonHero(adv) ?? adv : adv;
+  const ended = endDay(held, def);
   if (!ended.rival) return answerAll(ended);
   const r = rivalTurn(ended, def);
   const fight = r.adv.rivalFight;
-  return fight ? fightOut(answerAll(r.adv), def, fight, fights) : answerAll(r.adv);
+  return fight ? fightOut(answerAll(r.adv), def, fight, fights, opts) : answerAll(r.adv);
 }
 
 /** Plays `def` from its start to a win, a loss or `maxDays`. */
@@ -339,6 +371,8 @@ function playOn(start: Adventure, def: MapDef, opts: BotOptions): BotRun {
   let adv = start;
   const fights: Fight[] = [];
   while (adv.status === 'playing' && adv.day <= last) {
+    // Out of the garrison it slept in, leading it all.
+    if (heroInGarrison(adv)) adv = leadOut(adv);
     adv = hireHome(buildToday(adv, def, opts.wise), def, machine, opts.wise);
     for (let leg = 0; leg < 12 && adv.status === 'playing' && adv.hero.mp > 0; leg++) {
       const path = pickTarget(adv, def, edge, bossEdge, opts.goalFirst, opts.wise);
@@ -348,7 +382,7 @@ function playOn(start: Adventure, def: MapDef, opts: BotOptions): BotRun {
       if (!r.moved) break;
     }
     if (adv.status !== 'playing') break;
-    adv = night(adv, def, fights);
+    adv = night(adv, def, fights, opts);
     opts.morning?.(adv);
   }
   const goal = fights.find((f) => f.id === def.goal.target);

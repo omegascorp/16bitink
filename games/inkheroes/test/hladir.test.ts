@@ -16,16 +16,16 @@ import { emptyPlots, stagePieces } from '../src/scenes/town/townStage';
 /** Chapter 3, part 1 (docs/inkheroes-design.md, "Part 1 as built (Nov 11)"). */
 describe('Hladir, chapter 3’s first part', () => {
   it('is the Long Winter’s part 1, named on its card, opening what the design says and no Hof', () => {
-    expect(LONG_WINTER_PARTS.map((m) => m.id)).toEqual(['hladir']);
+    expect(LONG_WINTER_PARTS.map((m) => m.id)[0]).toBe('hladir');
     expect(chapterOf(HLADIR)?.id).toBe('longWinter');
     expect(partNumber(HLADIR)).toBe(1);
-    expect(chapterById('longWinter').parts).toEqual([{ id: 'hladir', n: 9, name: 'Hladir' }]);
+    expect(chapterById('longWinter').parts[0]).toEqual({ id: 'hladir', n: 9, name: 'Hladir' });
     expect(HLADIR.off).toEqual(lockedIn(LONG_WINTER_UNLOCKS, 1));
     expect(HLADIR.off).toContain('mageGuild1');
     expect(HLADIR.off).not.toContain('meadHall');
     expect([HLADIR.story, HLADIR.won]).toEqual(['part-hladir', 'hladir-won']);
     installPaidMaps(LONG_WINTER_PARTS);
-    expect(partsOf(chapterById('longWinter')).map((m) => m.id)).toEqual(['hladir']);
+    expect(partsOf(chapterById('longWinter')).map((m) => m.id)[0]).toBe('hladir');
     installPaidMaps([]);
   });
 

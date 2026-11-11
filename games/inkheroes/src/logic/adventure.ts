@@ -11,7 +11,7 @@ import { experienceFor, playerSide, survivors, towerSurvivors, type SiegeSetup }
 import type { BattleSide } from './battle';
 import type { BattleState, Side } from './battleTypes';
 import { afterFight, applyLevelUp, dailyMp, gainedXp, maxMana, nextLevelUp, sightOf, toBattleHero, type Hero, type LevelUp } from './hero';
-import { parseGrid, STABLES_MP, tileIndex, tilesOf, type Grid } from './map';
+import { inGrid, parseGrid, STABLES_MP, tileIndex, tilesOf, type Grid } from './map';
 import { creature } from './creatures';
 import { MINE_OUTPUT, objectFootprint, townFootprint, type MapObject } from './objects';
 import { canStep, findPath, type PathStep, type Terrainview } from './path';
@@ -29,7 +29,7 @@ import { growDwellings, hireAtDwelling } from './dwellings';
 import { mobArmy, mobLost, mobWon } from './portalMob';
 import { previousMap } from '../level/maps';
 import { factionOf } from './factions';
-import { CHAPTER1, lineText, LINES, narrated, STORM_WORDS, type LineId } from '../narration/lines';
+import { CHAPTER1, CHAPTER3, lineText, LINES, narrated, STORM_WORDS, type LineId } from '../narration/lines';
 
 export type Prompt =
   /** A chest: gold or experience, or (`item`: 1 chest in 4, src/logic/loot.ts) a piece to take. */
@@ -100,6 +100,10 @@ export interface RivalState {
   readonly fallen?: readonly { readonly hero: Hero; readonly day: number }[];
   /** The day a lord lost his last town: with none taken back in TOWNLESS_DAYS his banner falls (H3's rule, src/logic/lord/turn.ts). */
   readonly homeless?: number;
+  /** The lord has been seen by us (his `line`, Eirik's, is told once, the first time: src/logic/adventure.ts rivalSighted). */
+  readonly seen?: true;
+  /** A captain of his out of the story has been seen (`rival.captainLine`, Eirik's return, told once). */
+  readonly captainSeen?: true;
   /** The player's side seen from the lord's chair (src/logic/lord/mirror.ts), never saved: beaten, their gear isn't taken (the rival never takes ours). */
   readonly mirror?: true;
 }
@@ -151,6 +155,16 @@ export function heroFromDef(h: HeroDef): Hero {
 /** The map's rival lord's hero as the map places him, wearing his kit (src/logic/lord/kit.ts). */
 export const rivalFromDef = (def: MapDef): Hero => kitted(heroFromDef(def.rival!.hero), kitOf(def, def.rival!.hero.id));
 
+/**
+ * The lord's side as a part opens (src/logic/chapter.ts rideOn, startAdventure):
+ * him, his purse, and the captains out of the story who ride with him
+ * (`rival.captains`): each of them only if `alive` says so (none: all).
+ */
+export function rivalSideFromDef(def: MapDef, alive: (id: string) => boolean = () => true): RivalState {
+  const captains = (def.rival!.captains ?? []).filter((c) => alive(c.id)).map((c) => kitted(heroFromDef(c), kitOf(def, c.id)));
+  return { hero: rivalFromDef(def), purse: purse(def.rival!.purse), ...(captains.length ? { others: captains } : {}) };
+}
+
 /** A message card that the narrator tells (line `id`): its title and words are the line's. */
 export const toldPrompt = (id: LineId): Prompt => ({ kind: 'message', title: LINES[id].title, ...narrated(id) });
 
@@ -177,7 +191,7 @@ export function startAdventure(def: MapDef): Adventure {
     mapId: def.id, day: 1, seed: def.seed, purse: purse(def.purse), hero,
     towns: [town, ...others].map(weekly), objects: def.objects, explored: '0'.repeat(g.w * g.h), status: 'playing',
     prompts: [openingPrompt(def)], lostStacks: 0,
-    ...(def.rival ? { rival: { hero: rivalFromDef(def), purse: purse(def.rival.purse) } } : {}),
+    ...(def.rival ? { rival: rivalSideFromDef(def) } : {}),
   };
   return revealAround(revealAround(lordsBefore(lairsOut(adv), def), def, hero.x, hero.y, sightOf(hero)), def, t.x, t.y, 5);
 }
@@ -223,7 +237,30 @@ export const isSeen = (adv: Adventure, def: MapDef, x: number, y: number): boole
 /** `next` with the narrator's line of each monster with one that came into sight since `was` (Hrimgrimnir on the ice), told once: a monster is first seen only once. */
 function sighted(was: Adventure, next: Adventure, def: MapDef): { adv: Adventure; seen: boolean } {
   const lines = liveObjects(next).filter((o) => o.kind === 'monster' && o.line && !isSeen(was, def, o.x, o.y) && isSeen(next, def, o.x, o.y)).map((o) => toldPrompt(o.line!));
-  return lines.length ? { adv: { ...next, prompts: [...next.prompts, ...lines] }, seen: true } : { adv: next, seen: false };
+  const told = lines.length ? { ...next, prompts: [...next.prompts, ...lines] } : next;
+  // The rival king first seen (Eirik): the hero stops to look, as at Hrimgrimnir.
+  const lord = rivalSighted(told, def);
+  return { adv: lord, seen: lines.length > 0 || lord !== told };
+}
+
+/**
+ * The rival lord's line, told once, the first time he stands on ground we
+ * have seen (after our step, or after his night): Eirik Bloodaxe's, the
+ * only lord with one so far (CHAPTER3.eirik).
+ */
+export function rivalSighted(adv: Adventure, def: MapDef): Adventure {
+  const r = adv.rival;
+  if (!r || r.mirror || adv.status !== 'playing' || !def.rival) return adv;
+  const riding = [...(r.hero ? [r.hero] : []), ...(r.others ?? [])];
+  const inSight = (id: string): boolean => riding.some((h) => h.id === id && isSeen(adv, def, h.x, h.y));
+  // The lord's own line (Eirik's on the Bloodaxe, as before `rival.line`; Gunnhild's), then a story captain's (Eirik back in Halogaland).
+  const line = def.rival.line ?? (def.rival.hero.id === CHAPTER3.eirik ? 'eirik' : undefined);
+  const lord = !r.seen && !!line && inSight(def.rival.hero.id);
+  const captain = def.rival.captains?.[0];
+  const back = !r.captainSeen && !!captain && !!def.rival.captainLine && inSight(captain.id);
+  if (!lord && !back) return adv;
+  const told = [...(lord ? [toldPrompt(line!)] : []), ...(back ? [toldPrompt(def.rival.captainLine!)] : [])];
+  return { ...adv, rival: { ...r, ...(lord ? { seen: true as const } : {}), ...(back ? { captainSeen: true as const } : {}) }, prompts: [...adv.prompts, ...told] };
 }
 
 export const liveObjects = (adv: Adventure): MapObject[] => adv.objects.filter((o) => !o.gone);
@@ -471,7 +508,9 @@ export function takeTown(adv: Adventure, id: string): Adventure {
 /** An ally opens its gates: the town is the player's, garrison and all. */
 function joinTown(adv: Adventure, { ally: _ally, ...town }: Town): Adventure {
   const text = `${town.name} has held out against the Black Banner, and now it stands with you: its garrison, its buildings and its dwellings are yours.`;
-  const card: Prompt = town.id === CHAPTER1.eudora ? toldPrompt('eudora-joins') : { kind: 'message', title: `${town.name} opens its gates`, text };
+  // A town the story speaks for (Eudora, Uppsala where Heid reads the winter) is told; any other shows the card.
+  const told = town.id === CHAPTER1.eudora ? 'eudora-joins' : town.id === CHAPTER3.uppsala ? 'uppsala-joins' : null;
+  const card: Prompt = told ? toldPrompt(told) : { kind: 'message', title: `${town.name} opens its gates`, text };
   return withTown({ ...adv, prompts: [...adv.prompts, card] }, { ...town, owner: 'player' });
 }
 
@@ -501,7 +540,8 @@ export function cantBuyMachine(adv: Adventure, m: SoldMachine): string | null {
   if (!heroVisiting(adv, town)) return `${adv.hero.name} must be in town, leading an army`;
   if (hasAsGood(adv.hero, m)) return `${adv.hero.name} has one as good`;
   if (!canAfford(adv.purse, creature(m).cost)) return 'Not enough gold';
-  if (!bagRoom(adv.hero)) return 'The bag is full';
+  // Only a machine it replaces goes to the bag: an empty slot takes the new one with a full bag.
+  if (adv.hero.gear?.machine && !bagRoom(adv.hero)) return 'The bag is full';
   return null;
 }
 
@@ -663,7 +703,7 @@ function rivalFled(adv: Adventure, foe: Hero, def: MapDef, town?: Town): Adventu
   const many = r.adv.towns.filter((t) => t.owner === 'rival').length > 1;
   const text = `${foe.name} has left the field and ridden hard for ${r.town.name}, leaving his army behind. He will hire another there. Take ${many ? 'his towns' : r.town.name}, and he will have nowhere left to run.`;
   // The line says "his town": told while he has just the one.
-  const card: Prompt = foe.id === CHAPTER1.kassander && !many ? toldPrompt('kassander-flees') : { kind: 'message', title: `${foe.name} flees`, text };
+  const card: Prompt = foe.id === CHAPTER1.kassander && !many ? toldPrompt('kassander-flees') : foe.id === CHAPTER3.eirik && !many ? toldPrompt('eirik-flees') : { kind: 'message', title: `${foe.name} flees`, text };
   return { ...r.adv, prompts: [...r.adv.prompts, card] };
 }
 
@@ -681,7 +721,19 @@ export interface BattleSetup {
 export function groundAt(def: MapDef, x: number, y: number): string {
   const g = gridOf(def);
   const t = g.terrain[tileIndex(g, x, y)] ?? 'grass';
+  // A road through the snow (the north's) is fought on the snow either side of it, not on bare dirt.
+  if (g.cover[tileIndex(g, x, y)] === 'road' && t === 'dirt' && snowBeside(g, x, y)) return 'snow';
   return t === 'water' ? 'grass' : t === 'ice' ? 'snow' : t;
+}
+
+/** Whether a tile next to (x, y) is snow or ice. */
+function snowBeside(g: Grid, x: number, y: number): boolean {
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if ((dx || dy) && inGrid(g, x + dx, y + dy) && ['snow', 'ice'].includes(g.terrain[tileIndex(g, x + dx, y + dy)]!)) return true;
+    }
+  }
+  return false;
 }
 
 /** The field for a fight `setup` names: on snow, the skiers glide. */
@@ -867,7 +919,10 @@ function beatRival(played: Adventure, foe: Hero, def: MapDef, town?: Town): Adve
   const left = adv.towns.filter((t) => t.owner === 'rival').map((t) => t.name);
   const text = left.length ? `${foe.name} rides no more. ${left.join(' and ')} still stand${left.length === 1 ? 's' : ''} behind ${left.length === 1 ? 'its' : 'their'} walls.` : `${foe.name} rides no more.`;
   // The line says the banner is down for good: told once no town of his is left standing.
-  const card: Prompt = foe.id === CHAPTER1.kassander && !left.length ? toldPrompt('kassander-beaten') : { kind: 'message', title: `${foe.name} is beaten`, text };
+  // Eirik, beaten with no town left, flees north to his queen (part 4 brings him back, docs/inkheroes-design.md "Part 3 as built: The Bloodaxe").
+  const north = `${foe.name} is beaten, and with no town left to hold he rides hard for the far north, to his queen.`;
+  const card: Prompt = foe.id === CHAPTER1.kassander && !left.length ? toldPrompt('kassander-beaten')
+    : foe.id === CHAPTER3.eirik && !left.length ? { kind: 'message', title: `${foe.name} flees north`, text: north } : { kind: 'message', title: `${foe.name} is beaten`, text };
   // A lord's next hero rides on as his first; the beaten one is remembered, to hire again at a town of his next week (src/logic/lord/turn.ts).
   const r = adv.rival!;
   const [next, ...rest] = r.others ?? [];
@@ -975,7 +1030,12 @@ export function checkGoal(adv: Adventure, def: MapDef): Adventure {
   const { kind, target } = def.goal;
   const held = (): boolean => (townById(adv, target) ?? adv.objects.find((o) => o.id === target))?.owner === 'player';
   if (kind === 'overthrow' && def.rival?.mind === 'lord') return lordOverthrown(adv, def);
-  const done = kind === 'defeat' ? !!adv.objects.find((o) => o.id === target)?.gone : held() && (kind === 'capture' || !rivalHero(adv));
+  // A beaten monster is gone, or its drop lies where it stood (the bag was full): either way it is beaten.
+  const beaten = (): boolean => {
+    const o = adv.objects.find((x) => x.id === target);
+    return !!o && (!!o.gone || o.kind !== 'monster');
+  };
+  const done = kind === 'defeat' ? beaten() : held() && (kind === 'capture' || !rivalHero(adv));
   return done ? { ...adv, status: 'won' } : adv;
 }
 

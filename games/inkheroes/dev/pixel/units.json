@@ -2597,6 +2597,68 @@
     68,
     42
    ]
+  },
+  "ram": {
+   "name": "Ram",
+   "src": "pixel/src/ram.png",
+   "canvas": [
+    96,
+    96
+   ],
+   "foot": 6,
+   "dx": 0,
+   "subject": "a viking battering ram: a long thick log with a round iron cap hung under a timber frame with a plank shed roof on four wheels, no crew",
+   "idle": "idle loop: the machine stands still, the log sways very slightly on its chains, ends back at the starting pose",
+   "attack": "ramming: the log swings back on its chains, then drives forward hard to the right as if hitting a gate, then swings back to the starting pose; the frame and wheels stay still",
+   "strike": 3,
+   "face": [
+    48,
+    56
+   ]
+  },
+  "ram2": {
+   "name": "Iron Ram",
+   "src": "pixel/src/ram2.png",
+   "canvas": [
+    128,
+    96
+   ],
+   "foot": 6,
+   "dx": -12,
+   "subject": "a viking battering ram: an iron-shod log with a boar-head iron cap under a heavy timber frame with an iron-studded roof on iron-banded wheels, no crew",
+   "idle": "idle loop: the machine stands still, the log sways very slightly on its chains, ends back at the starting pose",
+   "attack": "ramming: the log swings back on its chains, then drives forward hard to the right as if hitting a gate, then swings back to the starting pose; the frame and wheels stay still",
+   "strike": 3,
+   "face": [
+    48,
+    56
+   ]
+  },
+  "ram3": {
+   "name": "Ram of the Sea-Kings",
+   "src": "pixel/src/ram3.png",
+   "canvas": [
+    128,
+    96
+   ],
+   "foot": 6,
+   "dx": -12,
+   "subject": "a viking battering ram: a log carved as a longship dragon prow with gold fittings under a dark timber frame with a gold-trimmed roof on gold-rimmed wheels, no crew",
+   "idle": "idle loop: the machine stands still, the log sways very slightly on its chains, ends back at the starting pose",
+   "attack": "ramming: the log swings back on its chains, then drives forward hard to the right as if hitting a gate, then swings back to the starting pose; the frame and wheels stay still",
+   "strike": 3,
+   "face": [
+    48,
+    56
+   ],
+   "strip": [
+    [
+     97,
+     91,
+     81
+    ],
+    5
+   ]
   }
  },
  "heroes": {

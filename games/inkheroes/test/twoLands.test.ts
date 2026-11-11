@@ -32,17 +32,17 @@ describe('chapter 2 stays out of the free game', () => {
   it('no client code imports the paid maps', () => {
     expect(Object.keys(SOURCES).length).toBeGreaterThan(50);
     for (const [file, text] of Object.entries(SOURCES)) {
-      if (/level\/(twoLands|nekhen|abu|redLand|delta|longWinter|hladir)\.ts$/.test(file)) continue;
+      if (/level\/(twoLands|nekhen|abu|redLand|delta|longWinter|hladir|uppsala)\.ts$/.test(file)) continue;
       const specs = [...text.matchAll(/(?:from|import)\s*\(?\s*['"]([^'"]+)['"]/g)].map((m) => m[1]!);
       for (const spec of specs) {
         expect(spec, file).not.toMatch(/content\/paid/);
-        expect(spec, file).not.toMatch(/(^|\/)(twoLands|nekhen|abu|redLand|delta|longWinter|hladir)$/);
+        expect(spec, file).not.toMatch(/(^|\/)(twoLands|nekhen|abu|redLand|delta|longWinter|hladir|uppsala)$/);
       }
     }
   });
 
   it('serves the paid maps as JSON the client checks and reads back the same', () => {
-    expect(INKHEROES_PAID_MAPS.map((m) => m.id)).toEqual(['nekhen', 'abu', 'red-land', 'delta', 'hladir']);
+    expect(INKHEROES_PAID_MAPS.map((m) => m.id)).toEqual(['nekhen', 'abu', 'red-land', 'delta', 'hladir', 'uppsala', 'bloodaxe', 'halogaland']);
     expect(parseMaps(JSON.parse(JSON.stringify(INKHEROES_PAID_MAPS)))).toEqual(JSON.parse(JSON.stringify(INKHEROES_PAID_MAPS)));
   });
 
@@ -91,7 +91,9 @@ describe('chapter 2 stays out of the free game', () => {
     expect(chapterOf(ASHFORD)?.id).toBe('borderMarch');
     expect(chapterOf({ n: 9 })?.id).toBe('longWinter');
     expect(chapterOf({ n: 13 })).toBeUndefined();
-    expect(nextMap({ ...NEKHEN, n: 9 })).toBeUndefined();
+    // Chapter 3's last part rides on into nothing (and never into another chapter).
+    expect(nextMap({ ...NEKHEN, n: 12 })).toBeUndefined();
+    expect(nextMap({ ...NEKHEN, n: 8 })).toBeUndefined();
     expect(partsOf(chapterById('borderMarch'))).toEqual(MAPS);
     expect(nextMap(OTHRYS)).toBeUndefined();
     expect(nextMap(NEKHEN)?.id).toBe('abu');

@@ -250,9 +250,9 @@ function parseRival(raw: unknown, def: MapDef): RivalState | null | undefined {
 const lordHeroDef = (raw: Record<string, unknown>, def: MapDef): HeroDef => heroDefFor(raw, def, def.rival!.hero);
 
 /** A lord's other heroes, fog and memory in a save (null: unreadable). */
-function parseLord(raw: Record<string, unknown>, def: MapDef): Pick<RivalState, 'others' | 'explored' | 'memory' | 'fallen' | 'homeless'> | null {
+function parseLord(raw: Record<string, unknown>, def: MapDef): Pick<RivalState, 'others' | 'explored' | 'memory' | 'fallen' | 'homeless' | 'seen' | 'captainSeen'> | null {
   const g = gridOf(def);
-  const out: { others?: Adventure['hero'][]; explored?: string; memory?: LordMemory; fallen?: { hero: Adventure['hero']; day: number }[]; homeless?: number } = {};
+  const out: { others?: Adventure['hero'][]; explored?: string; memory?: LordMemory; fallen?: { hero: Adventure['hero']; day: number }[]; homeless?: number; seen?: true; captainSeen?: true } = {};
   if (raw.others !== undefined) {
     if (!Array.isArray(raw.others) || !raw.others.every(isObj)) return null;
     const others = raw.others.map((h) => parseHero(h as Record<string, unknown>, def, lordHeroDef(h as Record<string, unknown>, def)));
@@ -265,6 +265,8 @@ function parseLord(raw: Record<string, unknown>, def: MapDef): Pick<RivalState, 
   }
   if (isObj(raw.memory)) out.memory = parseMemory(raw.memory);
   if (isInt(raw.homeless, 1)) out.homeless = raw.homeless;
+  if (raw.seen === true) out.seen = true;
+  if (raw.captainSeen === true) out.captainSeen = true;
   if (raw.fallen !== undefined) {
     if (!Array.isArray(raw.fallen) || raw.fallen.length > 10) return null;
     const fallen = raw.fallen.map((f) => (isObj(f) && isObj(f.hero) && isInt(f.day, 1) ? { hero: parseHero(f.hero, def, lordHeroDef(f.hero, def)), day: f.day as number } : null));

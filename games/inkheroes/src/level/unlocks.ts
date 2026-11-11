@@ -36,7 +36,7 @@ export const TWO_LANDS_UNLOCKS: readonly (readonly BuildingId[])[] = [
 /**
  * Chapter 3, the Long Winter: the Norse, a fresh start again. Parts 1 and 2
  * are the design's (docs/inkheroes-design.md, "The parts"); parts 3 and 4
- * follow chapter 2's, for the map agents to change as each part is built.
+ * follow chapter 2's (part 3 built as drafted, Nov 11; part 4 for its map agent to change).
  */
 export const LONG_WINTER_UNLOCKS: readonly (readonly BuildingId[])[] = [
   // Part 1, Hladir: the halls and walls, the Tavern, the Mead Hall (the people's own), the four lowest dwellings. No Hof yet: Hervor finds her rune staff in part 2.

@@ -20,7 +20,8 @@ import { BattleView, type ViewOpts } from './battle/battleView';
 import { unitInfo } from './battle/unitCard';
 import { backdropSource, loadBattleArt } from './battle/pixelAssets';
 import { texturePixels } from './battle/pixelUi';
-import { hexAtPx, hexPx, towerAtPx } from './battle/pixelLayout';
+import { castleOf } from './battle/castle';
+import { hexAtPx, hexPx, towerAtPx, towerFeetOf } from './battle/pixelLayout';
 import { crispText, toView } from './hidpi';
 import type { MapScene } from './MapScene';
 import { coverWhileLoading } from './LoadingScene';
@@ -115,7 +116,7 @@ export class BattleScene extends Phaser.Scene {
     this.state = this.sandbox && !this.sandbox.obstacles ? { ...start.state, obstacles: [] } : start.state;
     // The loading screen stays up until every fighter's poses and the ground are in and laid out.
     const cover = coverWhileLoading(this, 'the armies form up…');
-    void loadBattleArt(this, this.state.stacks.map((s) => s.creature), terrain, !!this.state.siege)
+    void loadBattleArt(this, this.state.stacks.map((s) => s.creature), terrain, this.state.siege ? castleOf(this.state) : false)
       .then(() => cover.laying('the armies take the field…'))
       .then(() => {
         if (this.sys.isActive()) this.begin(terrain, sides.seed, heroes);
@@ -330,7 +331,7 @@ export class BattleScene extends Phaser.Scene {
     const x = Math.floor(w.x);
     const y = Math.floor(w.y);
     // A company on a tower stands far above its hex: the figure itself is what's tapped.
-    const up = towerAtPx(x, y);
+    const up = towerAtPx(x, y, towerFeetOf(castleOf(this.state)));
     const held = up === null ? undefined : this.state.stacks.find((s) => s.tower === up && alive(s));
     return held ? held.hex : hexAtPx(x, y);
   }
