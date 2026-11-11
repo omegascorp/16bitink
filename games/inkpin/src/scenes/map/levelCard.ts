@@ -14,6 +14,9 @@ const SOFT_INK = '#4a463e';
 const CARD_W = 420;
 const SEED = 41;
 const CARD_H = 560;
+/** The card without its picture (a touch screen), and how much bigger it may draw there. */
+const COMPACT_H = 300;
+const COMPACT_GROW = 1.3;
 const PREVIEW = { w: 340, h: 250 } as const;
 const GRAIN_COLOR: Record<number, number> = { [WATER]: 0x6f9fcf, [LAVA]: 0xe8782a, [COIN]: 0xe2b33c, [STONE]: 0x8f857a };
 /** Each guard's colour in the preview, by animal. */
@@ -25,6 +28,8 @@ export interface LevelCardOpts {
   readonly number: number;
   readonly record: LevelRecord | undefined;
   readonly onPlay: () => void;
+  /** A touch screen: no picture of the level, and the rest drawn bigger. */
+  readonly compact?: boolean;
 }
 
 /**
@@ -36,11 +41,14 @@ export class LevelCard {
   private readonly root: Phaser.GameObjects.Container;
   private readonly onKey: (e: KeyboardEvent) => void;
 
+  private readonly h: number;
+
   constructor(private readonly scene: Phaser.Scene, layer: Phaser.GameObjects.Layer, view: { width: number; height: number }, o: LevelCardOpts, private readonly onClose: () => void) {
     const shade = scene.add.rectangle(0, 0, view.width, view.height, 0xf5f0e1, 0.6).setOrigin(0).setInteractive();
     shade.on('pointerup', () => this.close());
-    const h = CARD_H;
-    const fit = Math.min(1, (view.height - 24) / h, (view.width - 16) / CARD_W);
+    const h = o.compact ? COMPACT_H : CARD_H;
+    this.h = h;
+    const fit = Math.min(o.compact ? COMPACT_GROW : 1, (view.height - 24) / h, (view.width - 16) / CARD_W);
     const card = scene.add.container(view.width / 2, view.height / 2);
     // A page of Nib's journal, the level pasted in like a photograph.
     const bg = paperCard(scene, 0, 0, CARD_W, h, SEED, { tint: 'parchment', rule: true, tapes: ['tl'], tapeLen: 72 });
@@ -49,8 +57,8 @@ export class LevelCard {
       scene.add.text(0, y, s, { fontFamily: FONT, fontSize: `${size}px`, fontStyle: bold ? '700' : '500', color, align: 'center', wordWrap: { width: CARD_W - 50 }, padding: { x: 6, y: 3 } }).setOrigin(0.5).setResolution(window.devicePixelRatio * 2);
     const top = -h / 2;
     const parts: Phaser.GameObjects.GameObject[] = [bg, body, text(top + 30, `Chapter ${o.chapter} · Level ${o.number}`, 20, '#7a5a2e', false), text(top + 66, o.level.name, 38)];
-    parts.push(preview(scene, o.level, top + 100 + PREVIEW.h / 2));
-    const y = top + 100 + PREVIEW.h + 30;
+    if (!o.compact) parts.push(preview(scene, o.level, top + 100 + PREVIEW.h / 2));
+    const y = top + 100 + (o.compact ? 14 : PREVIEW.h + 30);
     parts.push(text(y, o.level.goal, 22, SOFT_INK, false));
     const earned = o.record?.blots ?? 0;
     for (let i = 0; i < 3; i++) parts.push(scene.add.image(-98 + i * 30, y + 48, i < earned ? UI_TEX.blot(i) : UI_TEX.blotSlot).setScale(0.55 / UI_RES).setAngle((i - 1) * 9));
@@ -80,7 +88,7 @@ export class LevelCard {
   close(): void {
     this.scene.input.keyboard?.off('keydown', this.onKey);
     this.root.destroy();
-    freePaper(this.scene, CARD_W, CARD_H, SEED);
+    freePaper(this.scene, CARD_W, this.h, SEED);
     this.onClose();
   }
 }

@@ -1,8 +1,8 @@
 /**
- * The thumbstick for touch screens, in CSS px (as InkGecko's and InkSnake's).
- * A faint ring in the lower-left corner says where it is; a thumb that lands
- * near it sets the stick's base there, and the pull from that base walks Nib
- * (or, pushed mostly up or down by a vine, climbs it).
+ * The thumbstick for touch screens, in CSS px (as InkGecko's). A ring in the
+ * lower-left corner says where it is; the pull of a thumb near it, from the
+ * ring's centre (not from where the thumb landed), walks Nib (or, pushed
+ * mostly up or down by a vine, climbs it).
  */
 export const STICK = {
   /** Pull from the base that reads as full, and where the knob stops. */
@@ -27,6 +27,11 @@ export interface Steer {
 }
 
 export const STILL: Steer = { dir: 0, climb: 0 };
+
+/** Whether a touch at `at` lands on the stick's ring itself (inside its rim), not just near it. */
+export function onStickRing(at: Pt, rest: Pt): boolean {
+  return Math.hypot(at.x - rest.x, at.y - rest.y) <= STICK.radius + 8;
+}
 
 /** Whether a touch at `at` lands on the stick resting at `rest`. */
 export function inStickReach(at: Pt, rest: Pt): boolean {

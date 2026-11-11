@@ -22,6 +22,8 @@ export class TitleCard {
   private readonly goal: Phaser.GameObjects.Text;
   private card: Phaser.GameObjects.Image | null = null;
   private size = { w: 0, h: 0 };
+  /** The level's name, and its number and name on one line. */
+  private full = { name: '', line: '' };
 
   constructor(private readonly scene: Phaser.Scene) {
     const text = (size: number, color: string, bold: boolean): Phaser.GameObjects.Text =>
@@ -40,20 +42,38 @@ export class TitleCard {
     return this.size.w;
   }
 
-  set(kicker: string, name: string, goal: string): void {
+  /** The level's ruin and number, its name, its goal, and `line`: the number and name on one line, for a touch screen. */
+  set(kicker: string, name: string, goal: string, line = name): void {
+    this.full = { name, line };
     this.kicker.setText(kicker);
     this.name.setText(name);
     this.goal.setText(goal);
   }
 
-  /** Lays the card out `w` wide (or narrower, if its words are short), its top-left corner at (x, y). */
-  layout(x: number, y: number, w: number, narrow: boolean): void {
-    this.kicker.setFontSize(narrow ? 15 : 16).setY(7);
-    this.name.setFontSize(narrow ? 27 : 31).setY(narrow ? 21 : 22);
-    this.goal.setFontSize(narrow ? 16 : 18).setWordWrapWidth(w - PAD_X * 2 - 6).setY(this.name.y + this.name.height - 6);
-    const words = Math.max(this.kicker.width, this.name.width, this.goal.width) + PAD_X * 2;
+  /**
+   * Lays the card out `w` wide (or narrower, if its words are short), its
+   * top-left corner at (x, y). `oneLine` (a touch screen, where the haul
+   * says the goal) keeps just the level's number and name.
+   */
+  layout(x: number, y: number, w: number, narrow: boolean, oneLine = false): void {
+    this.kicker.setVisible(!oneLine).setFontSize(narrow ? 15 : 16).setY(7);
+    this.goal.setVisible(!oneLine);
+    this.name.setText(oneLine ? this.full.line : this.full.name);
+    let ch: number;
+    let words: number;
+    if (oneLine) {
+      this.name.setFontSize(23).setY(5);
+      // A long name is cut short rather than wrapped onto the board.
+      while (this.name.width + PAD_X * 2 > w && this.name.text.length > 4) this.name.setText(`${this.name.text.slice(0, -2)}…`);
+      words = this.name.width + PAD_X * 2;
+      ch = Math.ceil((this.name.y + this.name.height + 4) / STEP_H) * STEP_H;
+    } else {
+      this.name.setFontSize(narrow ? 27 : 31).setY(narrow ? 21 : 22);
+      this.goal.setFontSize(narrow ? 16 : 18).setWordWrapWidth(w - PAD_X * 2 - 6).setY(this.name.y + this.name.height - 6);
+      words = Math.max(this.kicker.width, this.name.width, this.goal.width) + PAD_X * 2;
+      ch = Math.ceil((this.goal.y + this.goal.height + 6) / STEP_H) * STEP_H;
+    }
     const cw = Math.ceil(Math.min(w, words) / STEP_W) * STEP_W;
-    const ch = Math.ceil((this.goal.y + this.goal.height + 6) / STEP_H) * STEP_H;
     this.root.setPosition(x, y);
     if (cw === this.size.w && ch === this.size.h && this.card) return;
     if (this.card) {

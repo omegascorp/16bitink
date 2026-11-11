@@ -1,18 +1,19 @@
 import Phaser from 'phaser';
 import type { LevelDef } from '../logic/level';
 import type { Creature } from '../logic/world';
+import { TOUCH_SHOWN, type Insets } from '../logic/touchLayout';
 import { clampZoom, zoomAbout, zoomRange, type ZoomRange } from '../logic/zoom';
 import { DPR, screenSize } from './hidpi';
 
-/** Space kept for the interface: above the board, and around it (CSS px). The HUD says how much it takes at the top. */
-const HUD_TOP = 76;
-/** Registry key: how far down the interface reaches over the board (CSS px), set by the HUD. */
-export const HUD_TOP_KEY = 'hudTop';
-export const HUD_BOTTOM = 34;
-const MARGIN = 10;
+/** Registry key: how far in from each edge the interface reaches over the board (CSS px, Insets), set by the HUD. */
+export const HUD_INSETS_KEY = 'hudInsets';
+/** Until the HUD says otherwise: a bar along the top, a little room round the rest. */
+const DEFAULT_INSETS: Insets = { top: 76, right: 10, bottom: 34, left: 10, touch: false };
 /**
  * The most of a level that must fit on screen (board px). A bigger level
  * shows this much (more where the screen has room) and scrolls with Nib.
+ * A touch screen shows less at first (TOUCH_SHOWN), so it draws big
+ * enough for a finger and an eye.
  */
 const SHOWN = { w: 720, h: 1100 } as const;
 /** A scrolling level opens on its far end (the chest) for this long (ms), then glides to Nib. */
@@ -74,13 +75,15 @@ export class LevelCamera {
   fit(nib: Creature, opening = false): void {
     const { view } = this.level;
     const { w: availW, h: availH } = this.avail();
-    this.fitZoom = Math.min(availW / Math.min(view.w, SHOWN.w), availH / Math.min(view.h, SHOWN.h));
+    const shown = this.insets().touch ? TOUCH_SHOWN : SHOWN;
+    this.fitZoom = Math.min(availW / Math.min(view.w, shown.w), availH / Math.min(view.h, shown.h));
     this.range = zoomRange(this.fitZoom, Math.min(availW / view.w, availH / view.h));
     this.cam.setSize(this.scene.scale.width, this.scene.scale.height);
     this.setZoom(clampZoom(this.fitZoom * this.scale, this.range));
     if (!this.scrolls) {
-      // Centre the view in the space below the bar.
-      this.cam.centerOn(view.x + view.w / 2, view.y + view.h / 2 - this.offset());
+      // Centre the view in the space the interface leaves.
+      const off = this.offset();
+      this.cam.centerOn(view.x + view.w / 2 - off.x, view.y + view.h / 2 - off.y);
       return;
     }
     if (opening) {
@@ -125,7 +128,8 @@ export class LevelCamera {
     const z2 = clampZoom(this.zoom * factor, this.range);
     if (Math.abs(z2 - this.zoom) < 1e-6) return false;
     const { width, height } = screenSize(this.scene.scale);
-    const about = at ?? { x: width / 2, y: this.top() + (height - this.top() - HUD_BOTTOM) / 2 };
+    const i = this.insets();
+    const about = at ?? { x: i.left + (width - i.left - i.right) / 2, y: i.top + (height - i.top - i.bottom) / 2 };
     const mid = zoomAbout(this.cam.midPoint, about, { x: width / 2, y: height / 2 }, this.zoom, z2);
     this.scale = z2 / this.fitZoom;
     this.setZoom(z2);
@@ -133,10 +137,11 @@ export class LevelCamera {
     return true;
   }
 
-  /** The space the level shows in, below the bar (CSS px). */
+  /** The space the level shows in, inside the interface (CSS px). */
   private avail(): { w: number; h: number } {
     const { width, height } = screenSize(this.scene.scale);
-    return { w: width - MARGIN * 2, h: height - this.top() - HUD_BOTTOM };
+    const i = this.insets();
+    return { w: width - i.left - i.right, h: height - i.top - i.bottom };
   }
 
   private setZoom(zoom: number): void {
@@ -150,16 +155,17 @@ export class LevelCamera {
   /** Puts the camera's middle at `mid` (board px, kept inside the level) and holds it there until Nib moves on. */
   private holdAt(mid: { x: number; y: number }, nib: Creature): void {
     this.intro = 0;
-    this.target = { x: mid.x, y: mid.y + this.offset() };
+    const off = this.offset();
+    this.target = { x: mid.x + off.x, y: mid.y + off.y };
     this.hold = LOOK_HOLD_MS;
     this.heldAt = { x: nib.x, y: nib.y };
     this.place(1);
   }
 
-  /** How far down the interface reaches over the board (CSS px). */
-  private top(): number {
-    const t = this.scene.registry.get(HUD_TOP_KEY) as unknown;
-    return typeof t === 'number' ? t : HUD_TOP;
+  /** How far in the interface reaches from each edge (CSS px). */
+  private insets(): Insets {
+    const i = this.scene.registry.get(HUD_INSETS_KEY) as Insets | undefined;
+    return i ?? DEFAULT_INSETS;
   }
 
   /** The interface grew or shrank: fits again, carrying on with the opening look at the far end if it's still under way. */
@@ -167,20 +173,22 @@ export class LevelCamera {
     this.fit(nib, this.intro > 0);
   }
 
-  /** Half the bar's height, in board px: the view's middle sits this far below the screen's. */
-  private offset(): number {
-    return (this.top() - HUD_BOTTOM) / 2 / this.zoom;
+  /** How far the middle of the space the interface leaves sits from the screen's, board px. */
+  private offset(): { x: number; y: number } {
+    const i = this.insets();
+    return { x: (i.left - i.right) / 2 / this.zoom, y: (i.top - i.bottom) / 2 / this.zoom };
   }
 
   /** Eases the camera's middle towards the target, kept inside the level. */
   private place(ease: number): void {
-    const { width, height } = screenSize(this.scene.scale);
     const { view } = this.level;
-    const shownW = width / this.zoom;
-    const shownH = (height - this.top() - HUD_BOTTOM) / this.zoom;
+    const { w, h } = this.avail();
+    const shownW = w / this.zoom;
+    const shownH = h / this.zoom;
     const clamp = (v: number, lo: number, size: number, shown: number): number => (shown >= size ? lo + size / 2 : Phaser.Math.Clamp(v, lo + shown / 2, lo + size - shown / 2));
-    const x = clamp(this.target.x, view.x, view.w, shownW);
-    const y = clamp(this.target.y, view.y, view.h, shownH) - this.offset();
+    const off = this.offset();
+    const x = clamp(this.target.x, view.x, view.w, shownW) - off.x;
+    const y = clamp(this.target.y, view.y, view.h, shownH) - off.y;
     const mid = this.cam.midPoint;
     this.cam.centerOn(mid.x + (x - mid.x) * ease, mid.y + (y - mid.y) * ease);
   }

@@ -210,7 +210,7 @@ export class GameScene extends Phaser.Scene {
       this.scale.off('resize', this.refit, this);
       this.game.events.off('cmd:restart', this.restart, this);
       this.game.events.off('cmd:zoom', this.onZoom, this);
-      this.game.events.off('hud:top', this.onHudTop, this);
+      this.game.events.off('hud:insets', this.onHudInsets, this);
       this.game.events.off('cmd:jump', this.onJump, this);
       this.game.events.off('cmd:leave', this.onLeave, this);
       this.game.events.off('cmd:level', this.onLevel, this);
@@ -230,7 +230,7 @@ export class GameScene extends Phaser.Scene {
       unlock: () => this.sfx.unlock(),
     });
     this.game.events.on('cmd:zoom', this.onZoom, this);
-    this.game.events.on('hud:top', this.onHudTop, this);
+    this.game.events.on('hud:insets', this.onHudInsets, this);
     this.game.events.on('cmd:jump', this.onJump, this);
     this.game.events.on('cmd:restart', this.restart, this);
     this.game.events.on('cmd:leave', this.onLeave, this);
@@ -532,8 +532,8 @@ export class GameScene extends Phaser.Scene {
     this.game.events.emit('hud:note', PLATE_NOTE);
   }
 
-  /** The interface's height changed (a new level's page, a turned phone): the board fits the room left. */
-  private onHudTop(): void {
+  /** The room the interface takes changed (a new level's page, a turned phone, a finger after the mouse): the board fits the room left. */
+  private onHudInsets(): void {
     if (this.ended) return;
     this.camera.refit(this.world.nib);
     this.zoomed();

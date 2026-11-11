@@ -14,22 +14,24 @@ import { HEART_SCALE, StatusTag } from './hud/statusTag';
 import { ThumbStick } from './hud/thumbStick';
 import { TipNote } from './hud/tipNote';
 import { TitleCard } from './hud/titleCard';
-import { HUD_TOP_KEY } from './levelCamera';
+import { HUD_INSETS_KEY } from './levelCamera';
+import { tipHoldMs, touchPlan, type Insets } from '../logic/touchLayout';
 import { lossText } from './lossLines';
 import { bakeUi, freePaper, paintedButton, roundButton, type PaintedButton } from './uiPaint';
 
 /** How to play on a touch screen: shown on the first level, and on levels without a tip of their own. */
-const TOUCH_TIP = 'Tap a pin to pull it. Walk Nib with the stick, jump with the button. Pinch to zoom.';
+const TOUCH_TIP = 'Tap a pin to pull it. Walk with the stick, jump with the arrow. Pinch to zoom.';
 /** How to play with a keyboard and mouse. */
 const DESKTOP_TIP = 'Click a pin to pull it. Walk Nib with ← →, Space to jump, ↑ ↓ to climb, + − to zoom.';
 /** The volcano's first tip, for its levels that have none of their own: its gates and ledges are new. */
 const VOLCANO_TIP = 'Striped gate pins go back in: tap one again to push it home. Ledges crumble once Nib steps off them.';
-/** The touch controls' row: the stick's and the jump button's middles sit this far above the screen's bottom (CSS px). */
-const CONTROLS_UP = 130;
 const EDGE = 12;
 const BUTTON = 46;
 const ZOOM_D = 40;
 const JUMP_D = 66;
+/** A laptop's board keeps this much room at its sides and bottom (CSS px). */
+const SIDE = 10;
+const BOTTOM = 34;
 
 /** The interface over the board: the level's page, the haul, buttons, the tip, and the result card. */
 export class HudScene extends Phaser.Scene {
@@ -46,6 +48,8 @@ export class HudScene extends Phaser.Scene {
   private jumpButton!: Phaser.GameObjects.Container;
   private zoomIn!: Phaser.GameObjects.Container;
   private zoomOut!: Phaser.GameObjects.Container;
+  /** Touch: shows the level's tip again (on a touch screen it fades by itself). */
+  private hintButton!: Phaser.GameObjects.Container;
   private mapButton!: Phaser.GameObjects.Container;
   private restartButton!: Phaser.GameObjects.Container;
   /** Shown once the goal is met: Nib may leave now or stay for the rest of the gold. */
@@ -71,11 +75,17 @@ export class HudScene extends Phaser.Scene {
       this.sfx.unlock();
       if (p.wasTouch === this.touch) return;
       this.touch = p.wasTouch;
-      if (this.levelTip) this.tip.show(this.firstTip());
       this.layout();
+      if (this.levelTip) this.showTips(this.firstTips());
     });
     this.stick = new ThumbStick(this);
     this.tip = new TipNote(this);
+    // A touch screen's tip goes at a tap (it fades by itself too); a laptop's stays until play starts.
+    this.tip.onTap(() => {
+      if (!this.touch) return;
+      this.levelTip = false;
+      this.tip.fade(0, 200);
+    });
     this.titleCard = new TitleCard(this);
     this.status = new StatusTag(this);
     const emit = (event: string, arg?: unknown) => (): void => {
@@ -85,6 +95,7 @@ export class HudScene extends Phaser.Scene {
     this.restartButton = roundButton(this, 0, 0, 'restart', emit('cmd:restart'), BUTTON);
     this.zoomIn = roundButton(this, 0, 0, 'zoomIn', emit('cmd:zoom', 1), ZOOM_D);
     this.zoomOut = roundButton(this, 0, 0, 'zoomOut', emit('cmd:zoom', -1), ZOOM_D);
+    this.hintButton = roundButton(this, 0, 0, 'hint', () => this.showTips(this.firstTips()), ZOOM_D);
     // A jump button for touch screens (keyboards have Space): it jumps as the finger lands.
     this.jumpButton = roundButton(this, 0, 0, 'jump', emit('cmd:jump'), JUMP_D, true);
     this.leave = paintedButton(this, 0, 0, 'Leave with 100 coins  ➜', emit('cmd:leave'), { kind: 'gold', width: 270, height: 50, size: 26 });
@@ -107,7 +118,7 @@ export class HudScene extends Phaser.Scene {
       this.game.events.off('hud:zoom', this.onZoom, this);
       this.game.events.off('stick:hold', this.onStick, this);
       this.registry.set(STICK_REST, null);
-      this.registry.set(HUD_TOP_KEY, undefined);
+      this.registry.set(HUD_INSETS_KEY, undefined);
     });
     const info = this.registry.get('levelInfo') as LevelInfo | undefined;
     if (info) this.onReset(info);
@@ -117,6 +128,45 @@ export class HudScene extends Phaser.Scene {
   private layout(): void {
     const { width, height } = screenSize(this.scale);
     this.cameras.main.setSize(this.scale.width, this.scale.height);
+    if (this.touch) this.layoutTouch(width, height);
+    else this.layoutDesktop(width, height);
+    if (this.card) this.card.setPosition(width / 2, this.cardY(this.card.getData('h') as number));
+  }
+
+  /** Tells the camera how far in the interface reaches, when that changes. */
+  private setInsets(insets: Insets): void {
+    const was = this.registry.get(HUD_INSETS_KEY) as Insets | undefined;
+    if (was && JSON.stringify(was) === JSON.stringify(insets)) return;
+    this.registry.set(HUD_INSETS_KEY, insets);
+    this.game.events.emit('hud:insets');
+  }
+
+  /**
+   * A touch screen: the level's number and name on one line (the haul says
+   * the goal), and every control kept off the board (see touchPlan), so a
+   * pin or Nib never hides under a thumb.
+   */
+  private layoutTouch(width: number, height: number): void {
+    const plan = touchPlan(width, height, this.status.width);
+    const playing = !this.card;
+    this.mapButton.setPosition(plan.map.x, plan.map.y);
+    this.restartButton.setPosition(plan.restart.x, plan.restart.y);
+    this.titleCard.root.setVisible(plan.title !== null);
+    if (plan.title) this.titleCard.layout(plan.title.x, plan.title.y, plan.title.maxW, true, true);
+    this.status.root.setPosition(plan.status.x, plan.status.y).setVisible(playing);
+    this.zoomIn.setPosition(plan.zoomIn.x, plan.zoomIn.y).setVisible(playing);
+    this.zoomOut.setPosition(plan.zoomOut.x, plan.zoomOut.y).setVisible(playing);
+    this.hintButton.setPosition(plan.hint.x, plan.hint.y).setVisible(playing);
+    this.stick.place(plan.stick.x, plan.stick.y);
+    this.stick.setVisible(playing);
+    this.registry.set(STICK_REST, playing ? this.stick.restAt : null);
+    this.jumpButton.setPosition(plan.jump.x, plan.jump.y).setVisible(playing);
+    this.tip.place(plan.tip.x, plan.tip.y, Math.min(plan.tip.maxW, 460), true, true);
+    this.leave.root.setPosition(plan.leave.x, plan.leave.y);
+    this.setInsets(plan.insets);
+  }
+
+  private layoutDesktop(width: number, height: number): void {
     const narrow = width < 560;
     // A phone on its side: the small type, as upright, to leave the board its height.
     const compact = narrow || height < 500;
@@ -126,36 +176,27 @@ export class HudScene extends Phaser.Scene {
     this.restartButton.setPosition(width - EDGE - half, EDGE + half);
     const cardX = EDGE + BUTTON + 8;
     const cardW = narrow ? width - cardX * 2 : Math.min(440, width * 0.42);
+    this.titleCard.root.setVisible(true);
     this.titleCard.layout(cardX, 6, cardW, compact);
-    // The haul: under the page on a phone, else top-right beside restart.
+    // The haul: under the page on a narrow screen, else top-right beside restart.
     const statusX = narrow ? cardX : width - EDGE - BUTTON - 10 - this.status.width;
     const statusY = narrow ? 6 + this.titleCard.height + 6 : EDGE;
     // The result card says the haul, and would sit over the tag on a phone.
     this.status.root.setPosition(statusX, statusY).setVisible(!this.card);
     const top = Math.max(6 + this.titleCard.height, statusY + StatusTag.height) + 6;
-    if (this.registry.get(HUD_TOP_KEY) !== top) {
-      this.registry.set(HUD_TOP_KEY, top);
-      this.game.events.emit('hud:top');
-    }
+    this.setInsets({ top, right: SIDE, bottom: BOTTOM, left: SIDE, touch: false });
     // Zoom: a column under restart (and under the haul, on a wide screen).
     const zoomX = width - EDGE - half;
     const zoomY = EDGE + BUTTON + 10 + ZOOM_D / 2 + (narrow ? 0 : StatusTag.height - BUTTON + 10);
     this.zoomIn.setPosition(zoomX, zoomY).setVisible(!this.card);
     this.zoomOut.setPosition(zoomX, zoomY + ZOOM_D + 10).setVisible(!this.card);
-    // The touch controls: the stick in the lower-left corner, the jump button in the lower-right.
-    const controls = this.touch && !this.card;
-    const rowY = height - CONTROLS_UP;
-    this.stick.place(24 + STICK.radius, rowY);
-    this.stick.setVisible(controls);
-    this.registry.set(STICK_REST, controls ? this.stick.restAt : null);
-    this.jumpButton.setPosition(width - 20 - JUMP_D / 2, rowY).setVisible(controls);
-    // The tip along the bottom (between the stick and the jump button, where there's room), the way out above it.
-    const between = width - 2 * (24 + STICK.radius * 2 + 16);
-    const lift = controls && between < 360;
-    const tipBottom = lift ? rowY - STICK.radius - 14 : height - 12;
-    this.tip.place(width / 2, tipBottom, Math.min(controls && !lift ? between : width - 24, 560), compact);
-    this.leave.root.setPosition(width / 2, tipBottom - (narrow ? 96 : 76));
-    if (this.card) this.card.setPosition(width / 2, this.cardY(this.card.getData('h') as number));
+    // A keyboard's tip stays up until play starts: no button to bring it back.
+    this.hintButton.setVisible(false);
+    this.stick.setVisible(false);
+    this.registry.set(STICK_REST, null);
+    this.jumpButton.setVisible(false);
+    this.tip.place(width / 2, height - 12, Math.min(width - 24, 560), compact);
+    this.leave.root.setPosition(width / 2, height - 12 - (narrow ? 96 : 76));
   }
 
   private cardY(h: number): number {
@@ -198,7 +239,7 @@ export class HudScene extends Phaser.Scene {
       const place = chapterPlace(level.id);
       const ruin = place ? CHAPTER_NAMES[place.chapter - 1] : undefined;
       const n = place ? place.level : info.index + 1;
-      this.titleCard.set(ruin ? `Level ${n} · ${ruin}` : level.chapter, level.name, level.goal);
+      this.titleCard.set(ruin ? `Level ${n} · ${ruin}` : level.chapter, level.name, level.goal, `${n} · ${level.name}`);
       // The widest count it will show: every coin, more than the goal asks.
       this.status.reset(level.chest !== undefined, `${level.coinsNeeded * 2} / ${level.coinsNeeded}`);
     }
@@ -214,16 +255,35 @@ export class HudScene extends Phaser.Scene {
     this.status.setChest(false);
     this.onStick(null);
     this.layout();
-    this.levelTip = true;
-    this.tip.show(this.firstTip());
+    this.showTips(this.firstTips());
   }
 
   /** The level's own tip, else the volcano's, else how to play; the first level leads with how to play. */
-  private firstTip(): string {
+  private firstTips(): string[] {
     const level = this.info?.level;
     const howTo = this.touch ? TOUCH_TIP : DESKTOP_TIP;
-    if (this.info?.index === 0) return level?.tip ? `${howTo}\n${level.tip}` : howTo;
-    return level?.tip ?? (level?.ruin === 'volcano' ? VOLCANO_TIP : howTo);
+    if (this.info?.index === 0) return level?.tip ? [howTo, level.tip] : [howTo];
+    return [level?.tip ?? (level?.ruin === 'volcano' ? VOLCANO_TIP : howTo)];
+  }
+
+  /**
+   * The level's tips. A laptop shows them together until the first pin is
+   * pulled; a touch screen, whose board is small, one at a time, each just
+   * long enough to read (the ? button brings them back).
+   */
+  private showTips(lines: readonly string[]): void {
+    this.levelTip = true;
+    if (!this.touch) {
+      this.tip.show(lines.join('\n'));
+      return;
+    }
+    const [first, ...rest] = lines;
+    if (!first) return;
+    this.tip.show(first);
+    this.tip.fade(tipHoldMs(first), 500, () => {
+      if (rest.length && this.levelTip) this.showTips(rest);
+      else this.levelTip = false;
+    });
   }
 
   /** Hearts from `left` on are lost: each bursts and is left an empty outline. */

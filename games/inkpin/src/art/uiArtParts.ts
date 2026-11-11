@@ -89,7 +89,7 @@ export function paintPlateShadow(ctx: CanvasRenderingContext2D, w: number, h: nu
   castShadow(ctx, shape, res, { blur: 5, dx: 0, dy: 0, alpha: 0.42 });
 }
 
-export type IconKind = 'restart' | 'map' | 'zoomIn' | 'zoomOut' | 'jump' | 'close';
+export type IconKind = 'restart' | 'map' | 'zoomIn' | 'zoomOut' | 'jump' | 'close' | 'hint';
 
 /** A pen-and-wash icon centred on (0, 0), about 26 units across. */
 export function paintIcon(ctx: CanvasRenderingContext2D, kind: IconKind, seed: number): void {
@@ -97,6 +97,12 @@ export function paintIcon(ctx: CanvasRenderingContext2D, kind: IconKind, seed: n
   if (kind === 'restart') paintRestart(pen);
   else if (kind === 'map') paintMap(pen);
   else if (kind === 'jump') paintJump(pen);
+  else if (kind === 'hint') {
+    // A question mark in blue ink: the level's tip again.
+    const hook = arc(0, -4.5, 5.6, Math.PI * 1.05, Math.PI * 2.35, 14);
+    pen.stroke([...hook, pt(0.4, 1.6), pt(0, 4.2)], 2.6, BLUE, 0.95, false);
+    pen.dot(0, 9, 1.9, BLUE, 0.95);
+  }
   else if (kind === 'close') {
     pen.stroke([pt(-7, -7), pt(7, 7)], 2.6, INK, 1, false);
     pen.stroke([pt(7, -7), pt(-7, 7)], 2.6, INK, 1, false);

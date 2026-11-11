@@ -9,6 +9,7 @@ import { DPR, screenSize } from './hidpi';
 import { computeMapLayout, MAP, regionAt, type MapLayout, type MapNode } from './map/layout';
 import { ChapterCard } from './map/chapterCard';
 import { LevelCard } from './map/levelCard';
+import { isDesktop } from './controls';
 import { MapView } from './map/mapView';
 import { buildNodes, mapStates, type NodeHit, type NodeState } from './map/nodes';
 import { NibWalker } from './map/walker';
@@ -29,6 +30,9 @@ const KEY_STEP = 300;
 const GLIDE = 9;
 /** The page's width that should fit on screen (its middle, on a phone), and how much of its height. */
 const FIT = { w: 760, h: 760 } as const;
+/** A touch screen fits less of the map, so the levels' circles and Nib draw big enough to tap and see. */
+const TOUCH_FIT = { w: 700, h: 420 } as const;
+const MAX_ZOOM = { desk: 1, touch: 1.2 } as const;
 /** The table the Atlas lies open on. */
 const TABLE_HEX = 0x5b3e29;
 const TOP_BAR = 64;
@@ -93,7 +97,9 @@ export class MenuScene extends Phaser.Scene {
     const lockedIds = (c: number): string[] => Array.from({ length: LEVELS_PER_CHAPTER }, (_, i) => `locked-${c + 1}-${i + 1}`);
     // The page grows to the screen's width, so no table shows either side of it.
     const screen = screenSize(this.scale);
-    this.zoom = Phaser.Math.Clamp(Math.min(screen.width / FIT.w, screen.height / FIT.h), 0.45, 1);
+    const touch = !isDesktop();
+    const fit = touch ? TOUCH_FIT : FIT;
+    this.zoom = Phaser.Math.Clamp(Math.min(screen.width / fit.w, screen.height / fit.h), 0.45, touch ? MAX_ZOOM.touch : MAX_ZOOM.desk);
     this.layout = computeMapLayout(CHAPTER_NAMES.map((name, c) => {
       const levels = CHAPTERS[c] ?? [];
       const locked = this.kinds[c] === 'locked';
@@ -231,6 +237,7 @@ export class MenuScene extends Phaser.Scene {
     this.card = new LevelCard(this, this.uiLayer, this.ui, {
       level, chapter: hit.node.region + 1, number: hit.node.index + 1, record: this.progress.levels[level.id],
       onPlay: () => this.play(index),
+      compact: !isDesktop(),
     }, () => {
       this.card = null;
     });

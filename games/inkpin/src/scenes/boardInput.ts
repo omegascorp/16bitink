@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { inStickReach, sameSteer, steer, STILL, type Pt, type Steer } from '../logic/stick';
+import { inStickReach, onStickRing, sameSteer, steer, STILL, type Pt, type Steer } from '../logic/stick';
 import type { World } from '../logic/world';
 import { ZOOM_STEP } from '../logic/zoom';
 import { hudTook } from './controls';
@@ -23,7 +23,7 @@ export interface BoardHooks {
   readonly unlock: () => void;
 }
 
-/** A thumb on the stick: where it landed and how far it's pulled since, CSS px (the HUD draws it). */
+/** A thumb on the stick: the ring's centre and how far from it the thumb is, CSS px (the HUD draws it). */
 export interface StickHold {
   readonly x: number;
   readonly y: number;
@@ -90,8 +90,12 @@ export class BoardInput {
     if (hudTook(p) || this.world.finished) return;
     const at = css(p);
     const rest = this.scene.registry.get(STICK_REST) as Pt | null | undefined;
-    if (p.wasTouch && !this.stick && rest && inStickReach(at, rest)) {
-      this.stick = { id: p.id, x: at.x, y: at.y, dx: 0, dy: 0, steer: STILL };
+    const pin = this.hooks.pinAt(p);
+    // The stick's base stays on its ring, so a thumb that slips off the glass and lands again pulls the same way.
+    // A pin right under the finger wins over the stick's outer reach.
+    if (p.wasTouch && !this.stick && rest && inStickReach(at, rest) && !(pin && !onStickRing(at, rest))) {
+      this.stick = { id: p.id, x: rest.x, y: rest.y, dx: at.x - rest.x, dy: at.y - rest.y, steer: STILL };
+      this.steer();
       this.scene.game.events.emit('stick:hold', this.stick);
       return;
     }
@@ -102,14 +106,15 @@ export class BoardInput {
       this.press = null;
       return;
     }
-    this.press = { id: p.id, ...at, moved: false, pin: this.hooks.pinAt(p) };
+    this.press = { id: p.id, ...at, moved: false, pin };
   }
 
   private onMove(p: Phaser.Input.Pointer): void {
     const at = css(p);
     const st = this.stick;
     if (st && st.id === p.id) {
-      this.stick = { ...st, dx: at.x - st.x, dy: at.y - st.y };
+      const rest = (this.scene.registry.get(STICK_REST) as Pt | null | undefined) ?? st;
+      this.stick = { ...st, x: rest.x, y: rest.y, dx: at.x - rest.x, dy: at.y - rest.y };
       this.steer();
       this.scene.game.events.emit('stick:hold', this.stick);
       return;

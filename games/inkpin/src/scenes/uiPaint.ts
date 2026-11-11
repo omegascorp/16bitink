@@ -54,7 +54,7 @@ const ICON = 34;
 
 /** Bakes the interface's fixed parts (a few ms; the cards bake when they're wanted). */
 export function bakeUi(scene: Phaser.Scene): void {
-  const icons: IconKind[] = ['restart', 'map', 'zoomIn', 'zoomOut', 'jump', 'close'];
+  const icons: IconKind[] = ['restart', 'map', 'zoomIn', 'zoomOut', 'jump', 'close', 'hint'];
   icons.forEach((kind, i) => uiTexture(scene, UI_TEX.icon(kind), ICON, ICON, (ctx) => {
     ctx.translate(ICON / 2, ICON / 2);
     paintIcon(ctx, kind, 80 + i);
