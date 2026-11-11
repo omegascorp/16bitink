@@ -31,11 +31,19 @@ describe('joystick', () => {
   it('runs along a branch as hard as it is pulled sideways', () => {
     expect(stickRun(STICK.radius, 0, 0)).toBeCloseTo(1);
     expect(stickRun(-STICK.radius * 2, 0, 0)).toBeCloseTo(-1);
-    expect(stickRun(STICK.radius / 2, 0, 0)).toBeCloseTo(0.5);
-    // Straight up the branch's axis: a stop (it spits straight up on letting go).
+    const half = stickRun(STICK.radius / 2, 0, 0);
+    expect(half).toBeGreaterThan(0.3);
+    expect(half).toBeLessThan(1);
+    // Straight up the branch's axis: no run.
     expect(stickRun(0, -STICK.radius, 0)).toBe(0);
     // Upright phone: the branch runs down the screen.
     expect(stickRun(0, STICK.radius, Math.PI / 2)).toBeCloseTo(1);
+  });
+
+  it('keeps running when the thumb drifts up or down as it slides', () => {
+    // A thumb pulled sideways that rolls well up the screen still runs, and as hard.
+    expect(stickRun(STICK.radius * 0.8, -STICK.radius * 0.9, 0)).toBeCloseTo(stickRun(STICK.radius * 0.8, 0, 0));
+    expect(stickRun(-STICK.radius * 0.6, STICK.radius, 0)).toBeLessThan(-0.5);
   });
 
   it('keeps the knob inside the rim', () => {

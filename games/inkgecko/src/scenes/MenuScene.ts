@@ -239,6 +239,7 @@ export class MenuScene extends Phaser.Scene {
     const i = order.findIndex((l) => l.id === level.id);
     this.card = MapCard.level(this, this.uiLayer, this.ui, {
       level, number: hit.node.index + 1, place: placeOf(level.id), record: this.progress.levels[level.id], news: whatsNew(level, order.slice(0, Math.max(0, i))),
+      compact: !this.sys.game.device.os.desktop,
       onPlay: () => {
         // The level starts on the board its card baked: don't let the card free it.
         this.card = null;

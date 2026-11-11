@@ -156,6 +156,12 @@ export interface RoundButton {
   setIcon(kind: IconKind): void;
 }
 
+/** A round paper plate `d` across and its shadow, centred on (0, 0), with no input of its own (the game reads the presses). */
+export function roundPlate(scene: Phaser.Scene, d: number): { readonly shadow: Phaser.GameObjects.Image; readonly face: Phaser.GameObjects.Image } {
+  const tex = plate(scene, 'paper', d, d, true);
+  return { shadow: scene.add.image(0, 3, tex.shadow).setScale(1 / UI_RES).setAlpha(0.8), face: scene.add.image(0, 0, tex.plate).setScale(1 / UI_RES) };
+}
+
 /** A round paper button with a painted icon, `d` across. */
 export function roundButton(scene: Phaser.Scene, x: number, y: number, icon: IconKind, onClick: () => void, d = ROUND): RoundButton {
   const tex = plate(scene, 'paper', d, d, true);

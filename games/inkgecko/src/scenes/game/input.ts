@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
 import type { BoardInput } from '../../logic/board';
-import { inStickReach, pulled, stickAngle, stickRun, TAP_MOVE, TAP_MS } from '../../logic/joystick';
+import { inStickReach, pulled, stickAngle, stickRun } from '../../logic/joystick';
 import type { Pt } from '../../logic/path';
 import { toView } from '../hidpi';
+import type { Disc } from '../hud/touchButtons';
 
 export interface InputHooks {
   /** Screen pointer (Phaser pointer px) to board px. */
@@ -15,15 +16,17 @@ export interface InputHooks {
   readonly padAt: (p: Pt) => number | null;
   /** Hop levels: the pad before (−1) or after (1) the one the gecko is on. */
   readonly padStep: (step: 1 | -1) => number | null;
-  /** Where the thumbstick's resting ring sits, CSS px, or null while it isn't shown. */
+  /** Where the thumbstick's ring sits, CSS px, or null while it isn't shown. */
   readonly stickRest: () => Pt | null;
+  /** Where the Spit and Swap buttons are, CSS px, or null while they aren't shown. */
+  readonly buttons: () => { readonly fire: Disc; readonly swap: Disc } | null;
   /** How far the board is turned on screen, radians (a quarter on an upright phone). */
   readonly turn: () => number;
   /** Where the gecko stands and whether it runs along a branch. */
   readonly gecko: () => Pt & { readonly rail: boolean };
 }
 
-/** A finger on the thumbstick: where it landed and how far it's pulled since, CSS px. */
+/** A thumb on the stick: the ring's centre and how far from it the thumb is, CSS px. */
 export interface StickHold {
   readonly x: number;
   readonly y: number;
@@ -37,8 +40,9 @@ const STICK_AIM_FAR = 1000;
 /**
  * Mouse, touch and keys to board input. Mouse: point to aim, click to spit,
  * right-click to swap. Touch: tap to aim and spit in one go, tap the gecko to
- * swap; or the thumbstick in the lower-left corner: pull to aim (or run along
- * a branch), let go to spit, tap it to swap. Either: click or tap another lily pad to hop onto it. Keys: Space /
+ * swap; or the thumbstick in the lower-left corner (pull to aim, or to run
+ * along a branch) with the Spit button in the lower-right and Swap above it.
+ * Either: click or tap another lily pad to hop onto it. Keys: Space /
  * S swap, A D / arrows turn the gecko or run along a branch, W / ↑ / Enter
  * spit, Q / E hop to the previous / next pad. Pause and sound keys belong to the HUD, which
  * keeps listening while the game is paused.
@@ -51,7 +55,11 @@ export class GameInput {
   private swap = false;
   private hop: number | null = null;
   private readonly held = new Set<string>();
-  private stick: (StickHold & { readonly id: number; readonly t: number }) | null = null;
+  private stick: (StickHold & { readonly id: number }) | null = null;
+  /** The fingers on the Spit and Swap buttons (their moves aim nothing). */
+  private readonly pressing = new Map<number, 'fire' | 'swap'>();
+  /** Fingers still down from the stick or a button across a pause: ignored until they lift. */
+  private readonly stale = new Set<number>();
 
   constructor(scene: Phaser.Scene, private readonly hooks: InputHooks) {
     this.touch = !scene.sys.game.device.os.desktop;
@@ -60,20 +68,25 @@ export class GameInput {
       const st = this.stick;
       if (st && p.id === st.id) {
         const at = toView(p.x, p.y);
-        this.stick = { ...st, dx: at.x - st.x, dy: at.y - st.y };
+        // Measured from where the ring is now (a turned screen moves it).
+        const rest = hooks.stickRest() ?? st;
+        this.stick = { ...st, x: rest.x, y: rest.y, dx: at.x - rest.x, dy: at.y - rest.y };
         return;
       }
-      if (p.wasTouch && !p.isDown) return;
+      if (this.pressing.has(p.id) || this.stale.has(p.id) || (p.wasTouch && !p.isDown)) return;
       this.aim = hooks.toBoard(p);
     });
     scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       this.touch = p.wasTouch;
+      this.stale.delete(p.id);
       if (hooks.overHud(p)) return;
+      if (p.wasTouch && this.pressButton(p)) return;
       if (p.wasTouch && !this.stick) {
         const rest = hooks.stickRest();
         const css = toView(p.x, p.y);
+        // The pull is from the ring's centre, wherever on it the thumb lands.
         if (rest && inStickReach(css, rest)) {
-          this.stick = { id: p.id, x: css.x, y: css.y, dx: 0, dy: 0, t: p.event.timeStamp };
+          this.stick = { id: p.id, x: rest.x, y: rest.y, dx: css.x - rest.x, dy: css.y - rest.y };
           return;
         }
       }
@@ -96,18 +109,14 @@ export class GameInput {
       this.aim = at;
       this.fire = true;
     });
+    // Letting go of the stick leaves the aim where it pointed: the Spit button spits.
     const up = (p: Phaser.Input.Pointer): void => {
-      const st = this.stick;
-      if (!st || p.id !== st.id) return;
-      this.stick = null;
-      // Let go of a pull: the aim it set stays, and the gecko spits along it.
-      if (pulled(st.dx, st.dy)) {
-        this.aimAlong(st);
-        this.fire = true;
-      } else if (p.event.timeStamp - st.t < TAP_MS && Math.hypot(st.dx, st.dy) < TAP_MOVE) this.swap = true;
+      this.pressing.delete(p.id);
+      this.stale.delete(p.id);
+      if (this.stick?.id === p.id) this.stick = null;
     };
     scene.input.on('pointerup', up);
-    // A thumb that slides off the canvas lets go of the stick too.
+    // A thumb that slides off the canvas lets go too.
     scene.input.on('pointerupoutside', up);
     const keys = scene.input.keyboard;
     keys?.on('keydown', (e: KeyboardEvent) => {
@@ -127,6 +136,26 @@ export class GameInput {
     const blur = (): void => this.reset();
     scene.game.events.on(Phaser.Core.Events.BLUR, blur);
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => scene.game.events.off(Phaser.Core.Events.BLUR, blur));
+  }
+
+  /** A finger landing on the Spit or Swap button presses it. */
+  private pressButton(p: Phaser.Input.Pointer): boolean {
+    const discs = this.hooks.buttons();
+    if (!discs) return false;
+    const css = toView(p.x, p.y);
+    const on = (d: Disc): boolean => Math.hypot(css.x - d.x, css.y - d.y) <= d.r;
+    const which = on(discs.fire) ? 'fire' : on(discs.swap) ? 'swap' : null;
+    if (!which) return false;
+    this.pressing.set(p.id, which);
+    if (which === 'fire') this.fire = true;
+    else this.swap = true;
+    return true;
+  }
+
+  /** Whether a finger is on the Spit or Swap button now (the HUD shows it pressed). */
+  isPressing(which: 'fire' | 'swap'): boolean {
+    for (const w of this.pressing.values()) if (w === which) return true;
+    return false;
   }
 
   /** The thumb on the stick, if any (the HUD draws it). */
@@ -166,12 +195,15 @@ export class GameInput {
     return out;
   }
 
-  /** Forgets keys held across a pause. */
+  /** Forgets keys and fingers held across a pause. */
   reset(): void {
     this.held.clear();
     this.fire = false;
     this.swap = false;
     this.hop = null;
+    for (const id of this.pressing.keys()) this.stale.add(id);
+    if (this.stick) this.stale.add(this.stick.id);
     this.stick = null;
+    this.pressing.clear();
   }
 }

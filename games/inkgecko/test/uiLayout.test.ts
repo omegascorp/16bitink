@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { boardEndRoom, boardSideRoom, cardFit, hitSize, hudPlan, MIN_TOUCH, uprightScreen } from '../src/scenes/uiLayout';
+import { FULL_BOARD, type Box } from '../src/logic/framing';
+import { cardFit, hitSize, hudPlan, MIN_TOUCH, stagePlan, TOUCH, uprightScreen } from '../src/scenes/uiLayout';
 
-const SIZES = { button: 54, margin: 14, meterH: 50 } as const;
+const SIZES = { button: 54, margin: 14, meterH: 50, tagW: 92, colW: 92, colH: 272 } as const;
 /** The interface scale hidpi.uiScaleFor gives these screens. */
 const scaleFor = (w: number, h: number): number => Math.min(1, Math.max(0.55, Math.min(w / 760, h / 560)));
-const plan = (w: number, h: number, rail = false) => {
+/** A level whose lines and gecko leave bare ground above and below them. */
+const LEVEL: Box = { x0: 90, y0: 86, x1: 1090, y1: 658 };
+const plan = (w: number, h: number, o: { rail?: boolean; touch?: boolean; box?: Box } = {}) => {
   const s = scaleFor(w, h);
-  return { s, view: { width: w / s, height: h / s }, p: hudPlan({ width: w / s, height: h / s }, { width: w, height: h }, s, rail, SIZES) };
+  const stage = stagePlan({ width: w, height: h }, s, o.box ?? FULL_BOARD, o.touch ?? false);
+  const view = { width: w / s, height: h / s };
+  return { s, view, stage, p: hudPlan(view, stage, s, o.rail ?? false, SIZES) };
 };
 
 describe('cardFit', () => {
@@ -30,31 +35,83 @@ describe('hitSize', () => {
   });
 });
 
-describe('board room', () => {
-  it('finds the paper beside a landscape board', () => {
-    // A 1440×700 screen fits the 1280×720 board by height: about 98 px either side.
-    expect(boardSideRoom({ width: 1440, height: 700 }, 1)).toBeCloseTo((1440 - 1280 * (700 / 720)) / 2);
-    expect(boardSideRoom({ width: 1280, height: 900 }, 1)).toBe(0);
-    expect(boardSideRoom({ width: 390, height: 844 }, 0.55)).toBe(0);
+describe('stagePlan', () => {
+  it('shows a laptop the whole board, with the HUD over it', () => {
+    const { stage } = plan(1440, 700, { box: LEVEL });
+    expect(stage.mode).toBe('over');
+    expect(stage.framing.zoom).toBeCloseTo(700 / 720);
   });
 
-  it('keeps at least the HUD strip above an upright board', () => {
-    expect(boardEndRoom({ width: 390, height: 844 }, 0.55) * 0.55).toBeGreaterThanOrEqual(56);
+  it('draws a touch screen\'s board bigger by cutting the bare ground round the level', () => {
+    const full = plan(844, 390, { touch: true });
+    const cut = plan(844, 390, { touch: true, box: LEVEL });
+    expect(cut.stage.framing.zoom).toBeGreaterThan(full.stage.framing.zoom * 1.15);
+  });
+
+  it('keeps the HUD off the board on a phone held sideways: in columns beside it, or a strip above it', () => {
+    for (const [w, h] of [[844, 390], [932, 430], [667, 375], [740, 360], [1024, 768]] as const) {
+      const { stage } = plan(w, h, { touch: true, box: LEVEL });
+      const shown = { w: (LEVEL.x1 - LEVEL.x0) * stage.framing.zoom, h: (LEVEL.y1 - LEVEL.y0) * stage.framing.zoom };
+      if (stage.mode === 'sides') expect(shown.w).toBeLessThanOrEqual(w - 2 * 60 + 1e-6);
+      else {
+        expect(stage.mode).toBe('top');
+        expect(stage.shiftY).toBeGreaterThan(0);
+        expect(shown.h).toBeLessThanOrEqual(h - stage.shiftY * 2 + 1e-6);
+      }
+    }
+  });
+
+  it('turns the board on an upright screen, laptop or phone', () => {
+    expect(plan(390, 844).stage.turned).toBe(true);
+    expect(plan(390, 844, { touch: true }).stage.mode).toBe('upright');
   });
 });
 
 describe('hudPlan', () => {
-  it('stacks the buttons in the paper beside the board when they fit there', () => {
-    const { view, p } = plan(844, 390);
-    expect(p.upright).toBe(false);
+  it('stacks the buttons in the paper beside a laptop\'s board when they fit there', () => {
+    const { p } = plan(1440, 700);
     expect(p.buttons[0]!.x).toBe(p.buttons[1]!.x);
-    expect(p.buttons[0]!.x).toBeGreaterThan(view.width - boardSideRoom({ width: 844, height: 390 }, scaleFor(844, 390)));
   });
 
   it('puts the buttons side by side when the board fills the width', () => {
     const { p } = plan(1280, 900);
     expect(p.buttons[0]!.y).toBe(p.buttons[1]!.y);
     expect(p.buttons[1]!.x).toBeLessThan(p.buttons[0]!.x);
+  });
+
+  it('sideways phone: the clock and pause on the left, the meter down the right, sound on the pause card', () => {
+    const { view, stage, p } = plan(844, 390, { touch: true, box: { x0: 0, y0: 44, x1: 1280, y1: 712 } });
+    expect(stage.mode).toBe('sides');
+    expect(p.meter.column).toBe(true);
+    expect(p.tag.compact).toBe(true);
+    expect(p.buttons).toHaveLength(1);
+    expect(p.buttons[0]!.x).toBeLessThan(view.width * 0.1);
+    expect(p.meter.x).toBeGreaterThan(view.width * 0.9);
+  });
+
+  it('puts the stick bottom-left and Spit bottom-right, Swap just above Spit, all on screen', () => {
+    for (const [w, h, touch] of [[844, 390, true], [390, 844, true], [1440, 700, false]] as const) {
+      const { s, view, p } = plan(w, h, { touch, box: LEVEL });
+      const r = (css: number): number => css / s;
+      expect(p.stick.x - r(TOUCH.stick)).toBeGreaterThanOrEqual(0);
+      expect(p.stick.y + r(TOUCH.stick)).toBeLessThanOrEqual(view.height);
+      expect(p.fire.x + r(TOUCH.fire)).toBeLessThanOrEqual(view.width);
+      expect(p.fire.y + r(TOUCH.fire)).toBeLessThanOrEqual(view.height);
+      expect(p.swap.y).toBeLessThan(p.fire.y - r(TOUCH.fire));
+      expect(p.stick.x).toBeLessThan(view.width / 2);
+      expect(p.fire.x).toBeGreaterThan(view.width / 2);
+    }
+  });
+
+  it('sideways: the meter column stays on screen and clear of Swap, the bottom hint clear of the controls', () => {
+    for (const [w, h] of [[844, 390], [1024, 768], [740, 320], [932, 430]] as const) {
+      const { s, view, stage, p } = plan(w, h, { touch: true, box: { x0: 0, y0: 44, x1: 1280, y1: 712 } });
+      if (stage.mode !== 'sides') continue;
+      expect(p.meter.x + SIZES.colW / 2).toBeLessThanOrEqual(view.width);
+      expect(p.meter.y + SIZES.colH * p.meter.scale).toBeLessThanOrEqual(p.swap.y - TOUCH.swap / s);
+      expect(view.width / 2 - p.hintW / 2).toBeGreaterThanOrEqual(p.stick.x + TOUCH.stick / s);
+      expect(view.width / 2 + p.hintW / 2).toBeLessThanOrEqual(p.fire.x - TOUCH.fire / s);
+    }
   });
 
   it('upright: meter below the board, tag and buttons above it, all on screen', () => {
@@ -68,17 +125,17 @@ describe('hudPlan', () => {
       expect(b.x + (SIZES.button * p.k) / 2).toBeLessThanOrEqual(view.width);
     }
     expect(p.hintY).toBeLessThan(p.meter.y);
+    expect(p.stick.y).toBeLessThan(p.hintY);
   });
 
   it('upright: the top row stays in the strip above the board', () => {
-    const { s, p } = plan(390, 844);
-    const room = boardEndRoom({ width: 390, height: 844 }, s);
-    expect(p.buttons[0]!.y + (SIZES.button * p.k) / 2).toBeLessThanOrEqual(room);
+    const { s, stage, p } = plan(390, 844, { touch: true, box: LEVEL });
+    expect(p.buttons[0]!.y + (SIZES.button * p.k) / 2).toBeLessThanOrEqual(stage.room / s);
   });
 
   it('moves the hint off the bottom on rail levels, but not up onto the lines along the top', () => {
-    const rail = plan(1440, 700, true);
-    expect(rail.p.hintY).toBeLessThan(plan(1440, 700, false).p.hintY);
+    const rail = plan(1440, 700, { rail: true });
+    expect(rail.p.hintY).toBeLessThan(plan(1440, 700).p.hintY);
     expect(rail.p.hintY).toBeGreaterThan(rail.view.height * 0.3);
   });
 

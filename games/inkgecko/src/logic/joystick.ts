@@ -1,32 +1,30 @@
 import type { Pt } from './path';
 
 /**
- * The thumbstick for touch screens, in CSS px (as InkSnake's). A thumb that
- * lands near its resting ring in the lower-left corner sets the stick's base
- * there; the pull from that base aims the gecko, so a finger never has to
- * cover the marbles it aims at. Letting go spits; a quick tap swaps.
+ * The thumbstick for touch screens, in CSS px. Its base stays put on its
+ * ring in the lower-left corner: the pull is measured from the ring's
+ * centre, not from where the thumb landed, so a thumb that slips off the
+ * glass for a moment and lands again pulls the same way it did. The pull
+ * aims the gecko (or runs it along its branch); spitting is the Spit
+ * button's job, so letting go never spits.
  */
 export const STICK = {
-  /** Pull from the base that reads as full, and where the knob stops. */
-  radius: 56,
-  /** Fraction of `radius` ignored round the base: a thumb let go in there spits nothing. */
-  deadZone: 0.28,
+  /** Pull from the centre that reads as full, and where the knob stops. */
+  radius: 60,
+  /** Fraction of `radius` ignored round the centre: a thumb resting there leaves the aim alone. */
+  deadZone: 0.22,
   /** The knob's radius. */
-  knob: 22,
-  /** How far from the resting ring's centre a thumb still takes the stick (the rest of the board stays tap-to-aim). */
-  reach: 104,
+  knob: 24,
+  /** How far from the ring's centre a thumb still takes the stick (the rest of the board stays tap-to-aim). */
+  reach: 112,
 } as const;
-
-/** A touch shorter than this, that barely moved, is a tap: ms and CSS px. */
-export const TAP_MS = 240;
-export const TAP_MOVE = 12;
 
 /** Whether a touch at `at` lands on the stick resting at `rest`. */
 export function inStickReach(at: Pt, rest: Pt): boolean {
   return Math.hypot(at.x - rest.x, at.y - rest.y) <= STICK.reach;
 }
 
-/** The pull (dx, dy) clamped to the rim: where the knob draws, from the base. */
+/** The pull (dx, dy) clamped to the rim: where the knob draws, from the centre. */
 export function knobOffset(dx: number, dy: number): Pt {
   const d = Math.hypot(dx, dy);
   if (d <= STICK.radius) return { x: dx, y: dy };
@@ -47,15 +45,19 @@ export function stickAngle(dx: number, dy: number, turn: number): number | null 
   return Math.atan2(dy, dx) - turn;
 }
 
+/** A sideways pull this far past the dead zone runs the gecko flat out, as a share of `radius`. */
+const RUN_FULL = 0.75;
+
 /**
  * Rail levels: how hard a pull asks the gecko to run along its branch,
- * −1 (left) to 1 (right) in board terms, 0 inside the dead zone.
+ * −1 (left) to 1 (right) in board terms. Only the pull along the branch
+ * counts, so a thumb that drifts up or down as it slides keeps running.
  */
 export function stickRun(dx: number, dy: number, turn: number): number {
-  const a = stickAngle(dx, dy, turn);
-  if (a === null) return 0;
-  const strength = Math.min(1, Math.hypot(dx, dy) / STICK.radius);
-  const run = Math.cos(a) * strength;
-  // A pull mostly up or down the screen's branch axis is a stop, not a crawl.
-  return Math.abs(run) < 0.2 ? 0 : run;
+  // The pull along the board's x axis, as the board lies on screen.
+  const along = dx * Math.cos(turn) + dy * Math.sin(turn);
+  const dead = STICK.radius * STICK.deadZone;
+  if (Math.abs(along) <= dead) return 0;
+  const run = (Math.abs(along) - dead) / (STICK.radius * RUN_FULL - dead);
+  return Math.sign(along) * Math.min(1, run);
 }

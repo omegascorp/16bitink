@@ -11,14 +11,14 @@ export interface Tip {
 
 /** Gentle, useful things to know: one shows after each loss, in turn. */
 export const TIPS: readonly Tip[] = [
-  { mouse: 'Space or right-click swaps the marble on the gecko\'s tail for the one in its mouth.', touch: 'Tap the gecko (or the stick) to swap the marble on its tail for the one in its mouth.' },
+  { mouse: 'Space or right-click swaps the marble on the gecko\'s tail for the one in its mouth.', touch: 'Press Swap (or tap the gecko) to swap the marble on its tail for the one in its mouth.' },
   { mouse: 'Shoot into a gap with the same colour either side: the line rolls back to close it, and that\'s a combo.', touch: 'Shoot into a gap with the same colour either side: the line rolls back to close it, and that\'s a combo.' },
   { mouse: 'Pops that set off more pops roll the line back: chain them to buy time.', touch: 'Pops that set off more pops roll the line back: chain them to buy time.' },
   { mouse: 'Catch the charms that fall: Slow, Reverse and the Ink Pot can turn a level round.', touch: 'Catch the charms that fall: Slow, Reverse and the Ink Pot can turn a level round.' },
   { mouse: 'Work on the marbles nearest the well first: the rest can wait.', touch: 'Work on the marbles nearest the well first: the rest can wait.' },
   { mouse: 'Two of a colour side by side need just one more: look for pairs before singles.', touch: 'Two of a colour side by side need just one more: look for pairs before singles.' },
   { mouse: 'Once the bar is full no more marbles come: pop what\'s left to clear the level.', touch: 'Once the bar is full no more marbles come: pop what\'s left to clear the level.' },
-  { mouse: 'On the branch the gecko only spits straight up: run under a gap before you shoot.', touch: 'On the branch the gecko only spits straight up: tap above a gap to run there.', only: 'rail' },
+  { mouse: 'On the branch the gecko only spits straight up: run under a gap before you shoot.', touch: 'On the branch the gecko only spits straight up: run under a gap with the stick, then press Spit.', only: 'rail' },
   { mouse: 'Hop to the pad nearest the danger (Q / E or click a pad): short shots are sure shots.', touch: 'Hop to the pad nearest the danger: short shots are sure shots.', only: 'hop' },
 ];
 

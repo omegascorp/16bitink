@@ -63,6 +63,7 @@ export const TEX = {
   board: (levelId: string) => `board-${levelId}`,
   /** A level's tunnels, drawn over its marbles. */
   covers: (levelId: string) => `covers-${levelId}`,
+  surround: (levelId: string) => `surround-${levelId}`,
 } as const;
 
 const PAPER_TILE = 256;
@@ -245,9 +246,59 @@ export function bakeBoard(scene: Phaser.Scene, level: LevelDef, place: Place): s
       drawPadRing(makeDraw(ctx, 720 + i, 0, 0), p.x, p.y);
     });
   }
+  // The edges melt into the ground painted round the board (bakeSurround); a barn's walls stay crisp.
+  featherEdges(ctx, BOARD.w, BOARD.h, level.walls ? { left: false, right: false, top: false, bottom: true } : ALL_EDGES);
   releaseScratch();
   addPainted(scene, key, canvas);
   return key;
+}
+
+/** How far the ground painted round a board reaches past each edge, board px, and its texture px per board px. */
+export const SURROUND = { x: 240, y: 200, res: 1 } as const;
+/** How far in from its edges a board melts into its surround, board px. */
+const FEATHER = 36;
+const ALL_EDGES = { left: true, right: true, top: true, bottom: true } as const;
+
+/**
+ * The place's ground carrying on past a level's board, with its lines
+ * running on to their burrows and wells off the edge: what the screen shows
+ * beyond the board on a screen of another shape (no mirrored copies of the
+ * board). Painted coarser than the board, since a wash lies over it
+ * (layGround); its origin is SURROUND.x, SURROUND.y up and left of the board's.
+ */
+export function bakeSurround(scene: Phaser.Scene, level: LevelDef, place: Place): string {
+  const key = TEX.surround(level.id);
+  if (scene.textures.exists(key)) return key;
+  const w = BOARD.w + SURROUND.x * 2;
+  const h = BOARD.h + SURROUND.y * 2;
+  const { canvas, ctx } = makeCanvas(Math.ceil(w * SURROUND.res), Math.ceil(h * SURROUND.res));
+  ctx.scale(SURROUND.res, SURROUND.res);
+  const shift = (p: Pt): Pt => ({ x: p.x + SURROUND.x, y: p.y + SURROUND.y });
+  const paths = level.tracks.map((t) => buildPath(t.points).pts);
+  drawGround(makeDraw(ctx, 600 + idSeed(level.id), 0, 0), place, w, h, { grooves: paths.map((pts) => pts.map(shift)), pads: [], pillars: (level.pillars ?? []).map((q) => ({ ...shift(q), r: q.r })) });
+  ctx.translate(SURROUND.x, SURROUND.y);
+  paths.forEach((pts, i) => drawTrack(makeDraw(ctx, 640 + i, 0, 0), pts, place));
+  releaseScratch();
+  addPainted(scene, key, canvas);
+  return key;
+}
+
+/** Fades the chosen edges of a w × h painting out to clear over FEATHER. */
+function featherEdges(ctx: CanvasRenderingContext2D, w: number, h: number, edges: { readonly left: boolean; readonly right: boolean; readonly top: boolean; readonly bottom: boolean }): void {
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-out';
+  const fade = (x0: number, y0: number, x1: number, y1: number, rect: readonly [number, number, number, number]): void => {
+    const g = ctx.createLinearGradient(x0, y0, x1, y1);
+    g.addColorStop(0, 'rgba(0,0,0,1)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(...rect);
+  };
+  if (edges.left) fade(0, 0, FEATHER, 0, [0, 0, FEATHER, h]);
+  if (edges.right) fade(w, 0, w - FEATHER, 0, [w - FEATHER, 0, FEATHER, h]);
+  if (edges.top) fade(0, 0, 0, FEATHER, [0, 0, w, FEATHER]);
+  if (edges.bottom) fade(0, h, 0, h - FEATHER, [0, h - FEATHER, w, FEATHER]);
+  ctx.restore();
 }
 
 /**
@@ -279,9 +330,9 @@ export function bakeCovers(scene: Phaser.Scene, level: LevelDef, place: Place): 
   return key;
 }
 
-/** Frees a level's baked ground and tunnels (they are big: a full board at ART_RES each). */
+/** Frees a level's baked ground, surround and tunnels (they are big: a full board at ART_RES each). */
 export function dropBoard(scene: Phaser.Scene, level: LevelDef): void {
-  for (const key of [TEX.board(level.id), TEX.covers(level.id)]) freeTexture(scene, key);
+  for (const key of [TEX.board(level.id), TEX.covers(level.id), TEX.surround(level.id)]) freeTexture(scene, key);
 }
 
 /**
@@ -289,8 +340,8 @@ export function dropBoard(scene: Phaser.Scene, level: LevelDef): void {
  * board it already has, while one left behind doesn't hold its memory.
  */
 export function dropBoards(scene: Phaser.Scene, keep?: LevelDef): void {
-  const kept = keep ? [TEX.board(keep.id), TEX.covers(keep.id)] : [];
+  const kept = keep ? [TEX.board(keep.id), TEX.covers(keep.id), TEX.surround(keep.id)] : [];
   for (const key of scene.textures.getTextureKeys()) {
-    if ((key.startsWith('board-') || key.startsWith('covers-')) && !kept.includes(key)) freeTexture(scene, key);
+    if ((key.startsWith('board-') || key.startsWith('covers-') || key.startsWith('surround-')) && !kept.includes(key)) freeTexture(scene, key);
   }
 }

@@ -13,6 +13,8 @@ const SOFT_INK = '#4a463e';
 const CARD_W = 440;
 const THUMB = { w: 360, h: 203 } as const;
 const CARD_SEED = 61;
+/** On a touch screen a card may draw this much bigger than its laid-out size, where the screen has room. */
+const COMPACT_GROW = 1.3;
 
 export interface LevelCardOpts {
   readonly level: LevelDef;
@@ -21,6 +23,8 @@ export interface LevelCardOpts {
   readonly record: LevelRecord | undefined;
   readonly news: readonly string[];
   readonly onPlay: () => void;
+  /** A touch screen: no picture of the board, and the rest drawn bigger. */
+  readonly compact?: boolean;
 }
 
 export interface ChapterCardOpts {
@@ -40,12 +44,12 @@ export class MapCard {
   private readonly onKey: (e: KeyboardEvent) => void;
   private paperH = 0;
 
-  private constructor(private readonly scene: Phaser.Scene, layer: Phaser.GameObjects.Layer, view: { width: number; height: number }, height: number, fill: (c: Phaser.GameObjects.Container, top: number) => (() => void) | null, private readonly onClose: () => void) {
+  private constructor(private readonly scene: Phaser.Scene, layer: Phaser.GameObjects.Layer, view: { width: number; height: number }, height: number, fill: (c: Phaser.GameObjects.Container, top: number) => (() => void) | null, private readonly onClose: () => void, grow = 1) {
     const shade = scene.add.rectangle(0, 0, view.width, view.height, PAPER_HEX, 0.6).setOrigin(0).setInteractive();
     shade.on('pointerup', () => this.close());
-    // Laid out at full size; shrunk to fit a short screen.
+    // Laid out at full size; shrunk to fit a short screen, or grown up to `grow` where there's room.
     const h = height;
-    const fit = Math.min(1, (view.height - 24) / height, (view.width - 16) / CARD_W);
+    const fit = Math.min(grow, (view.height - 24) / height, (view.width - 16) / CARD_W);
     const top = view.height / 2 / fit - h / 2;
     const card = scene.add.container(view.width / 2, 0);
     const g = paperCard(scene, 0, top + h / 2, CARD_W, h, CARD_SEED, { tapes: ['tl', 'tr'], rule: true });
@@ -76,12 +80,12 @@ export class MapCard {
   static level(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer, view: { width: number; height: number }, o: LevelCardOpts, onClose: () => void): MapCard {
     const twist = twistTexts(o.level).map((t) => t.card).join(' · ');
     const newsH = (o.news.length ? 34 : 0) + (twist ? 34 : 0);
-    return new MapCard(scene, layer, view, 470 + newsH, (card, top) => {
+    const thumbH = o.compact ? 12 : THUMB.h + 26;
+    return new MapCard(scene, layer, view, 444 - THUMB.h + thumbH + newsH, (card, top) => {
       card.add(inkText(scene, 0, top + 34, `Level ${o.number}`, 22, SOFT_INK));
       card.add(inkText(scene, 0, top + 70, o.level.name, 38));
-      const thumbY = top + 104 + THUMB.h / 2;
-      card.add(boardPreview(scene, o.level, o.place, THUMB.w, THUMB.h).setY(thumbY));
-      let y = thumbY + THUMB.h / 2 + 26;
+      let y = top + 104 + thumbH;
+      if (!o.compact) card.add(boardPreview(scene, o.level, o.place, THUMB.w, THUMB.h).setY(top + 104 + THUMB.h / 2));
       card.add(inkText(scene, 0, y, shooterLine(o.level, o.place), 19, SOFT_INK));
       if (o.news.length) {
         y += 34;
@@ -103,7 +107,7 @@ export class MapCard {
       // The baked board stays only for the level about to start on it.
       dropPreview(scene, o.level);
       onClose();
-    });
+    }, o.compact ? COMPACT_GROW : 1);
   }
 
   static chapter(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer, view: { width: number; height: number }, o: ChapterCardOpts, onClose: () => void): MapCard {

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { ART_RES } from '../art/palette';
-import { bakeBoard, bakeCovers, bakeExtras, dropBoards, TEX } from '../art/textures';
+import { bakeBoard, bakeCovers, bakeExtras, bakeSurround, dropBoards, TEX } from '../art/textures';
 import { pitchForCombo, type SfxId } from '../audio/recipes';
 import { getHost, getSound, trackGame } from '../host';
 import { levelById, levelOrder, loadedLevels, placeOf } from '../level/levels';
@@ -19,7 +19,9 @@ import { BossView } from './game/bossView';
 import { twistTexts } from '../level/twistText';
 import { BOSS_KINDS } from '../level/types';
 import { freeBoss } from '../art/textures';
-import { DPR, viewSize } from './hidpi';
+import { DPR, screenSize, uiScaleFor } from './hidpi';
+import { levelBox, type Box } from '../logic/framing';
+import { stagePlan, type Stage } from './uiLayout';
 import type { HudScene } from './HudScene';
 import type { ResultData } from './ResultScene';
 
@@ -54,6 +56,8 @@ export class GameScene extends Phaser.Scene {
   private bossView: BossView | null = null;
   /** On a loss, whether the lines have all poured away yet. */
   private drainedAll = false;
+  /** The part of the board this level plays on (a touch screen shows just that). */
+  private box!: Box;
 
   constructor() {
     super('Game');
@@ -66,10 +70,11 @@ export class GameScene extends Phaser.Scene {
     this.over = false;
     this.heartbeat = 0;
     this.drainedAll = false;
+    this.box = levelBox(this.level);
     this.add.tileSprite(-BOARD.w, -BOARD.h, BOARD.w * 3, BOARD.h * 3, TEX.paper).setOrigin(0).setDepth(0);
     // A retry keeps the board it was played on; any other level's painting goes.
     dropBoards(this, this.level);
-    layGround(this, bakeBoard(this, this.level, placeOf(this.level.id)), 1);
+    layGround(this, bakeBoard(this, this.level, placeOf(this.level.id)), bakeSurround(this, this.level, placeOf(this.level.id)), 1);
     // Tunnels lie over the marbles (and shots fly over them, under the gecko).
     const covers = bakeCovers(this, this.level, placeOf(this.level.id));
     if (covers) this.add.image(0, 0, covers).setOrigin(0).setScale(1 / ART_RES).setDepth(5.5);
@@ -99,6 +104,7 @@ export class GameScene extends Phaser.Scene {
         return s.kind === 'hop' ? (this.board.pad + step + s.pads.length) % s.pads.length : null;
       },
       stickRest: () => this.hud()?.stickRest() ?? null,
+      buttons: () => this.hud()?.touchDiscs() ?? null,
       turn: () => (this.cameras.main as Phaser.Cameras.Scene2D.Camera & { readonly rotation: number }).rotation,
       gecko: () => ({ x: this.board.gecko.x, y: this.board.gecko.y, rail: this.board.rail }),
     });
@@ -127,17 +133,24 @@ export class GameScene extends Phaser.Scene {
     return this.scene.get('Hud') as HudScene | undefined;
   }
 
+  /** Where the board sits on this screen and how the HUD lies round it (the HUD lays itself out by the same plan). */
+  stage(): Stage {
+    const css = screenSize(this);
+    return stagePlan(css, uiScaleFor(css.width, css.height), this.box, !this.sys.game.device.os.desktop);
+  }
+
   /**
-   * The whole board in view, as big as the screen allows, centred, its
-   * mirrored edges filling the rest of the screen. On a phone held upright the board (seen from above) turns a
-   * quarter so it fills the screen instead of a strip of it.
+   * The board as big as the screen allows, centred in the room the HUD
+   * leaves it, its ground carrying on to the screen's edges. A laptop shows
+   * the whole board; a touch screen the level's box (see stagePlan). On a
+   * phone held upright the board (seen from above) turns a quarter so it
+   * fills the screen instead of a strip of it.
    */
   private fit(): void {
-    const { width, height } = viewSize(this);
-    const turned = isUpright(width, height);
-    const zoom = Math.max(0.1, turned ? Math.min(width / BOARD.h, (height - UPRIGHT_HUD * 2) / BOARD.w) : Math.min(width / BOARD.w, height / BOARD.h));
-    this.cameras.main.setZoom(DPR * zoom).setRotation(turned ? Math.PI / 2 : 0).centerOn(BOARD.w / 2, BOARD.h / 2);
-    this.fx.turn = turned ? Math.PI / 2 : 0;
+    const st = this.stage();
+    const { zoom, x, y } = st.framing;
+    this.cameras.main.setZoom(DPR * zoom).setRotation(st.turned ? Math.PI / 2 : 0).centerOn(x, y - st.shiftY / zoom);
+    this.fx.turn = st.turned ? Math.PI / 2 : 0;
     // Words on the board are sized in board px: lift them where the board is drawn small.
     this.fx.textScale = Phaser.Math.Clamp(0.85 / zoom, 1, 1.7);
   }
@@ -327,10 +340,3 @@ const TWIST_SOUNDS: Partial<Record<BoardEvent['type'], SfxId>> = {
   bossHoot: 'hoot', bossCroak: 'croak', bossLand: 'plop', bossBeaten: 'filled',
 };
 
-/** Room kept for the HUD above and below an upright board, screen px. */
-const UPRIGHT_HUD = 56;
-
-/** A phone held upright: the board turns a quarter to fill it. */
-export function isUpright(width: number, height: number): boolean {
-  return height > width * 1.15;
-}
