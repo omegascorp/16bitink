@@ -39,4 +39,9 @@ describe('fromGameEvent', () => {
     expect(fromGameEvent(tag, { type: 'level_start', level: 'x'.repeat(50), n: 2 })).toMatchObject({ level: 'x'.repeat(40), n: 2, game: 'inkfish' });
     expect(fromGameEvent(tag, { type: 'level_start', level: 'a', n: 0 })).toBeNull();
   });
+
+  it('marks level starts as watched for their first press, and only them', () => {
+    expect(fromGameEvent(tag, { type: 'level_start', level: 'a', n: 1 })).toMatchObject({ inputs: true });
+    expect(fromGameEvent(tag, { type: 'level_end', level: 'a', n: 1, result: 'win', seconds: 3 })).not.toHaveProperty('inputs');
+  });
 });

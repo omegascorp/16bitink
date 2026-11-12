@@ -1,8 +1,9 @@
 import { isGameModule, isOfferPlace, type GameModule, type KeyValueStore } from '@16bitink/game-sdk';
 import { GAME_LOADERS } from '../../games/loaders';
 import { BUY_PARAM, isPendingBuy, signInUrl } from '../buyFlow';
-import { flushAnalytics, gameTag, track, trackGameEvent, trackPlayTime, trackSignIn, type LoadStage } from './analytics';
+import { flushAnalytics, gameTag, track, trackGameEvent, trackLevelInput, trackPlayTime, trackSignIn, type LoadStage } from './analytics';
 import { buyFullGame, fetchMe, startCheckout } from './checkout';
+import { pointerKind, watchLevelInput } from './levelInput';
 import { createLoadingBar } from './loadingBar';
 import { accountProgress } from './progress';
 import { scopedStorage } from './scopedStorage';
@@ -184,12 +185,19 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
       const progress = userId ? accountSaves : null;
       tag = gameTag(game, module.version);
       playing = true;
+      const inputs = watchLevelInput(() => performance.now(), (e) => trackLevelInput(tag, e));
+      // Capture on the window: seen before the game's own handlers, whatever they stop.
+      window.addEventListener('pointerdown', (e) => inputs.onInput(pointerKind(e.pointerType)), { capture: true, passive: true });
+      window.addEventListener('keydown', (e) => !e.repeat && inputs.onInput('key'), { capture: true, passive: true });
       // The splash stays over the game, showing its boot progress, until the game calls loading.ready().
       const handle = module.mount(stage, {
         unlocked,
         allLevelsOpen,
         cheats,
-        track: (event) => trackGameEvent(tag, event),
+        track: (event) => {
+          trackGameEvent(tag, event);
+          inputs.onGameEvent(event);
+        },
         loading: bar.reporter,
         storage: safeStorage(userId),
         progress: progress ?? undefined,

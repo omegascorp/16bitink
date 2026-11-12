@@ -1,5 +1,6 @@
 import { isOfferPlace, type GameEvent, type OfferPlace } from '@16bitink/game-sdk';
 import { pageviewRef } from '../shortLinks';
+import type { LevelInput } from './levelInput';
 
 /**
  * First-party analytics, sent only to our own server (POST /api/events).
@@ -43,7 +44,8 @@ type Event =
   | { readonly type: 'checkout_open'; readonly game: string }
   | { readonly type: 'checkout_fail'; readonly game: string; readonly error: string }
   | { readonly type: 'app_install' }
-  | (GameEvent & GameTag);
+  | (GameEvent & GameTag & { readonly inputs?: true })
+  | (LevelInput & GameTag);
 
 /** Where a buy was tapped: one of the game's own offers, the game's page, the home page, or a game too old to say. */
 export type BuyPlace = OfferPlace | 'page' | 'home' | 'unknown';
@@ -188,6 +190,8 @@ export function fromGameEvent(tag: GameTag, e: GameEvent): Event | null {
   if (e.type === 'level_progress' && !e.progress) return null;
   return {
     ...e, ...tag, level: e.level.slice(0, 40), ...(e.name ? { name: e.name.slice(0, 80) } : {}),
+    // The play page watches every run for its first press (levelInput.ts).
+    ...(e.type === 'level_start' ? { inputs: true as const } : {}),
     ...((e.type === 'level_end' || e.type === 'level_progress') && e.progress ? { progress: e.progress.slice(0, PROGRESS_MAX) } : {}),
   };
 }
@@ -196,6 +200,12 @@ export function fromGameEvent(tag: GameTag, e: GameEvent): Event | null {
 export function trackGameEvent(tag: GameTag, e: GameEvent): void {
   const event = fromGameEvent(tag, e);
   if (event) track(event);
+}
+
+/** A level run's first press (see levelInput.ts), trimmed like the game's own level events. */
+export function trackLevelInput(tag: GameTag, e: LevelInput): void {
+  if (!Number.isInteger(e.n) || e.n < 1) return;
+  track({ ...e, ...tag, level: e.level.slice(0, 40), ...(e.name ? { name: e.name.slice(0, 80) } : {}) });
 }
 
 /** A buy offer was taken, from a game or the game's page. */

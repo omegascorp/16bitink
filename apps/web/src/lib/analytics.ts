@@ -39,6 +39,8 @@ export const HOME_CLICK_TARGETS = ['cover', 'title', 'play', 'about'] as const;
 export const BUY_PLACES = [...OFFER_PLACES, 'page', 'home', 'unknown'] as const;
 /** Where a sign-in was tapped: a game's "save your progress", the site header, or "Bought it already?" on a game page; then, on the sign-in page, the way chosen. */
 export const SIGN_IN_PLACES = ['save', 'header', 'restore', 'google', 'email'] as const;
+/** What the player first pressed in a level run: a finger, a mouse, a pen or a key. */
+export const INPUT_KINDS = ['touch', 'mouse', 'pen', 'key'] as const;
 
 const Event = z.discriminatedUnion('type', [
   /** `app`: opened from the home screen, as the installed app. */
@@ -65,7 +67,10 @@ const Event = z.discriminatedUnion('type', [
   z.object({ type: z.literal('checkout_fail'), at: At, game: Game, error: ErrorText, ...Pass }),
   /** The browser installed the site as an app. */
   z.object({ type: z.literal('app_install'), at: At }),
-  z.object({ type: z.literal('level_start'), at: At, game: Game, ...Level, ...Version }),
+  /** `inputs`: the page watches this run for its first press (a `level_input`), so a run without one had none. */
+  z.object({ type: z.literal('level_start'), at: At, game: Game, ...Level, ...Version, inputs: z.literal(true).optional() }),
+  /** The player's first press in a level run, `ms` after it started: a run without one never got going (the controls?). */
+  z.object({ type: z.literal('level_input'), at: At, game: Game, ...Level, ...Version, ms: Ms, input: z.enum(INPUT_KINDS) }),
   /** A checkpoint inside a long level: how far the run has got so far, for levels that are often left without ending. */
   z.object({ type: z.literal('level_progress'), at: At, game: Game, ...Level, ...Version, seconds: Seconds, progress: z.string().min(1).max(PROGRESS_MAX) }),
   z.object({
@@ -189,6 +194,10 @@ export interface StoredEvent extends Visit {
   readonly pass?: true;
   /** A page opened as the installed app. */
   readonly app?: true;
+  /** level_start: its first press is watched for. */
+  readonly inputs?: true;
+  /** level_input: what the player pressed first. */
+  readonly input?: (typeof INPUT_KINDS)[number];
 }
 
 /** Older events than this in one batch are clamped: a tab asleep for days shouldn't rewrite history. */

@@ -62,6 +62,12 @@ describe('parseBatch', () => {
     expect(parseBatch(batch([event]))).toBeNull();
   });
 
+  it("accepts a level run's first press, and refuses an unknown kind of press", () => {
+    const press = { type: 'level_input', at: 1, game: 'inkgecko', level: 'first-pebbles', n: 1, name: 'First Pebbles', ms: 2300 };
+    const parsed = parseBatch(batch([{ ...press, input: 'touch' }, { ...press, input: 'gamepad' }]));
+    expect(parsed?.events).toEqual([{ ...press, input: 'touch' }]);
+  });
+
   it('keeps the game version on game events', () => {
     const parsed = parseBatch(batch([
       { type: 'game_start', at: 1, game: 'inkcrab', version: '1.2.0' },

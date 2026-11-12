@@ -51,6 +51,8 @@ const eventSchema = new Schema<StoredEvent>(
     signedIn: Boolean,
     pass: Boolean,
     app: Boolean,
+    input: String,
+    inputs: Boolean,
   },
   {
     collection: 'events',
