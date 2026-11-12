@@ -11,7 +11,7 @@ import { withBeat } from '../src/logic/story';
 const at = (p: Profile, step: string, played = 0, since = 0): Profile => ({ ...p, stats: { played, step, since } });
 const beats = (p: Profile, ...bs: Parameters<typeof withBeat>[1][]): Profile => bs.reduce(withBeat, p);
 const kinds = (events: readonly GameEvent[]): string[] =>
-  events.map((e) => (e.type === 'level_start' ? `start ${e.n}` : e.type === 'level_end' ? `${e.result} ${e.n} ${e.seconds}s` : `offer ${e.where}`));
+  events.map((e) => (e.type === 'level_start' ? `start ${e.n}` : e.type === 'level_end' ? `${e.result} ${e.n} ${e.seconds}s` : e.type === 'offer_view' ? `offer ${e.where}` : e.type));
 
 /** The whole story so far, one goal at a time, as a player goes through it. */
 function walk(): Profile[] {

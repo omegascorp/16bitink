@@ -30,7 +30,7 @@ export function bakeUi(scene: Phaser.Scene, key: string, w: number, h: number, d
   if (!ctx) throw new Error('2D canvas is not available');
   ctx.scale(RES, RES);
   draw(ctx);
-  scene.textures.addCanvas(key, canvas);
+  scene.textures.addImage(key, canvas as unknown as HTMLImageElement);
   return key;
 }
 

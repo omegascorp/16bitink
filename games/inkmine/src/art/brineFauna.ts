@@ -56,7 +56,7 @@ interface Frame {
 
 function bake(scene: Phaser.Scene, key: string, a: Frame, res: number, draw: (ctx: CanvasRenderingContext2D) => void, finish: Finish, after?: (ctx: CanvasRenderingContext2D) => void): void {
   if (scene.textures.exists(key)) return;
-  scene.textures.addCanvas(key, render(a.w, a.h, a.ox, a.oy, res, draw, finish, after));
+  scene.textures.addImage(key, render(a.w, a.h, a.ox, a.oy, res, draw, finish, after) as unknown as HTMLImageElement);
 }
 
 /** Every pose of Brine's creatures, BOIL frames each; keys that already exist are skipped. */

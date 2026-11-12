@@ -44,7 +44,7 @@ const CRAFT_STATES: readonly CraftState[] = ['sunk', 'raised', 'mended', 'landed
 
 function bake(scene: Phaser.Scene, key: string, a: { readonly w: number; readonly h: number; readonly ox: number; readonly oy: number }, res: number, draw: (ctx: CanvasRenderingContext2D) => void, finish?: Finish, after?: (ctx: CanvasRenderingContext2D) => void): void {
   if (scene.textures.exists(key)) return;
-  scene.textures.addCanvas(key, render(a.w, a.h, a.ox, a.oy, res, draw, finish, after));
+  scene.textures.addImage(key, render(a.w, a.h, a.ox, a.oy, res, draw, finish, after) as unknown as HTMLImageElement);
 }
 
 /**

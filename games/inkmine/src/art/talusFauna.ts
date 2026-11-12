@@ -56,7 +56,7 @@ interface Frame {
 
 function bake(scene: Phaser.Scene, key: string, a: Frame, res: number, draw: (ctx: CanvasRenderingContext2D) => void, finish: Finish): void {
   if (scene.textures.exists(key)) return;
-  scene.textures.addCanvas(key, render(a.w, a.h, a.ox, a.oy, res, draw, finish));
+  scene.textures.addImage(key, render(a.w, a.h, a.ox, a.oy, res, draw, finish) as unknown as HTMLImageElement);
 }
 
 /** Every pose of Talus's creatures, BOIL frames each; keys that already exist are skipped. */

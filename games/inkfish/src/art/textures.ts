@@ -59,11 +59,11 @@ function add(scene: Phaser.Scene, key: string, w: number, h: number, draw: (ctx:
   const cached = takeArt(key);
   const source = cached && cached.width === w && cached.height === h ? cached : drawn(key, w, h, draw);
   if (OWN_TEXTURE.has(key) || !atlasOf(scene.game).place(key, source, w, h)) {
-    if (source instanceof HTMLCanvasElement) scene.textures.addCanvas(key, source);
+    if (source instanceof HTMLCanvasElement) scene.textures.addImage(key, source as unknown as HTMLImageElement);
     else {
       const { canvas, ctx } = makeCanvas(w, h);
       ctx.drawImage(source, 0, 0);
-      scene.textures.addCanvas(key, canvas);
+      scene.textures.addImage(key, canvas as unknown as HTMLImageElement);
     }
   }
   cached?.close();

@@ -23,7 +23,7 @@ export class LampView {
   private readonly frame: Phaser.GameObjects.Graphics;
 
   constructor(scene: Phaser.Scene, private readonly reach: number, private readonly tile: number) {
-    if (!scene.textures.exists(GLOW_KEY)) scene.textures.addCanvas(GLOW_KEY, glowCanvas());
+    if (!scene.textures.exists(GLOW_KEY)) scene.textures.addImage(GLOW_KEY, glowCanvas() as unknown as HTMLImageElement);
     this.glow = scene.add.image(0, 0, GLOW_KEY).setDepth(7).setTint(DARK);
     this.frame = scene.add.graphics().setDepth(7);
   }
