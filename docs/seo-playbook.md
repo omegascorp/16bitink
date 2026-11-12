@@ -12,7 +12,7 @@ Never title a page as if our game were the classic ("Play Zuma online"). Name th
 
 **One page per old game, not per game of ours** (decided Oct 27, 2026): people search by the old game's name, and our own game already has its page at `/games/<slug>`. One game of ours can have several pages (InkFish: Fishy and Feeding Frenzy). An old game gets its own page only when people search for it by name *and* it has its own story (history, where to play it now); otherwise mention it on a bigger page (Luxor on Zuma's, Hungry Shark on the fish pages, Super Motherload on Motherload's). Two pages with the same list of alternatives would compete with each other.
 
-`/games-like/<classic>`, data in `apps/web/src/data/gamesLike.ts`, page in `apps/web/src/pages/games-like/[slug].astro`. The game page's "For fans of…" line links to each of its pages ("More games like Fishy · Feeding Frenzy"), and the sitemap lists it once its game is out. `/games-like` lists them all and is linked from every page's footer.
+`/games-like/<classic>`, one data file per page in `apps/web/src/data/gamesLike/pages/<slug>.ts` (listed in `gamesLike/index.ts`), page in `apps/web/src/pages/games-like/[slug].astro`. The game page's "For fans of…" line links to each of its pages ("More games like Fishy · Feeding Frenzy"), and the sitemap lists it once its game is out. `/games-like` lists them all and is linked from every page's footer.
 
 | Page | Our game | Status |
 |---|---|---|
@@ -22,6 +22,9 @@ Never title a page as if our game were the classic ("Play Zuma online"). Name th
 | Feeding Frenzy (the PC / console / phone angle, so it doesn't repeat Fishy's list) | InkFish | Built Oct 27, 2026 |
 | Heroes of Might and Magic III | InkHeroes | Written and checked Oct 27, 2026; hidden (`coming: 'InkHeroes'`) until InkHeroes is in the catalog. When `feat/inkheroes` merges, the test asks to remove `coming`: re-check Olden Era's status and the remake's date then |
 | Snake (with the Blockade → Nokia → Google history) | InkSnake | Built Oct 27, 2026 |
+| slither.io (honest that ours is single-player; a different list from Snake's) | InkSnake | Built Nov 12, 2026 |
+| Agar.io (eat-and-grow without other players; a different list from the fish pages) | InkFish | Built Nov 12, 2026 |
+| Pull the Pin ("the pin puzzle from the ads, without the ads"; Popcore's name only as the thing compared) | InkPin | Built Nov 12, 2026 |
 
 Each page: an opening answer of 60 words at most naming our game and the classic, ours first with a Play button, 3+ honest alternatives with official links (competitors too), a comparison table with an **Ads** row, the classic's history and where to play it now, an FAQ, and sources. Tests in `apps/web/test/gamesLike.test.ts` hold these rules.
 
