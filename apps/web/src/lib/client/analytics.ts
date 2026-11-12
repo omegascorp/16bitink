@@ -31,13 +31,13 @@ interface GameTag {
 type Event =
   | { readonly type: 'pageview'; readonly path: string; readonly ref?: string; readonly app?: true }
   | { readonly type: 'page_leave'; readonly path: string; readonly ms: number; readonly scroll: number; readonly loadMs?: number }
-  | { readonly type: 'js_error'; readonly path: string; readonly error: string; readonly source?: string }
+  | { readonly type: 'js_error'; readonly path: string; readonly error: string; readonly source?: string; readonly stack?: string }
   | ({ readonly type: 'game_start' } & GameTag)
   | { readonly type: 'home_click'; readonly game: string; readonly target: HomeClickTarget; readonly slot: number }
   | ({ readonly type: 'play_time'; readonly seconds: number } & GameTag)
   | ({ readonly type: 'play_tap'; readonly ms: number } & GameTag)
-  | ({ readonly type: 'game_ready'; readonly ms: number; readonly stage: 'ready' | 'stall' } & GameTag)
-  | ({ readonly type: 'load_fail'; readonly ms: number; readonly stage: LoadStage; readonly error: string } & GameTag)
+  | ({ readonly type: 'game_ready'; readonly ms: number; readonly stage: 'ready' | 'stall'; readonly hiddenMs?: number } & GameTag)
+  | ({ readonly type: 'load_fail'; readonly ms: number; readonly stage: LoadStage; readonly error: string; readonly stack?: string; readonly hiddenMs?: number } & GameTag)
   | ({ readonly type: 'load_abandon'; readonly ms: number; readonly pct: number } & GameTag)
   | ({ readonly type: 'buy_click'; readonly where: BuyPlace; readonly signedIn: boolean } & GameTag)
   | { readonly type: 'signin_click'; readonly where: SignInPlace; readonly game?: string }

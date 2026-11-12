@@ -26,7 +26,7 @@ describe('parseUserAgent', () => {
     [UA.safariMac, 'macOS', 'Safari', 'desktop'],
     [UA.firefoxLinux, 'Linux', 'Firefox', 'desktop'],
     [UA.safariIphone, 'iOS', 'Safari', 'mobile'],
-    [UA.chromeIphone, 'iOS', 'Chrome', 'mobile'],
+    [UA.chromeIphone, 'iOS', 'Chrome iOS', 'mobile'],
     [UA.chromeAndroid, 'Android', 'Chrome', 'mobile'],
     [UA.samsungTablet, 'Android', 'Samsung Internet', 'tablet'],
     [UA.chromebook, 'ChromeOS', 'Chrome', 'desktop'],

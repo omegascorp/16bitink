@@ -4,7 +4,10 @@ import { BUY_PARAM, isPendingBuy, signInUrl } from '../buyFlow';
 import { flushAnalytics, gameTag, track, trackGameEvent, trackLevelInput, trackPlayTime, trackSignIn, type LoadStage } from './analytics';
 import { buyFullGame, fetchMe, startCheckout } from './checkout';
 import { pointerKind, watchLevelInput } from './levelInput';
+import { createHiddenTime, visibleMs } from './hiddenTime';
 import { createLoadingBar } from './loadingBar';
+import { classifyMountFailure, isShaderFailure } from './mountFailure';
+import { cleanStack } from '../stackText';
 import { accountProgress } from './progress';
 import { scopedStorage } from './scopedStorage';
 import { SITE_BUILD } from '../build';
@@ -78,12 +81,13 @@ function hasWebGL(): boolean {
   }
 }
 
-/**
- * Phaser couldn't build a shader (vertex, fragment or link): seen on a few Android GPUs.
- * The driver fails the same way on every retry.
- */
-const isShaderFailure = (message: string): boolean => /Shader failed/.test(message);
+/** An error's stack as the stats keep it (cut, no query strings), or nothing. */
+function errorStack(err: unknown): { readonly stack?: string } {
+  const stack = err instanceof Error ? cleanStack(err.stack, `${err.name}: ${err.message}`) : undefined;
+  return stack ? { stack } : {};
+}
 
+const RELOAD_TEXT = "The game couldn't start its graphics. Reload the page to try again.";
 const NO_WEBGL_TEXT = "This browser can't draw the game: its graphics acceleration (WebGL) is off or unsupported. Try updating it, or open the page in Chrome or Firefox.";
 
 /** One press of "Tap to play" until the game shows or fails. */
@@ -117,14 +121,21 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
   // The stats follow each press of play: how long until it showed, or how it failed or was left.
   let tag = gameTag(game, undefined);
   let attempt: Attempt | null = null;
-  const sinceTap = (a: Attempt): number => Math.round(performance.now() - a.start);
+  // Time with the tab hidden is not load time: the game can't draw there.
+  const hiddenTime = createHiddenTime(() => performance.now(), () => document.visibilityState === 'hidden');
+  const sinceTap = (a: Attempt): number => visibleMs(performance.now() - a.start, hiddenTime.total());
+  /** `ms` without the hidden part, and the hidden part when there was one. */
+  const loadTime = (a: Attempt): { readonly ms: number; readonly hiddenMs?: number } => {
+    const hiddenMs = hiddenTime.total();
+    return hiddenMs > 0 ? { ms: sinceTap(a), hiddenMs } : { ms: sinceTap(a) };
+  };
   const bar = createLoadingBar(splash, play, performance.now(), {
     onLifted: (stalled) => {
-      if (attempt) track({ type: 'game_ready', ...tag, ms: sinceTap(attempt), stage: stalled ? 'stall' : 'ready' });
+      if (attempt) track({ type: 'game_ready', ...tag, ...loadTime(attempt), stage: stalled ? 'stall' : 'ready' });
       attempt = null;
     },
     onBootFailed: (reason) => {
-      if (attempt) track({ type: 'load_fail', ...tag, ms: sinceTap(attempt), stage: 'boot', error: errorText(reason) });
+      if (attempt) track({ type: 'load_fail', ...tag, ...loadTime(attempt), stage: 'boot', error: errorText(reason) });
       // The game lifts the screen onto its error message next: that isn't the game showing.
       attempt = null;
       // Its files may be gone with a deploy: then a refresh fixes it.
@@ -137,7 +148,10 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
     attempt = { ...attempt, hidden: true };
     flushAnalytics(true);
   };
-  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && hiddenWhileLoading());
+  document.addEventListener('visibilitychange', () => {
+    hiddenTime.set(document.visibilityState === 'hidden');
+    if (document.visibilityState === 'hidden') hiddenWhileLoading();
+  });
   window.addEventListener('pagehide', hiddenWhileLoading);
   // Set once and never cleared: from the first tap the reload waits for the tap's own outcome,
   // and once the game is mounted nothing here may reload the page out from under the player.
@@ -158,13 +172,27 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
     play.disabled = true;
     play.textContent = "Can't play in this browser";
   };
+  // WebGL works again, but Phaser cached "no WebGL" when it was imported: only a reload gets a fresh import.
+  let reloadOnTap = false;
+  const offerReload = (): void => {
+    bar.fail();
+    status.textContent = RELOAD_TEXT;
+    reloadOnTap = true;
+    play.disabled = false;
+    play.textContent = 'Reload page';
+  };
 
   play.addEventListener('click', async () => {
+    if (reloadOnTap) {
+      window.location.reload();
+      return;
+    }
     tapped = true;
     play.disabled = true;
     status.textContent = '';
     bar.show();
     attempt = { start: performance.now(), hidden: false };
+    hiddenTime.begin();
     track({ type: 'play_tap', ...tag, ms: Math.round(attempt.start) });
     let step: LoadStage = 'download';
     // Must be requested synchronously inside the click for browsers to allow it.
@@ -225,7 +253,7 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
       const onShaderFailure = (e: ErrorEvent): void => {
         if (!isShaderFailure(e.message)) return;
         window.removeEventListener('error', onShaderFailure);
-        if (attempt) track({ type: 'load_fail', ...tag, ms: sinceTap(attempt), stage: 'boot', error: errorText(e.error ?? e.message) });
+        if (attempt) track({ type: 'load_fail', ...tag, ...loadTime(attempt), stage: 'boot', error: errorText(e.error ?? e.message), ...errorStack(e.error) });
         attempt = null;
         handle.destroy();
         cantPlay();
@@ -235,7 +263,7 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
       trackPlayTime(tag);
     } catch (err) {
       console.error('[16bit.ink] failed to start game', err);
-      if (attempt) track({ type: 'load_fail', ...tag, ms: sinceTap(attempt), stage: step, error: errorText(err) });
+      if (attempt) track({ type: 'load_fail', ...tag, ...loadTime(attempt), stage: step, error: errorText(err), ...errorStack(err) });
       attempt = null;
       // A page older than the deploy: retrying asks for the same missing file, so reload (tap again after).
       if (step === 'download' && reloadIfStale(err, playing)) {
@@ -243,9 +271,10 @@ export function bootPlayer(game: string, fonts: readonly string[]): void {
         return;
       }
       // Without WebGL every retry fails the same way (one phone logged 9 in a row).
-      if (step === 'mount' && (!hasWebGL() || isShaderFailure(errorText(err)))) {
-        cantPlay();
-        return;
+      if (step === 'mount') {
+        const action = classifyMountFailure(errorText(err), hasWebGL());
+        if (action === 'unsupported') return cantPlay();
+        if (action === 'reload') return offerReload();
       }
       bar.fail();
       status.textContent = 'The game failed to load. Check your connection and try again.';

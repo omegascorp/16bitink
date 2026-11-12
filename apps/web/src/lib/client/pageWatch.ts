@@ -1,4 +1,5 @@
 import { isForeignError } from '../foreignErrors';
+import { cleanStack } from '../stackText';
 import { flushAnalytics, track } from './analytics';
 
 /**
@@ -22,6 +23,7 @@ export function scrollPercent(scrollTop: number, viewportHeight: number, pageHei
 export interface ErrorReport {
   readonly error: string;
   readonly source?: string;
+  readonly stack?: string;
 }
 
 /**
@@ -29,16 +31,18 @@ export interface ErrorReport {
  * from as a path and line on our own site, or just the host elsewhere
  * (a browser extension or another site's script), never a full URL.
  */
-export function errorReport(message: string, file: string | undefined, line: number, column: number, origin: string): ErrorReport {
+export function errorReport(message: string, file: string | undefined, line: number, column: number, origin: string, thrown?: unknown): ErrorReport {
   // URLs in a message keep their path: a query string could carry anything.
   const error = (message.replace(/\?[^\s'"]*/g, '').trim() || 'Unknown error').slice(0, MAX_ERROR);
-  if (!file) return { error };
+  const stack = thrown instanceof Error ? cleanStack(thrown.stack, `${thrown.name}: ${thrown.message}`) : undefined;
+  const base: ErrorReport = stack ? { error, stack } : { error };
+  if (!file) return base;
   try {
     const url = new URL(file, origin);
     const source = url.origin === origin ? `${url.pathname}${line ? `:${line}:${column}` : ''}` : url.host || url.protocol;
-    return source ? { error, source: source.slice(0, MAX_SOURCE) } : { error };
+    return source ? { ...base, source: source.slice(0, MAX_SOURCE) } : base;
   } catch {
-    return { error };
+    return base;
   }
 }
 
@@ -102,11 +106,11 @@ export function watchErrors(): void {
   window.addEventListener('error', (e) => {
     // A resource that failed to load (an image, a script tag) arrives here too, with no message.
     if (!(e instanceof ErrorEvent)) return;
-    send(errorReport(e.message, e.filename, e.lineno, e.colno, location.origin));
+    send(errorReport(e.message, e.filename, e.lineno, e.colno, location.origin, e.error));
   });
   window.addEventListener('unhandledrejection', (e) => {
     const reason: unknown = e.reason;
     const text = reason instanceof Error ? `${reason.name}: ${reason.message}` : typeof reason === 'string' ? reason : 'Promise rejected with a non-error value';
-    send(errorReport(text, undefined, 0, 0, location.origin));
+    send(errorReport(text, undefined, 0, 0, location.origin, reason));
   });
 }

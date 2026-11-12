@@ -1,5 +1,6 @@
 import type { LoadingReporter } from '@16bitink/game-sdk';
 import { overallProgress } from './loadProgress';
+import { createStallTimer } from './stallTimer';
 
 /**
  * Lifts the loading screen when the game goes this long without a report:
@@ -69,7 +70,6 @@ export function createLoadingBar(splash: HTMLElement, play: HTMLButtonElement, d
   let shown = 0;
   let frame = 0;
   let finished = false;
-  let stallTimer: ReturnType<typeof setTimeout> | undefined;
   let removeTimer: ReturnType<typeof setTimeout> | undefined;
 
   const render = (): void => {
@@ -90,11 +90,15 @@ export function createLoadingBar(splash: HTMLElement, play: HTMLButtonElement, d
     frame = 0;
   };
 
+  // Paused while the tab is hidden: it can't draw, so a quiet game there isn't stalled.
+  const stall = createStallTimer(STALL_MS, () => reveal(true), () => document.visibilityState === 'hidden');
+  document.addEventListener('visibilitychange', () => stall.setHidden(document.visibilityState === 'hidden'));
+
   const reveal = (stalled = false): void => {
     if (finished) return;
     finished = true;
     events.onLifted?.(stalled);
-    clearTimeout(stallTimer);
+    stall.stop();
     stopTicking();
     boot = 1;
     render();
@@ -102,15 +106,10 @@ export function createLoadingBar(splash: HTMLElement, play: HTMLButtonElement, d
     removeTimer = setTimeout(() => el.splash.remove(), FADE_MS);
   };
 
-  const watchStall = (): void => {
-    clearTimeout(stallTimer);
-    stallTimer = setTimeout(() => reveal(true), STALL_MS);
-  };
-
   const reporter: LoadingReporter = {
     progress(fraction, label) {
       if (finished) return;
-      if (stallTimer !== undefined) watchStall();
+      if (stall.watching()) stall.kick();
       boot = Math.max(boot, fraction);
       if (label) el.step.textContent = label;
       render();
@@ -136,12 +135,11 @@ export function createLoadingBar(splash: HTMLElement, play: HTMLButtonElement, d
       render();
     },
     mounted() {
-      if (!finished) watchStall();
+      if (!finished) stall.kick();
     },
     fail() {
       stopTicking();
-      clearTimeout(stallTimer);
-      stallTimer = undefined;
+      stall.stop();
       downloaded = false;
       boot = 0;
       shown = 0;

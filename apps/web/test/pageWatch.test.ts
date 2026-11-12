@@ -18,6 +18,12 @@ describe('scrollPercent', () => {
 describe('errorReport', () => {
   const origin = 'https://16bit.ink';
 
+  it('adds the thrown error\'s stack, cleaned', () => {
+    const err = new Error('boom');
+    err.stack = 'Error: boom\n    at f (https://16bit.ink/a.js?token=1:1:2)';
+    expect(errorReport('boom', '', 0, 0, origin, err)).toEqual({ error: 'boom', stack: 'at f (https://16bit.ink/a.js:1:2)' });
+  });
+
   it('keeps the message and where it happened, without our own origin or query strings', () => {
     expect(errorReport('TypeError: x is undefined', `${origin}/_astro/a.js?v=2`, 1, 20, origin)).toEqual({ error: 'TypeError: x is undefined', source: '/_astro/a.js:1:20' });
   });
