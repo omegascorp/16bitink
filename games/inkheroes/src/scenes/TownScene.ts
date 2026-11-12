@@ -8,7 +8,6 @@ import { cantHireHero, hireHero, selectHero, swapTownHeroes, tavernsHire, townHe
 import { gainItem } from '../logic/items';
 import type { SpellId } from '../logic/spells';
 import type { Town } from '../logic/town';
-import { rideHere, type RideHere } from '../logic/rideHere';
 import { moveSlot, splitSlot, type Army } from '../logic/army';
 import type { BuildingId } from '../logic/buildings';
 import { canManTower, creature, type CreatureId } from '../logic/creatures';
@@ -31,7 +30,7 @@ import { openCard, type CardButton } from './CardScene';
 import type { MapScene } from './MapScene';
 import { pixelUiCamera } from './pixelScreen';
 import { SplitPicker } from './hud/splitPicker';
-import { TownList } from './hud/townList';
+import { TOWN_ROW_H, TownList } from './hud/townList';
 import { MAP_TEX, townTexOf } from './map/pixelMapArt';
 import { Session } from './session';
 import { soldOn } from '../level/unlocks';
@@ -61,6 +60,10 @@ const DRAG = 6;
 const DEPTH = { plate: 20, window: 30, bar: 50, coveringWindow: 60, toast: 70, info: 90 } as const;
 /** Below this much town over the strip, a building's room covers the strip: its Buy and words wouldn't fit above it. */
 const ROOM_MIN_H = 173;
+/** On a phone, a building's room stands left of the rail while the town there is this wide (held sideways); narrower, it covers the screen. */
+const ROOM_MIN_W = 480;
+/** On a phone, the top row over the town: the Sound button, the button naming the town (it opens the list of towns), then the build plate where it fits. */
+const TOP_ROW = { y: 6, h: 22, gap: 4, plateMinW: 260 } as const;
 /** The list of towns on the right of the town, above the strip: as wide as the map's, and how far it keeps from the edge and the strip. */
 const TOWNS = { w: 120, gap: 4 } as const;
 /** The testing cheat's button, on the right just under the build plate, which takes the whole top of a phone. */
@@ -116,6 +119,11 @@ export class TownScene extends Phaser.Scene {
   private plate: BuildPlate | null = null;
   /** The player's towns, a tap away from each other. */
   private towns: TownList | null = null;
+  /** On a phone: the button naming the town, which drops the list of towns, and whether it's dropped. */
+  private townBtn: PixelButton | null = null;
+  private townsOpen = false;
+  /** Where the plate (or the top row) ends: the cheat and the narrator go under it. */
+  private chromeBottom: number = CHEAT_BTN.top;
   /** Testing cheats only: puts up everything this map allows. */
   private cheatBtn: PixelButton | null = null;
   private soundBtn: PixelButton | null = null;
@@ -128,9 +136,10 @@ export class TownScene extends Phaser.Scene {
   /** Whether this visit has said how to see a company's card. */
   private toldInfo = false;
   private fresh: BuildingId | undefined;
-  /** How far the stage is panned from centre (a screen narrower than the town). */
+  /** How far the stage is panned from centre (a screen narrower than the town), and down from showing its foot (a screen shorter than it). */
   private panX = 0;
-  private press: { x: number; panX: number } | null = null;
+  private panY = 0;
+  private press: { x: number; y: number; panX: number; panY: number } | null = null;
   private dragged = false;
   private toastParts: { destroy(): void }[] = [];
   private ready = false;
@@ -157,11 +166,15 @@ export class TownScene extends Phaser.Scene {
     this.fresh = undefined;
     this.ready = false;
     this.panX = 0;
+    this.panY = 0;
     this.view = null;
     this.bar = null;
     this.window = null;
     this.plate = null;
     this.towns = null;
+    this.townBtn = null;
+    this.townsOpen = false;
+    this.chromeBottom = CHEAT_BTN.top;
     this.cheatBtn = null;
     this.soundBtn = null;
     this.toastParts = [];
@@ -180,6 +193,7 @@ export class TownScene extends Phaser.Scene {
       this.window?.destroy();
       this.plate?.destroy();
       this.towns?.destroy();
+      this.townBtn?.destroy();
       this.cheatBtn?.destroy();
       this.soundBtn?.destroy();
       this.bar?.destroy();
@@ -190,7 +204,7 @@ export class TownScene extends Phaser.Scene {
     void loadTownArt(this, factionOf(this.town())).then(() => {
       if (!this.sys.isActive()) return;
       this.ready = true;
-      this.bar = new TownBar(this, { open: (s) => this.openScreen(s), leave: () => this.leave(), pickSlot: (r) => this.pickSlot(r), canCarry: (r) => this.canPick(r), dropSlot: (from, to) => this.moveCompany(from, to), split: () => this.openSplit(), ride: () => this.rideHere() }, DEPTH.bar);
+      this.bar = new TownBar(this, { open: (s) => this.openScreen(s), leave: () => this.leave(), pickSlot: (r) => this.pickSlot(r), canCarry: (r) => this.canPick(r), dropSlot: (from, to) => this.moveCompany(from, to), split: () => this.openSplit(), army: () => this.toggleArmy() }, DEPTH.bar);
       this.drawAll();
       if (data?.note) this.toast(data.note);
     });
@@ -232,47 +246,88 @@ export class TownScene extends Phaser.Scene {
     return tavernsHire(this.session.def, this.town());
   }
 
-  /** Dragging the townscape sideways pans it when it's wider than the screen. */
+  /** Whether screen point (`x`, `y`), UI pixels, is on the open townscape (not the strip, the rail or a room). */
+  private onTown(x: number, y: number): boolean {
+    return !!this.bar && x < this.bar.viewW && y < this.bar.top && !this.screen;
+  }
+
+  /**
+   * Dragging the townscape pans it when it's wider than the screen, and up or
+   * down when it's taller (a phone); so does the mouse wheel or a trackpad.
+   */
   private wirePan(): void {
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       const x = p.x / this.size.k;
       const y = p.y / this.size.k;
-      this.press = this.bar && y < this.bar.top && !this.screen ? { x, panX: this.panX } : null;
+      this.press = this.onTown(x, y) ? { x, y, panX: this.panX, panY: this.panY } : null;
       this.dragged = false;
     });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
       if (!this.press || !p.isDown) return;
       const dx = p.x / this.size.k - this.press.x;
-      if (!this.dragged && Math.abs(dx) < DRAG) return;
+      const dy = p.y / this.size.k - this.press.y;
+      if (!this.dragged && Math.hypot(dx, dy) < DRAG) return;
       this.dragged = true;
       this.panX = this.clampPan(this.press.panX + dx);
+      this.panY = this.clampPanY(this.press.panY + dy);
       this.placeView();
     });
     this.input.on('pointerup', () => {
       this.press = null;
     });
+    this.input.on('wheel', (p: Phaser.Input.Pointer, _over: unknown, dx: number, dy: number) => {
+      if (this.press || !this.onTown(p.x / this.size.k, p.y / this.size.k)) return;
+      this.panX = this.clampPan(this.panX - dx / this.size.k);
+      this.panY = this.clampPanY(this.panY - dy / this.size.k);
+      this.placeView();
+    });
   }
 
   private clampPan(x: number): number {
-    const room = Math.max(0, STAGE.w - this.size.w);
+    const room = Math.max(0, STAGE.w - this.viewW());
     return Math.round(Phaser.Math.Clamp(x, -room / 2, room / 2));
   }
 
-  private placeView(): void {
-    this.view?.setLeft(Math.floor((this.size.w - STAGE.w) / 2) + this.panX);
+  /** From the stage's foot (0) up to its top, as far as the townscape is shorter than it. */
+  private clampPanY(y: number): number {
+    const tops = this.view?.tops;
+    return tops ? Math.round(Phaser.Math.Clamp(y, 0, tops.max - tops.min)) : 0;
   }
 
-  private drawAll(): void {
+  private placeView(): void {
+    if (!this.view) return;
+    this.view.setLeft(Math.floor((this.viewW() - STAGE.w) / 2) + this.panX);
+    this.view.setTop(this.view.tops.min + this.panY);
+  }
+
+  /** The townscape's width: the screen's, or left of the rail on a phone. */
+  private viewW(): number {
+    return this.bar?.viewW || this.size.w;
+  }
+
+  /** The town's layout follows the screen; the townscape is drawn anew unless only the strip's parts changed (`view` false). */
+  private drawAll(view = true): void {
     if (!this.bar) return;
-    this.bar.layout(this.size.w, this.size.h, this.town(), this.hires(), this.rideOffer(), portalLevel(this.town()) >= 2 && !!(this.heroesHere().visitor ?? this.heroesHere().garrison));
+    this.bar.layout(this.size.w, this.size.h, this.town(), this.hires(), portalLevel(this.town()) >= 2 && !!(this.heroesHere().visitor ?? this.heroesHere().garrison));
     this.pickHeroHere();
     this.bar.refresh(this.session.adv, this.town(), this.picked, this.heroesHere());
-    this.drawView();
-    this.drawPlate();
-    this.drawTowns();
-    this.drawCheat();
+    if (view) this.drawView();
     this.drawSound();
+    this.drawTowns();
+    this.drawPlate();
     this.drawWindow();
+  }
+
+  /** The Army button on a phone's rail: the drawer with the armies opens (over any room, which closes) or closes (letting go of the picked company). */
+  private toggleArmy(): void {
+    if (!this.bar) return;
+    getSound(this)?.play('card');
+    this.bar.armyOpen = !this.bar.armyOpen;
+    if (this.bar.armyOpen) {
+      this.screen = null;
+      this.townsOpen = false;
+    } else this.picked = null;
+    this.drawAll(false);
   }
 
   /** The cheat's button, while there's something left to build and no window in the way. */
@@ -281,12 +336,13 @@ export class TownScene extends Phaser.Scene {
     this.cheatBtn ??= new PixelButton(this, { w: CHEAT_BTN.w, h: CHEAT_BTN.h, label: 'Build all', rim: 'gold', onClick: () => this.cheatBuildAll() });
     const left = buildAll(this.town(), this.session.def.off) !== this.town();
     this.cheatBtn.root.setDepth(DEPTH.plate).setVisible(left && !this.screen);
-    this.cheatBtn.setPosition(this.size.w - CHEAT_BTN.w - CHEAT_BTN.margin, CHEAT_BTN.top);
+    this.cheatBtn.setPosition(this.viewW() - CHEAT_BTN.w - CHEAT_BTN.margin, this.bar?.onRail ? this.chromeBottom + 4 : CHEAT_BTN.top);
   }
 
-  /** Where the narrator's strip goes in town: under the Sound button, clear of the town strip at the foot. */
+  /** Where the narrator's strip goes in town: under the Sound button (on a phone, under the plate and the cheat), clear of the town strip at the foot. */
   narratorRoom(): StripRoom {
-    return defaultRoom(this.size, CHEAT_BTN.top + CHEAT_BTN.h + 4);
+    const top = this.bar?.onRail ? this.chromeBottom + 4 : CHEAT_BTN.top;
+    return defaultRoom({ w: this.viewW() }, top + CHEAT_BTN.h + 4);
   }
 
   /** The sound switches' button, level with the cheat's on the other side, while no window is in the way. */
@@ -295,20 +351,52 @@ export class TownScene extends Phaser.Scene {
     if (!sound) return;
     this.soundBtn ??= new PixelButton(this, { w: SOUND_BTN.w, h: SOUND_BTN.h, label: 'Sound', onClick: () => soundCard(sound, (spec) => openCard(this, spec)) });
     this.soundBtn.root.setDepth(DEPTH.plate).setVisible(!this.screen);
-    this.soundBtn.setPosition(SOUND_BTN.margin, CHEAT_BTN.top);
+    this.soundBtn.setPosition(SOUND_BTN.margin, this.bar?.onRail ? TOP_ROW.y : CHEAT_BTN.top);
   }
 
-  /** The other towns to go to, with no window in the way; with one town there is nowhere to go. */
+  /**
+   * The other towns to go to, with no window in the way; with one town there
+   * is nowhere to go. Over the strip's right end, or on a phone dropped from
+   * the button naming the town.
+   */
   private drawTowns(): void {
     const { adv, def } = this.session;
     const towns = playerTowns(adv);
+    const rail = this.bar!.onRail;
+    const from = rail ? 'top' : 'bottom';
+    if (this.towns && this.towns.from !== from) {
+      this.towns.destroy();
+      this.towns = null;
+    }
     this.towns ??= new TownList(this, TOWNS.w, {
       textureOf: (t) => townTexOf(def, t),
       onOpen: (townId) => this.scene.restart({ townId, travelled: this.travelled }),
-    });
-    this.towns.set(towns.length > 1 ? towns : [], this.townId);
-    this.towns.root.setDepth(DEPTH.plate).setPosition(this.size.w - TOWNS.w - TOWNS.gap, this.bar!.top - TOWNS.gap).setVisible(!this.screen);
+    }, from);
     this.bar!.setTowersHidden(!!this.screen);
+    this.townBtn?.destroy();
+    this.townBtn = null;
+    if (!rail) {
+      this.towns.set(towns.length > 1 ? towns : [], this.townId);
+      this.towns.root.setDepth(DEPTH.plate).setPosition(this.size.w - TOWNS.w - TOWNS.gap, this.bar!.top - TOWNS.gap).setVisible(!this.screen);
+      return;
+    }
+    const x = SOUND_BTN.margin + SOUND_BTN.w + TOP_ROW.gap;
+    const many = towns.length > 1;
+    // With one town it only names it: there is nowhere else to go.
+    this.townBtn = new PixelButton(this, { w: TOWNS.w, h: TOP_ROW.h, label: this.town().name, ...(this.townsOpen ? { rim: 'gold' as const } : {}), onClick: () => many && this.toggleTowns() });
+    this.townBtn.root.setDepth(DEPTH.plate).setVisible(!this.screen);
+    this.townBtn.setPosition(x, TOP_ROW.y);
+    const top = TOP_ROW.y + TOP_ROW.h + TOP_ROW.gap;
+    this.towns.set(many ? towns : [], this.townId, Math.floor((this.bar!.viewH - top + 2) / (TOWN_ROW_H + 2)));
+    // Over the drawer, should it be open.
+    this.towns.root.setDepth(DEPTH.bar + 5).setPosition(x, top).setVisible(this.townsOpen && !this.screen);
+  }
+
+  /** On a phone: the list of towns drops from the button naming this one, or folds away. */
+  private toggleTowns(): void {
+    getSound(this)?.play('card');
+    this.townsOpen = !this.townsOpen;
+    this.drawTowns();
   }
 
   /** The suggestion at the top of the town, as things stand; none once the town is finished. */
@@ -318,10 +406,19 @@ export class TownScene extends Phaser.Scene {
     const { adv, def } = this.session;
     const town = this.town();
     const id = suggestBuilding(town, adv.purse, def.off);
+    const rail = !!this.bar?.onRail;
+    // On a phone, the plate takes what's left of the top row (or a row of its own under it).
+    const rowX = SOUND_BTN.margin + SOUND_BTN.w + TOP_ROW.gap + TOWNS.w + TOP_ROW.gap;
+    const beside = this.viewW() - rowX - TOP_ROW.gap >= TOP_ROW.plateMinW;
+    const area = !rail ? this.size : beside ? { x: rowX, y: TOP_ROW.y, w: this.viewW() - rowX - TOP_ROW.gap } : { x: TOP_ROW.gap, y: TOP_ROW.y + TOP_ROW.h + TOP_ROW.gap, w: this.viewW() - TOP_ROW.gap * 2 };
+    this.chromeBottom = TOP_ROW.y + TOP_ROW.h;
     // A screen open over the town has its own say (the hall leads with the same building).
-    if (!id || this.screen) return;
+    if (!id || this.screen) {
+      this.drawCheat();
+      return;
+    }
     this.plate = new BuildPlate(this, {
-      town, id, purse: adv.purse, picture: platePicture(this, id, factionOf(town)), area: this.size, depth: DEPTH.plate,
+      town, id, purse: adv.purse, picture: platePicture(this, id, factionOf(town)), area, slim: rail, depth: DEPTH.plate,
       onBuild: () => {
         if (!this.dragged) this.tryBuild(id);
       },
@@ -329,15 +426,18 @@ export class TownScene extends Phaser.Scene {
         if (!this.dragged) this.buildingCard(id);
       },
     });
+    if (rail) this.chromeBottom = this.plate.bottom;
+    this.drawCheat();
   }
 
   private drawView(): void {
     if (!this.bar) return;
     const drift = this.view?.drift;
     this.view?.destroy();
-    this.view = new PixelTownView(this, this.town().built, { w: this.size.w, h: this.bar.top + 2 }, { faction: factionOf(this.town()), onPick: (id, built) => this.pickBuilding(id, built), fresh: this.fresh, drift, nameOf: (b) => buildingIn(this.town(), b).name });
+    this.view = new PixelTownView(this, this.town().built, { w: this.bar.viewW, h: this.bar.viewH + 2 }, { faction: factionOf(this.town()), onPick: (id, built) => this.pickBuilding(id, built), fresh: this.fresh, drift, nameOf: (b) => buildingIn(this.town(), b).name });
     this.fresh = undefined;
     this.panX = this.clampPan(this.panX);
+    this.panY = this.clampPanY(this.panY);
     this.placeView();
   }
 
@@ -358,8 +458,9 @@ export class TownScene extends Phaser.Scene {
     if (!this.screen || !this.bar) return;
     const adv = this.session.adv;
     const act = this.screenActions();
-    const area = { w: this.size.w, h: this.bar.top };
-    const covers = area.h < ROOM_MIN_H;
+    // Over the town, clear of the strip (or left of a phone's rail), unless that leaves a room too little: then over everything.
+    const area = { w: this.bar.viewW, h: this.bar.viewH };
+    const covers = area.h < ROOM_MIN_H || (this.bar.onRail && area.w < ROOM_MIN_W);
     const room = covers ? this.size : area;
     const depth = covers ? DEPTH.coveringWindow : DEPTH.window;
     if (this.screen === 'guild') {
@@ -468,6 +569,15 @@ export class TownScene extends Phaser.Scene {
     if (s !== this.screen) this.storePick = { ref: null, note: '' };
     if (s !== this.screen) this.sellPick = null;
     this.screen = s;
+    if (s) this.townsOpen = false;
+    // A room opened on a phone closes the army drawer under it.
+    if (s && this.bar?.armyOpen) {
+      this.bar.armyOpen = false;
+      this.picked = null;
+      this.drawAll(false);
+      return;
+    }
+    this.drawSound();
     this.drawPlate();
     this.drawTowns();
     this.drawWindow();
@@ -480,21 +590,6 @@ export class TownScene extends Phaser.Scene {
     this.drawPlate();
     this.drawTowns();
     this.drawWindow();
-  }
-
-  /** The ride here for the picked hero while they are away from this (our) town, else null. */
-  private rideOffer(): RideHere | null {
-    const { adv, def } = this.session;
-    const town = this.town();
-    return town.owner === 'player' && heroTown(adv)?.id !== town.id && !this.heroesHere(adv).garrison ? rideHere(adv, def, town) : null;
-  }
-
-  /** "Ride here": the town closes and the hero rides to its gate. */
-  private rideHere(): void {
-    const ride = this.rideOffer();
-    if (!ride || !('path' in ride)) return;
-    this.scene.stop();
-    (this.scene.get('Map') as MapScene).rideTo(ride.path);
   }
 
   private leave(): void {
@@ -906,10 +1001,10 @@ export class TownScene extends Phaser.Scene {
   /** A message on a dark plate just above the strip, fading after a while. */
   private toast(text: string): void {
     for (const t of this.toastParts) t.destroy();
-    const label = new TextLabel(this, { wrap: Math.min(420, this.size.w - 40), anchor: { x: 0.5, y: 0 } }).setText(text);
+    const label = new TextLabel(this, { wrap: Math.min(420, this.viewW() - 40), anchor: { x: 0.5, y: 0 } }).setText(text);
     const pw = label.width + TOAST.pad.x * 2;
     const ph = label.height + TOAST.pad.y * 2 + 2;
-    const x = Math.floor((this.size.w - pw) / 2);
+    const x = Math.floor((this.viewW() - pw) / 2);
     const y = (this.bar?.top ?? this.size.h) - ph - 6;
     const plate = new PixelFrame(this, pw, ph, { rim: 'bronze', fill: FILLS.plate }).setPosition(x, y);
     label.setPosition(x + Math.floor(pw / 2), y + TOAST.pad.y + 1);

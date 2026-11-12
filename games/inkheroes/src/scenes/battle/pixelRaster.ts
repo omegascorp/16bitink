@@ -58,12 +58,19 @@ function buildStamp(): HexStamp {
 
 export const HEX_STAMP: HexStamp = buildStamp();
 
-/** A w × h RGBA pixel buffer, written pixel by pixel (each write replaces what was there). */
+/**
+ * A w × h RGBA pixel buffer, written pixel by pixel (each write replaces what was there).
+ * Sizes are whole and at least 1, so a layout squeezed below nothing mid-resize draws a speck instead of throwing.
+ */
 export class PixelBuffer {
   readonly data: Uint8ClampedArray;
+  readonly w: number;
+  readonly h: number;
 
-  constructor(readonly w: number, readonly h: number) {
-    this.data = new Uint8ClampedArray(w * h * 4);
+  constructor(w: number, h: number) {
+    this.w = Math.max(1, Math.floor(w) || 1);
+    this.h = Math.max(1, Math.floor(h) || 1);
+    this.data = new Uint8ClampedArray(this.w * this.h * 4);
   }
 
   clear(): void {

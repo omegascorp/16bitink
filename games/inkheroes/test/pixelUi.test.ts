@@ -38,6 +38,14 @@ describe('battle UI frames', () => {
     expect(at(r, 20, 2)).toEqual([...RIMS.gold.mid]);
     expect(at(r, 5, 2)).toEqual([...RIMS.bronze.light]);
   });
+
+  it('draws a speck, not a crash, when a resize squeezes the rule below nothing', () => {
+    // The menu asks for screen width − 20: a 1-pixel-wide canvas mid-resize asked for −19.
+    const r = drawRule(-19);
+    expect(r.w).toBe(1);
+    expect(r.h).toBe(5);
+    expect(drawFrame(0, -4, { rim: 'bronze', fill: FILLS.button }).w).toBe(1);
+  });
 });
 
 describe('turn-order portraits', () => {

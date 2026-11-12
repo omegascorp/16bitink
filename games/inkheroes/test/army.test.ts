@@ -3,7 +3,7 @@ import { UNIT_ART } from '../src/art/pixel/manifest';
 import { armyOf, moveSlot, splitSlot } from '../src/logic/army';
 import { faceBox, FACE } from '../src/scenes/battle/pixelFaces';
 import { armyRowW, fitSlot, splitCount } from '../src/scenes/hud/armySlots';
-import { buttonGrid, buttonsGridW, buttonsW, narrowButtonW, stripLayout, townButtons } from '../src/scenes/town/stripLayout';
+import { buttonGrid, buttonsGridW, buttonsW, railButtons, railPlan, townButtons, townLayout } from '../src/scenes/town/stripLayout';
 
 const army = armyOf([{ creature: 'spearman', count: 10 }, { creature: 'bowman', count: 1 }]);
 
@@ -89,30 +89,59 @@ describe('the split slider', () => {
 
 describe('the town’s strip', () => {
   it('draws the slots big on a desktop, beside everything else', () => {
-    expect(stripLayout(1400, 900, 22)).toEqual({ narrow: false, slot: 60, townW: 150 });
-    expect(stripLayout(1512, 751, 22)).toEqual({ narrow: false, slot: 60, townW: 150 });
+    expect(townLayout(1400, 900, 22)).toEqual({ kind: 'strip', slot: 60, townW: 150 });
+    expect(townLayout(1512, 751, 22)).toEqual({ kind: 'strip', slot: 60, townW: 150 });
   });
 
-  it('keeps them bigger than before on phones, and fits the screen', () => {
-    const { narrow, slot } = stripLayout(390, 844, 22);
-    expect(narrow).toBe(true);
-    expect(slot).toBeGreaterThan(36);
-    expect(slot * 8 + 6 + 12).toBeLessThanOrEqual(390);
-  });
-
-  it('stays one low strip on a landscape phone, leaving the town its room', () => {
-    for (const [w, h] of [[844, 390], [667, 375]] as const) {
-      const { narrow, slot } = stripLayout(w, h, 22);
-      expect(narrow).toBe(false);
-      expect(slot).toBeGreaterThanOrEqual(48);
-      expect(slot * 2 + 4 + 12).toBeLessThanOrEqual(h * 0.32);
+  it('gives a phone the whole town: the buttons down a rail, the armies in a drawer', () => {
+    for (const [w, h] of [[844, 390], [667, 375], [692, 308], [390, 844]] as const) {
+      const plan = townLayout(w, h, 22, 5);
+      expect(plan.kind).toBe('rail');
+      if (plan.kind !== 'rail') continue;
+      const { rail, drawer } = plan;
+      // Every button fits down the rail, over the purse.
+      const rows = Math.ceil(6 / rail.cols);
+      expect(rows * rail.btnH + (rows - 1) * 3 + 12).toBeLessThanOrEqual(h - 22 + 2);
+      expect(rail.btnH).toBeGreaterThanOrEqual(48);
+      // The drawer's armies (and the town's lines beside them) fit left of the rail.
+      const armies = drawer.slot * 8 + 6 + 12;
+      expect(armies + (drawer.stacked ? 0 : drawer.townW + 8) + 12).toBeLessThanOrEqual(drawer.w);
+      // It stops at the rail unless the rail's buttons end above it.
+      if (drawer.w > w - rail.w) expect(12 + rows * rail.btnH + (rows - 1) * 3).toBeLessThanOrEqual(h - 22 + 2 - (drawer.stacked ? 42 : 12) - drawer.slot * 2 - 4);
+      expect(drawer.slot).toBeGreaterThan(36);
     }
+  });
+
+  it('runs the drawer across a phone held upright, under a one-column rail', () => {
+    const plan = townLayout(390, 844, 22, 5);
+    if (plan.kind !== 'rail') throw new Error('a rail');
+    expect(plan.rail.cols).toBe(1);
+    expect(plan.drawer).toMatchObject({ w: 390, stacked: true });
+    expect(plan.drawer.slot).toBeGreaterThanOrEqual(44);
+  });
+
+  it('stops the drawer at the rail on a phone held sideways', () => {
+    const plan = townLayout(692, 308, 22, 5);
+    if (plan.kind !== 'rail') throw new Error('a rail');
+    expect(plan.drawer.w).toBe(692 - plan.rail.w);
+    expect(plan.drawer.stacked).toBe(false);
+  });
+
+  it('wraps the rail into a second column only when the buttons would not fit one', () => {
+    expect(railPlan(844, 22, 10).cols).toBe(1);
+    expect(railPlan(390, 22, 6).cols).toBe(1);
+    expect(railPlan(308, 22, 10)).toEqual({ cols: 2, rows: 5, btnH: 52, w: 127 });
+  });
+
+  it('puts Army before Leave on the rail', () => {
+    expect(railButtons(['hall', 'fort', 'leave'])).toEqual(['hall', 'fort', 'army', 'leave']);
+    expect(railButtons(['hall', 'fort', 'tavern', 'leave'])).toEqual(['hall', 'fort', 'tavern', 'army', 'leave']);
   });
 
   it('never runs off the screen beside the armies', () => {
     for (let w = 320; w < 1600; w += 7) {
-      const { narrow, slot, townW } = stripLayout(w, 800, 22);
-      if (!narrow) expect(townW + 8 + (slot * 8 + 6 + 12) + 8 + 115 + 12).toBeLessThanOrEqual(w);
+      const plan = townLayout(w, 800, 22);
+      if (plan.kind === 'strip') expect(plan.townW + 8 + (plan.slot * 8 + 6 + 12) + 8 + 115 + 12).toBeLessThanOrEqual(w);
     }
   });
 
@@ -131,13 +160,7 @@ describe('the town’s strip', () => {
 
   it('shows the Storehouse once it stands, before Leave', () => {
     expect(townButtons(['storehouse'])).toEqual(['hall', 'fort', 'store', 'leave']);
-    expect(townButtons([], false, true)).toEqual(['hall', 'fort', 'ride', 'leave']);
     expect(townButtons(['mageGuild1', 'blacksmith', 'tavern', 'storehouse', 'treasury'], true)).toEqual(['hall', 'fort', 'guild', 'smith', 'tavern', 'store', 'leave']);
-  });
-
-  it('fits all seven buttons in a row on the narrowest phone', () => {
-    for (let w = 300; w < 420; w += 3) expect(narrowButtonW(7, w) * 7 + 6 * 3).toBeLessThanOrEqual(w - 12);
-    expect(narrowButtonW(5, 390)).toBe(56);
   });
 
   it('leaves no hole in the grid: the last button takes what is left of its row', () => {
@@ -149,16 +172,11 @@ describe('the town’s strip', () => {
   it('never runs off the screen with all five buttons', () => {
     expect(buttonsGridW(4)).toBe(115);
     expect(buttonsGridW(5)).toBe(174);
+    expect(buttonsW(5)).toBe(292);
     for (let w = 320; w < 1600; w += 7) {
-      const { narrow, slot, townW } = stripLayout(w, 800, 22, 5);
-      if (narrow) expect(buttonsW(5)).toBeLessThanOrEqual(w);
-      else expect(townW + 8 + (slot * 8 + 6 + 12) + 8 + buttonsGridW(5) + 12).toBeLessThanOrEqual(w);
+      const plan = townLayout(w, 800, 22, 5);
+      if (plan.kind === 'strip') expect(plan.townW + 8 + (plan.slot * 8 + 6 + 12) + 8 + buttonsGridW(5) + 12).toBeLessThanOrEqual(w);
+      else expect(plan.rail.w).toBeLessThan(w / 2);
     }
-  });
-
-  it('keeps a landscape phone low with four buttons or fewer', () => {
-    expect(stripLayout(667, 375, 22, 3).narrow).toBe(false);
-    expect(stripLayout(667, 375, 22, 4).narrow).toBe(false);
-    expect(stripLayout(844, 390, 22, 5).narrow).toBe(false);
   });
 });

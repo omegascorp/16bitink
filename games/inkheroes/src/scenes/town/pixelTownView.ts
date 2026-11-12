@@ -81,7 +81,8 @@ export interface TownViewOpts {
  * front. A building lightens and names itself under the pointer; a tap on
  * it, or on a bare plot, picks it. The clouds drift and the chimneys
  * smoke, as in a battle (call update every frame). Pan it with setLeft
- * when the stage is wider than the screen.
+ * when the stage is wider than the screen, and with setTop within `tops`
+ * when it is taller (a phone: the city's back and its sky above the screen).
  */
 export class PixelTownView {
   readonly root: Phaser.GameObjects.Container;
@@ -93,6 +94,8 @@ export class PixelTownView {
   private readonly flying: FlyingFlags;
   private readonly faction: TownPeople;
   private readonly kit: TownKit;
+  /** The stage's top on screen: `min` shows its foot (where it starts), `max` its top (equal when the screen shows it all). */
+  readonly tops: { readonly min: number; readonly max: number };
 
   constructor(private readonly scene: Phaser.Scene, built: readonly BuildingId[], area: { w: number; h: number }, private readonly opts: TownViewOpts) {
     this.faction = opts.faction ?? 'crown';
@@ -100,18 +103,20 @@ export class PixelTownView {
     this.bare = emptyPlots(built, this.faction);
     this.flying = new FlyingFlags(scene, this.faction);
     // The stage's top STAGE_SHOWN rows fill the area (more sky on a taller one); the countryside reaches to the sides.
+    // A shorter area shows their foot first, and is painted from the stage's top so it can be panned up to it.
     const top = area.h - STAGE_SHOWN;
+    this.tops = { min: top, max: Math.max(top, 0) };
     const span = Math.max(area.w, STAGE.w);
     const x0 = -Math.floor((span - STAGE.w) / 2);
     this.root = scene.add.container(0, top);
     // As the battle's backdrop: the sky, a looping strip of clouds drifting over it, and the countryside with the city painted on it.
-    const stageArea = { x: x0, y: -top, w: span, h: area.h };
+    const stageArea = { x: x0, y: -this.tops.max, w: span, h: STAGE_SHOWN + this.tops.max };
     this.country = new DriftingScenery(scene, {
       atlas: texturePixels(scene, PX_TEX.scenery(terrainOf(this.faction))),
       art: townScenery(this.faction),
       seed: SEED,
       area: { ...stageArea, y: stageArea.y - STAGE_HORIZON + HORIZON_Y },
-      at: { x: x0, y: -top },
+      at: { x: x0, y: stageArea.y },
       into: this.root,
       paint: (front) => this.paintGround(front, stageArea),
       drift: opts.drift,
@@ -221,6 +226,11 @@ export class PixelTownView {
   /** Puts the stage's left edge at screen x `left` (whole pixels). */
   setLeft(left: number): void {
     this.root.setX(Math.round(left));
+  }
+
+  /** Puts the stage's top at screen y `top`, kept within `tops` (whole pixels). */
+  setTop(top: number): void {
+    this.root.setY(Math.round(Phaser.Math.Clamp(top, this.tops.min, this.tops.max)));
   }
 
   destroy(): void {

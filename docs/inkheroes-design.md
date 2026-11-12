@@ -1396,7 +1396,7 @@ To record a line again after its words change: change its script in `lines.ts`, 
 
 ## Controls
 
-- **Map:** tap a tile to plan a path, tap it again to go. Tap another of your heroes to pick them (beside the picked one: to meet and trade), or tap their face in the HUD. Drag to pan; wheel or pinch to zoom (one whole step either way). Space or End day ends the day. T opens the town; tapping the hero's face brings the view back to the hero. A tap anywhere on the picture of a town of yours opens it at once, whichever hero is picked (unless a ride to its gate is already planned: then it rides); in the town, "Ride here" sends the picked hero there when they are away.
+- **Map:** tap a tile to plan a path, tap it again to go. Tap another of your heroes to pick them (beside the picked one: to meet and trade), or tap their face in the HUD. Drag to pan; wheel or pinch to zoom (one whole step either way). Space or End day ends the day. T opens the town; tapping the hero's face brings the view back to the hero. A tap anywhere on the picture of a town of yours opens it at once, whichever hero is picked (unless a ride to its gate is already planned: then it rides).
 - **Battle:** tap a lit hex to move; tap an enemy to attack it (the side of the enemy you tap is where your unit strikes from; on touch, a first tap shows the damage, a second strikes). W waits, D defends, C opens the spellbook.
 - **Pause:** Esc or the ❚❚ button.
 

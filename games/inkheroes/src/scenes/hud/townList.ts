@@ -20,7 +20,9 @@ export interface TownListHost {
 /**
  * The player's towns as a stack of rows, each the town's own picture (as it
  * stands on the map, so it grows with the town) and its name; a tap opens
- * that town. `root` is the bottom left corner: the rows rise from it.
+ * that town. `root` is the bottom left corner: the rows rise from it; or,
+ * dropped (`from` 'top', the town screen on a phone), the top left: the rows
+ * fall from it, in columns of `maxRows`.
  */
 export class TownList {
   readonly root: Phaser.GameObjects.Container;
@@ -28,13 +30,14 @@ export class TownList {
   private pictures: string[] = [];
   private shown: string | null = null;
 
-  constructor(private readonly scene: Phaser.Scene, private readonly w: number, private readonly host: TownListHost) {
+  constructor(private readonly scene: Phaser.Scene, private readonly w: number, private readonly host: TownListHost, readonly from: 'bottom' | 'top' = 'bottom') {
     this.root = scene.add.container(0, 0);
   }
 
   /** Shows `towns`; `here`, on the town screen, is the one open: framed in gold, and a tap on it does nothing. */
-  set(towns: readonly Town[], here?: string): void {
-    const key = townListKey(towns, here);
+  set(towns: readonly Town[], here?: string, maxRows = towns.length): void {
+    const perCol = Math.max(1, maxRows);
+    const key = `${townListKey(towns, here)}:${perCol}`;
     if (key === this.shown) return;
     this.shown = key;
     this.clear();
@@ -42,7 +45,8 @@ export class TownList {
       const picture = putBuffer(this.scene, shrinkSmooth(texturePixels(this.scene, this.host.textureOf(t)), PICTURE_SHRINK));
       this.pictures.push(picture);
       const row = new PixelButton(this.scene, { w: this.w, h: TOWN_ROW_H, label: t.name, picture: { key: picture, scale: PICTURE_SCALE }, ...(t.id === here ? { rim: 'gold' as const } : {}), onClick: () => t.id !== here && this.host.onOpen(t.id) });
-      row.setPosition(0, -(towns.length - i) * (TOWN_ROW_H + ROW_GAP) + ROW_GAP);
+      if (this.from === 'top') row.setPosition(Math.floor(i / perCol) * (this.w + ROW_GAP), (i % perCol) * (TOWN_ROW_H + ROW_GAP));
+      else row.setPosition(0, -(towns.length - i) * (TOWN_ROW_H + ROW_GAP) + ROW_GAP);
       this.rows.push(row);
       this.root.add(row.root);
     });

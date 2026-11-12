@@ -3,7 +3,6 @@ import { ASHFORD } from '../src/level/borderMarch';
 import { heroTown, planPath, startAdventure, stepHero, type Adventure } from '../src/logic/adventure';
 import { armyOf } from '../src/logic/army';
 import { townFootprint } from '../src/logic/objects';
-import { rideHere } from '../src/logic/rideHere';
 import bootPng from '../src/art/pixel/cursors/boot.png?inline';
 import gauntletPng from '../src/art/pixel/cursors/gauntlet.png?inline';
 import longswordPng from '../src/art/pixel/cursors/longsword.png?inline';
@@ -140,16 +139,6 @@ describe('what a tap on the map would do', () => {
       const wall = townFootprint(town.x, town.y)[6]!;
       expect(townToEnter(held, def, wall.x, wall.y)).toBeUndefined();
       expect(intentAt(held, def, town.x, town.y)).toBe('attack');
-    });
-
-    it('offers a ride to its gate, or says why not', () => {
-      expect('path' in rideHere(away, def, town)).toBe(true);
-      const stuck = { ...away, hero: { ...away.hero, mp: 0 }, explored: away.explored };
-      expect(rideHere(stuck, def, town)).toBeDefined();
-      const inOther = { ...away, hero: { ...away.hero, army: armyOf([]) }, towns: [...away.towns] };
-      const other = { ...town, id: 'elsewhere', x: away.hero.x, y: away.hero.y };
-      const garrisoned = { ...inOther, towns: [...away.towns, other] };
-      expect(rideHere(garrisoned, def, town)).toMatchObject({ why: expect.stringContaining('garrison') });
     });
   });
 });

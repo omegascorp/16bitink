@@ -512,12 +512,6 @@ export class MapScene extends Phaser.Scene {
     this.scene.sleep();
   }
 
-  /** The town screen's "Ride here": the town closes and the hero rides `path`. */
-  rideTo(path: readonly PathStep[]): void {
-    this.back();
-    this.walk(path);
-  }
-
   /** Called by the battle and the town when they close. */
   back(): void {
     this.events.emit('status', '');

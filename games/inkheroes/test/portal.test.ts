@@ -327,9 +327,9 @@ describe('the Portal: saves', () => {
 describe('the Portal: the town screen', () => {
   it('shows the Portal button from its second level, while a hero of ours is in town', async () => {
     const { townButtons } = await import('../src/scenes/town/stripLayout');
-    expect(townButtons(['storehouse', 'portal'], false, false, true)).not.toContain('portal');
-    expect(townButtons(['storehouse', 'portal', 'portal2'], false, false, true)).toContain('portal');
-    expect(townButtons(['storehouse', 'portal', 'portal2'], false, true, false)).not.toContain('portal');
+    expect(townButtons(['storehouse', 'portal'], false, true)).not.toContain('portal');
+    expect(townButtons(['storehouse', 'portal', 'portal2'], false, true)).toContain('portal');
+    expect(townButtons(['storehouse', 'portal', 'portal2'], false, false)).not.toContain('portal');
   });
 
   it('the room: the band with its odds, experience and gear, then the towns to step through to, and fits a phone', async () => {

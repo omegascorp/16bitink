@@ -14,8 +14,7 @@ import { ArmyDrag } from '../hud/armyDrag';
 import { ArmyRow } from '../hud/armyRow';
 import { armyRowW, armyRowOf } from '../hud/armySlots';
 import { PurseRow, PURSE_BAR_H, PURSE_ROW_W } from '../hud/purseRow';
-import type { RideHere } from '../../logic/rideHere';
-import { armiesW, armyH, BTN, buttonGrid, buttonsGridW, cellsW, GAP, HEAD_GAP, LINE, NARROW_ROUND, narrowButtonW, PAD, ROW_GAP, stripLayout, townButtons, type TownButton } from './stripLayout';
+import { armiesW, armyH, BTN, buttonGrid, buttonsGridW, cellsW, drawerH, GAP, HEAD_GAP, LINE, PAD, RAIL, railButtons, ROW_GAP, townButtons, townLayout, type TownButton } from './stripLayout';
 
 /** The strip's icons a people draws for itself (the Greeks' are the plain ones): the Hall, the Fort and the town's crest (also the Portal's). */
 const PEOPLE_ICONS: Readonly<Partial<Record<TownFaction, Readonly<Partial<Record<'hall' | 'recruit' | 'town', IconName>>>>>> = {
@@ -59,8 +58,8 @@ export interface TownBarActions {
   dropSlot(from: SlotRef, to: SlotRef): void;
   /** Split the picked company. */
   split(): void;
-  /** "Ride here": the picked hero rides to this town. */
-  ride(): void;
+  /** The Army button on a phone's rail: the drawer with the armies opens or closes. */
+  army(): void;
 }
 
 const SPLIT = { w: 100, h: 30 } as const;
@@ -75,12 +74,16 @@ const PANEL_FILL = [34, 24, 17, 246] as const;
  * hero's face, then the other row, to move the hero with every company,
  * or drag a company there; a picked company can be split); Hall, Fort,
  * the Guild, the Blacksmith, the Tavern, the Store and the Portal once
- * built, and Leave, in two rows; under it all the purse and the date. On a narrow screen the buttons and the town's
- * lines stack above the armies.
+ * built, and Leave, in two rows; under it all the purse and the date. On a
+ * phone the town takes the screen: the buttons go down a rail on the right,
+ * and the town's lines and armies into a drawer over the town's foot that
+ * the rail's Army button opens.
  */
 export class TownBar {
   private readonly owned: { destroy(): void }[] = [];
+  /** The strip, or on a phone the army drawer. */
   private frame: PixelFrame | null = null;
+  private railFrame: PixelFrame | null = null;
   private purseFrame: PixelFrame | null = null;
   private readonly purse: PurseRow;
   private readonly date: TextLabel;
@@ -103,16 +106,20 @@ export class TownBar {
   private towersShown = false;
   private towersHidden = false;
   private readonly buttons: PixelButton[];
-  private narrow = false;
-  /** A button's width on the stacked strip. */
-  private narrowW: number = BTN.w;
+  /** The buttons are down a rail on the right and the armies in a drawer (a phone). */
+  private railed = false;
+  /** The drawer with the armies is open (on a phone; the strip always shows them). */
+  armyOpen = false;
   /** What the buttons were last made for. */
   private buttonsKey = '';
-  /** The ride to this town for the picked hero when they are away (or why not), else null. */
-  private ride: RideHere | null = null;
   private armiesAt = { x: 0, y: 0 };
-  /** Where the strip begins on screen. */
+  /** Where the strip (or the open drawer) begins on screen: the town above it takes taps. */
   top = 0;
+  /** The strip's or the drawer's frame top, whether or not the drawer is open. */
+  private stripTop = 0;
+  /** The townscape's room: the screen above the strip, or left of the rail and above the purse. */
+  viewW = 0;
+  viewH = 0;
 
   constructor(private readonly scene: Phaser.Scene, private readonly actions: TownBarActions, private readonly depth: number) {
     this.purse = new PurseRow(scene, depth + 1);
@@ -140,7 +147,7 @@ export class TownBar {
     return t;
   }
 
-  private makeButtons(names: readonly TownButton[], h: number, narrow: boolean): void {
+  private makeButtons(names: readonly TownButton[], h: number, cols?: number): void {
     const actions = this.actions;
     for (const b of this.buttons) b.destroy();
     this.buttons.length = 0;
@@ -152,13 +159,13 @@ export class TownBar {
       tavern: { label: 'Tavern', icon: 'tavern', onClick: () => actions.open('tavern') },
       store: { label: 'Store', icon: 'store', onClick: () => actions.open('store') },
       portal: { label: 'Portal', icon: iconOf('town', this.faction ?? 'crown'), onClick: () => actions.open('portal') },
-      ride: { label: 'Ride here', icon: 'auto', onClick: () => actions.ride() },
+      army: { label: 'Army', icon: 'defend', ...(this.armyOpen ? { rim: 'gold' as const } : {}), onClick: () => actions.army() },
       leave: { label: 'Leave', icon: 'leave', rim: 'gold', onClick: () => actions.leave() },
     };
-    const grid = buttonGrid(names.length);
+    const grid = buttonGrid(names.length, cols);
     names.forEach((name, i) => {
       const s = specs[name];
-      const btn = new PixelButton(this.scene, { w: narrow ? this.narrowW : cellsW(grid[i]!.span), h, label: s.label, icon: s.icon, stacked: true, rim: s.rim, onClick: s.onClick });
+      const btn = new PixelButton(this.scene, { w: cellsW(grid[i]!.span), h, label: s.label, icon: s.icon, stacked: true, rim: s.rim, primary: name === 'army' && this.armyOpen, onClick: s.onClick });
       btn.root.setDepth(this.depth + 1);
       this.buttons.push(btn);
     });
@@ -228,8 +235,7 @@ export class TownBar {
   }
 
   /** Lays the strip out for town `t` on a `w` × `h` screen, with the Tavern's button when it `hires`, the Portal's with a hero `inside`; where its top lands. */
-  layout(w: number, h: number, t: Town, hires = false, ride: RideHere | null = null, inside = false): number {
-    this.ride = ride;
+  layout(w: number, h: number, t: Town, hires = false, inside = false): number {
     const faction = factionOf(t);
     if (faction !== this.faction) {
       // A town of another people: its icons, so the faces and buttons are made again.
@@ -237,22 +243,18 @@ export class TownBar {
       this.slot = 0;
       this.buttonsKey = '';
     }
-    const names = townButtons(t.built, hires, !!ride, inside);
-    const { narrow, slot, townW } = stripLayout(w, h, PURSE_BAR_H, names.length);
+    const names = townButtons(t.built, hires, inside);
+    const plan = townLayout(w, h, PURSE_BAR_H, names.length);
+    this.railed = plan.kind === 'rail';
+    const shown = plan.kind === 'rail' ? railButtons(names) : names;
+    const slot = plan.kind === 'rail' ? plan.drawer.slot : plan.slot;
     if (slot !== this.slot) this.makeFaces(slot);
-    const buttonsH = narrow ? BTN.narrowH : slot;
-    this.narrowW = narrowButtonW(names.length, w);
-    const key = `${names.join()}:${buttonsH}:${narrow}:${this.narrowW}`;
-    if (key !== this.buttonsKey) this.makeButtons(names, buttonsH, narrow);
+    const buttonsH = plan.kind === 'rail' ? plan.rail.btnH : slot;
+    const cols = plan.kind === 'rail' ? plan.rail.cols : undefined;
+    const key = `${shown.join()}:${buttonsH}:${cols ?? 'grid'}:${this.armyOpen}`;
+    if (key !== this.buttonsKey) this.makeButtons(shown, buttonsH, cols);
     this.buttonsKey = key;
-    this.buttons[names.indexOf('ride')]?.setEnabled(!!ride && 'path' in ride);
-    this.narrow = narrow;
-    const barH = narrow ? NARROW_ROUND + armyH(slot) : PAD + armyH(slot) + PAD;
     const purseTop = h - PURSE_BAR_H + 2;
-    this.top = purseTop - barH;
-    this.frame?.destroy();
-    this.frame = new PixelFrame(this.scene, w + 4, barH, { rim: 'bronze', thick: 2, fill: PANEL_FILL, studs: true }).setPosition(-2, this.top);
-    this.frame.img.setDepth(this.depth);
     this.purseFrame?.destroy();
     this.purseFrame = new PixelFrame(this.scene, w + 4, PURSE_BAR_H, { rim: 'bronze', fill: [28, 20, 14, 246] }).setPosition(-2, purseTop);
     this.purseFrame.img.setDepth(this.depth);
@@ -260,35 +262,63 @@ export class TownBar {
     const end = this.purse.place(purseX, purseTop);
     this.date.setPosition(w - 6, purseTop + Math.floor((PURSE_BAR_H - 2 - LINE) / 2));
     this.date.img.setVisible(w - end > 150);
-    if (narrow) this.layoutNarrow(w);
-    else this.layoutWide(w, townW);
+    this.railFrame?.destroy();
+    this.railFrame = null;
+    if (plan.kind === 'rail') {
+      const railX = w - plan.rail.w;
+      this.viewW = railX;
+      this.viewH = purseTop;
+      this.railFrame = new PixelFrame(this.scene, plan.rail.w + 2, purseTop + 4, { rim: 'bronze', thick: 2, fill: PANEL_FILL }).setPosition(railX, -2);
+      this.railFrame.img.setDepth(this.depth);
+      const grid = buttonGrid(shown.length, plan.rail.cols);
+      this.buttons.forEach((b, i) => b.setPosition(railX + RAIL.pad + grid[i]!.col * (BTN.w + BTN.gap), RAIL.pad + grid[i]!.row * (buttonsH + BTN.gap)));
+      const { drawer } = plan;
+      this.stripTop = purseTop - drawerH(drawer);
+      this.top = this.armyOpen ? this.stripTop : purseTop;
+      this.drawFrame(drawer.w, purseTop - this.stripTop);
+      if (drawer.stacked) this.layoutStacked(drawer.w);
+      else this.layoutWide(drawer.w, drawer.townW, false);
+    } else {
+      const barH = PAD + armyH(slot) + PAD;
+      this.stripTop = this.top = purseTop - barH;
+      this.viewW = w;
+      this.viewH = this.top;
+      this.drawFrame(w, barH);
+      this.layoutWide(w, plan.townW, true);
+    }
     return this.top;
   }
 
-  private layoutWide(w: number, townW: number): void {
+  /** The strip's (or the drawer's) frame, `w` across and `barH` high over the purse. */
+  private drawFrame(w: number, barH: number): void {
+    this.frame?.destroy();
+    this.frame = new PixelFrame(this.scene, w + 4, barH, { rim: 'bronze', thick: 2, fill: PANEL_FILL, studs: true }).setPosition(-2, this.stripTop);
+    this.frame.img.setDepth(this.depth);
+  }
+
+  /** The town's lines, the armies and (on the strip) the buttons in a row across `w`. */
+  private layoutWide(w: number, townW: number, withButtons: boolean): void {
     const armies = armiesW(this.slot);
     const count = this.buttons.length;
-    const left = Math.floor((w - (townW + GAP + armies + GAP + buttonsGridW(count))) / 2);
-    const y = this.top + PAD;
+    const left = Math.floor((w - (townW + GAP + armies + (withButtons ? GAP + buttonsGridW(count) : 0))) / 2);
+    const y = this.stripTop + PAD;
     this.name.setPosition(left, y);
     this.goldIcon.setPosition(left, y + LINE + 4);
     this.incomeLine.setPosition(left + 19, y + LINE + 5);
     this.status.setWrap(townW).setPosition(left, y + LINE * 2 + 9);
     this.splitBtn.setPosition(left, y + armyH(this.slot) - SPLIT.h);
     this.placeArmies(left + townW + GAP, y);
+    if (!withButtons) return;
     // In line with the armies' rows.
     const bx = left + townW + GAP + armies + GAP;
     const grid = buttonGrid(count);
     this.buttons.forEach((b, i) => b.setPosition(bx + grid[i]!.col * (BTN.w + BTN.gap), y + grid[i]!.row * (this.slot + ROW_GAP)));
   }
 
-  private layoutNarrow(w: number): void {
+  /** The drawer `w` across with the town's lines over the armies (a phone held upright). */
+  private layoutStacked(w: number): void {
     const armies = armiesW(this.slot);
-    let y = this.top + PAD;
-    const n = this.buttons.length;
-    const bx = Math.floor((w - (n * this.narrowW + (n - 1) * BTN.gap)) / 2);
-    this.buttons.forEach((b, i) => b.setPosition(bx + i * (this.narrowW + BTN.gap), y));
-    y += BTN.narrowH + ROW_GAP;
+    const y = this.stripTop + PAD;
     const left = Math.floor((w - armies) / 2);
     this.name.setPosition(left, y);
     this.goldIcon.setPosition(left + armies - 96, y - 1);
@@ -296,6 +326,16 @@ export class TownBar {
     this.status.setWrap(armies - SPLIT.w - 4).setPosition(left, y + LINE);
     this.splitBtn.setPosition(left + armies - SPLIT.w, y + LINE * 2 - SPLIT.h);
     this.placeArmies(left, y + LINE * 2 + ROW_GAP);
+  }
+
+  /** The buttons are down the rail and the armies in the drawer (a phone). */
+  get onRail(): boolean {
+    return this.railed;
+  }
+
+  /** The drawer's parts show: always on the strip, on a phone while it's open. */
+  private get drawerOn(): boolean {
+    return !this.railed || this.armyOpen;
   }
 
   private placeArmies(x: number, y: number): void {
@@ -309,7 +349,7 @@ export class TownBar {
     f.visitor.setPosition(x + this.slot + HEAD_GAP, vy);
     this.away.setPosition(x + this.slot + HEAD_GAP + Math.floor(armyRowW(this.slot) / 2), vy + Math.floor(this.slot / 2));
     // The tab stands on the strip's top edge, over the left of the armies (the list of towns has the right): its icon over the crest, its places over the armies' first columns.
-    const tabY = this.top - this.slot - TAB.pad * 2 + 2;
+    const tabY = this.stripTop - this.slot - TAB.pad * 2 + 2;
     f.towersFrame.setPosition(x - TAB.pad, tabY);
     f.towerHead.setPosition(x, tabY + TAB.pad);
     f.towers.setPosition(x + this.slot + HEAD_GAP, tabY + TAB.pad);
@@ -322,7 +362,7 @@ export class TownBar {
   }
 
   private showTowers(): void {
-    const on = this.towersShown && !this.towersHidden;
+    const on = this.towersShown && !this.towersHidden && this.drawerOn;
     this.faces?.towers.root.setVisible(on);
     this.faces?.towersFrame.img.setVisible(on);
     this.faces?.towerHead.setVisible(on);
@@ -356,9 +396,13 @@ export class TownBar {
     const headPicked = (row: SlotRef['army']): boolean => picked?.i === HEAD && picked.army === row;
     const army = picked?.army === 'garrison' ? t.garrison : picked?.army === 'tower' ? towersOf(t) : visitor?.army ?? [];
     const company = picked && picked.i !== HEAD ? army[picked.i] ?? null : null;
-    const noRide = this.ride && 'why' in this.ride ? this.ride.why : '';
-    this.status.setText(company ? 'Tap a slot to move them' : noRide ? noRide : t.builtToday ? 'Built today: more tomorrow' : 'One building a day');
-    this.splitBtn.root.setVisible(!!company && company.count > 1 && picked?.army !== 'tower');
+    this.status.setText(company ? 'Tap a slot to move them' : t.builtToday ? 'Built today: more tomorrow' : 'One building a day');
+    const on = this.drawerOn;
+    this.frame?.img.setVisible(on);
+    for (const label of [this.name, this.incomeLine, this.status]) label.img.setVisible(on);
+    this.goldIcon.setVisible(on);
+    for (const row of [f.garrison, f.visitor]) row.root.setVisible(on);
+    this.splitBtn.root.setVisible(on && !!company && company.count > 1 && picked?.army !== 'tower');
     this.splitBtn.setEnabled(army.includes(null));
     f.garrison.set(t.garrison, picked?.army === 'garrison' ? picked.i : null);
     f.visitor.set(visitor ? visitor.army : null, visitor && picked?.army === 'hero' ? picked.i : null);
@@ -367,13 +411,13 @@ export class TownBar {
     f.towers.set(towersOf(t), picked?.army === 'tower' ? picked.i : null, places);
     this.towersShown = places > 0;
     this.showTowers();
-    f.crest.setVisible(!keeper);
-    f.keepFace?.setVisible(!headPicked('garrison'));
-    f.keepLit?.setVisible(headPicked('garrison'));
-    f.gateFace?.setVisible(!headPicked('hero'));
-    f.gateLit?.setVisible(headPicked('hero'));
-    f.emptyFace.img.setVisible(!visitor);
-    this.away.setText(keeper ? `${keeper.name} is in the garrison` : `${adv.hero.name} is away`).img.setVisible(!visitor);
+    f.crest.setVisible(on && !keeper);
+    f.keepFace?.setVisible(on && !headPicked('garrison'));
+    f.keepLit?.setVisible(on && headPicked('garrison'));
+    f.gateFace?.setVisible(on && !headPicked('hero'));
+    f.gateLit?.setVisible(on && headPicked('hero'));
+    f.emptyFace.img.setVisible(on && !visitor);
+    this.away.setText(keeper ? `${keeper.name} is in the garrison` : `${adv.hero.name} is away`).img.setVisible(on && !visitor);
   }
 
   destroy(): void {
@@ -384,6 +428,7 @@ export class TownBar {
     this.purse.destroy();
     this.goldIcon.destroy();
     this.frame?.destroy();
+    this.railFrame?.destroy();
     this.purseFrame?.destroy();
   }
 }
