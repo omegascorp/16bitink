@@ -121,7 +121,7 @@ export const GAMES: readonly CatalogGame[] = [
     cover: '/covers/inkcrab.png',
     loop: true,
     released: '2026-10-11',
-    updated: '2026-10-20',
+    updated: '2026-11-12',
     size: { chapters: 10, levels: 100 },
     demo: '10 levels free',
     price: '$4.99',

@@ -150,6 +150,13 @@ describe('beachcomber\'s finds', () => {
 });
 
 describe('marked hunters and the giant', () => {
+  it('warns only of marked creatures that hunt; harmless ones are just to be grown past and eaten', () => {
+    const slaters: Mission = { ...PLAIN, kinds: ['bounty'], marked: { species: 'slater', size: 3, count: 3 } };
+    const ghosts: Mission = { ...PLAIN, kinds: ['bounty'], marked: { species: 'ghostcrab', size: 3, count: 3 } };
+    expect(missionNotes(slaters).join(' ')).not.toMatch(/hunt/);
+    expect(missionNotes(ghosts).join(' ')).toMatch(/hunt you/);
+  });
+
   it('count when eaten, and the level waits for them', () => {
     const m: Mission = { ...PLAIN, kinds: ['bounty'], marked: { species: 'ghostcrab', size: 2, count: 1 } };
     const b = beach({ mission: m, startGrowth: { size: 5, meter: 0 } });

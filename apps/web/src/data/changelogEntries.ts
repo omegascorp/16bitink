@@ -143,6 +143,16 @@ export const GAME_ENTRIES: Readonly<Record<string, readonly ChangelogEntry[]>> =
   ],
   inkcrab: [
     {
+      date: "2026-11-12",
+      title: "Easier first levels",
+      changes: [
+        "Pen Test now has a first meal just past the start, and the walking hint points at the nearest food.",
+        "Margin Wall's cowries now lie on the way to the shelf, the first one just under the sand past the start, so you learn to dig for a prize and reach the wall carrying sand to build with.",
+        "The hint for something buried just under the sand now says to stand over it and dig down, and it keeps pointing at a cowry until you have dug one up.",
+        "Fixed the note on marked sea slaters: they don't hunt you, you only need to grow past them to eat them.",
+      ],
+    },
+    {
       date: "2026-10-20",
       title: "Better digging lessons",
       changes: [
