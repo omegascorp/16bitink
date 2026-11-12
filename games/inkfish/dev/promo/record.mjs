@@ -155,6 +155,7 @@ const VARIANTS = [
   { name: 'inkfish-long-swallowyou', page: 'longform.html', query: '&video=swallowyou', start: 0, audioFilter: 'loudnorm=I=-14:TP=-1.5:LRA=11', onlyByName: true },
   { name: 'inkfish-long-seamonsters', page: 'longform.html', query: '&video=seamonsters', start: 0, audioFilter: 'loudnorm=I=-14:TP=-1.5:LRA=11', onlyByName: true },
   { name: 'inkfish-long-bitecomp', page: 'longform.html', query: '&video=bitecomp', start: 0, audioFilter: 'loudnorm=I=-14:TP=-1.5:LRA=11', onlyByName: true },
+  { name: 'inkfish-long-swallowed', page: 'longform.html', query: '&video=swallowed', start: 0, audioFilter: 'loudnorm=I=-14:TP=-1.5:LRA=11', onlyByName: true },
 ];
 const chosen = only ? VARIANTS.filter((v) => v.name.includes(only)) : VARIANTS.filter((v) => !v.onlyByName);
 if (chosen.length === 0) throw new Error(`No variant name contains "${only}": ${VARIANTS.map((v) => v.name).join(', ')}`);

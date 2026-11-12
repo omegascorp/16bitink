@@ -7,6 +7,8 @@ import { createKit } from './foodchain/kit';
 import { createFoodchain } from './foodchain/render';
 import { createSeamonstersKit } from './seamonsters/kit';
 import { createSeamonsters } from './seamonsters/render';
+import { createSwallowedKit } from './swallowed/kit';
+import { createSwallowed } from './swallowed/render';
 import { createSwallowyou } from './swallowyou/render';
 
 /**
@@ -18,7 +20,8 @@ import { createSwallowyou } from './swallowyou/render';
  * swallowyou ("every ocean animal that could swallow you… only one actually could"),
  * seamonsters ("sea monsters size comparison… but every one is real") or
  * seamonsters-kit (its new drawings), bitecomp ("bite force comparison… but
- * every number is real") or bitecomp-kit (its heads). Plays live; ?t=95 freezes one moment.
+ * every number is real") or bitecomp-kit (its heads), swallowed ("swallowed whole
+ * size comparison… but every meal is real") or swallowed-kit (its swallows). Plays live; ?t=95 freezes one moment.
  * `pnpm promo -- --only long` (dev/promo/record.mjs) records it frame by frame.
  */
 const canvas = document.getElementById('promo') as HTMLCanvasElement;
@@ -63,6 +66,14 @@ const VIDEOS: Readonly<Record<string, () => Promise<Short>>> = {
   'bitecomp-kit': async () => {
     await loadCaptionFont();
     return createBitecompKit(ctx, params.get('only'));
+  },
+  swallowed: async () => {
+    await loadCaptionFont();
+    return createSwallowed(ctx);
+  },
+  'swallowed-kit': async () => {
+    await loadCaptionFont();
+    return createSwallowedKit(ctx, params.get('only'));
   },
 };
 

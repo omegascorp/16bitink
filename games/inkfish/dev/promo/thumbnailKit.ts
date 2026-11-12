@@ -186,11 +186,19 @@ export function drawFish(ctx: CanvasRenderingContext2D, fish: Fish, j: number): 
  * A caption in bold Silkscreen, white (or `fill`) with a fat black outline and
  * a shadow, centred on `x` and fitted to `maxWidth`: the big-channel look.
  */
-export function caption(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, maxWidth: number, fill = '#ffffff'): void {
+/** A caption's typeface: the pixel font (the older sets) or Luckiest Guy, a chunky cartoon face with clearer digits and symbols. */
+export type CaptionFont = 'pixel' | 'cartoon';
+
+const FONT_OF: Readonly<Record<CaptionFont, string>> = { pixel: '700 {size}px Silkscreen', cartoon: '400 {size}px "Luckiest Guy"' };
+
+export function caption(
+  ctx: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, maxWidth: number, fill = '#ffffff', font: CaptionFont = 'pixel',
+): void {
+  const fontAt = (px: number): string => FONT_OF[font].replace('{size}', String(px));
   ctx.save();
-  ctx.font = `700 ${size}px Silkscreen`;
+  ctx.font = fontAt(size);
   const fitted = Math.floor(size * Math.min(1, maxWidth / ctx.measureText(text).width));
-  ctx.font = `700 ${fitted}px Silkscreen`;
+  ctx.font = fontAt(fitted);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round';
