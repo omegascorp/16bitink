@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { addPainted } from '../../art/textures';
 import { makeCanvas } from '../../art/pen';
 import { BLUE, HIGHLIGHT, RED } from '../../art/palette';
 import { createRng, type Rng } from '../../logic/rng';
@@ -60,7 +61,7 @@ function bakeConfetti(scene: Phaser.Scene): void {
       if (scene.textures.exists(key(shape, ink))) continue;
       const { canvas, ctx } = makeCanvas(PIECE, PIECE);
       drawPiece(ctx, shape, ink, rng);
-      scene.textures.addCanvas(key(shape, ink), canvas);
+      addPainted(scene.textures, key(shape, ink), canvas);
     }
   }
 }

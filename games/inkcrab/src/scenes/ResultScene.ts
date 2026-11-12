@@ -21,6 +21,7 @@ import { Confetti } from './beachEnd/confetti';
 import { beachStage, fitStage, headline, isTall, type Headline } from './stage';
 import { clock, HAND_FONT, inkButton, wobblyRect } from './ui';
 import { getHost } from '../host';
+import { prefetchLevel } from './game/levelArt';
 
 export interface ResultData {
   readonly levelId: string;
@@ -134,6 +135,8 @@ export class ResultScene extends Phaser.Scene {
       return loseParts(this, w, h, catchTip(data.caughtBy, losses), def, levelGoal(def), this.withEnter({ primary: { label: 'Try again', go: retry }, secondary: [{ label: '← map', go: chart }] }));
     }
     const next = nextLevel(def.id);
+    // Drawn ahead while the card shows, so the next level starts at once.
+    if (next) prefetchLevel(this, next.id);
     const buttons: CardButtons = next
       ? { primary: { label: 'Next level →', go: this.go('Game', { levelId: next.id }) }, secondary: [{ label: 'replay', go: retry }, { label: '← map', go: chart }] }
       : { primary: { label: '← map', go: chart }, secondary: [{ label: 'replay', go: retry }] };

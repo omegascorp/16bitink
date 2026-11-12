@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { addPainted } from '../../art/textures';
 import { clearRadius } from '../../logic/fog';
 import type { Plankton } from '../../logic/moon';
 import { surfaceRow, type Terrain } from '../../logic/terrain';
@@ -64,7 +65,7 @@ export class NightView {
     g.addColorStop(1, 'rgba(255,255,255,1)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, HOLE_PX, HOLE_PX);
-    scene.textures.addCanvas(this.key, canvas);
+    addPainted(scene.textures, this.key, canvas);
   }
 
   /** `darkness` 0..1; `crab` the middle of the crab (world px) and its size; `time` in seconds (the beach's clock). */

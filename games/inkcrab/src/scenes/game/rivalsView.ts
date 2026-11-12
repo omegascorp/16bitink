@@ -6,7 +6,7 @@ import { makeDraw } from '../../art/kit';
 import { crabShift } from '../../art/mouth';
 import { BLUE_HEX, BOIL } from '../../art/palette';
 import { makeCanvas } from '../../art/pen';
-import { PUFF, TEX } from '../../art/textures';
+import { addPainted, PUFF, TEX } from '../../art/textures';
 import type { Critter } from '../../logic/critters';
 import { centre, type Item } from '../../logic/items';
 import { isRival, RIVAL } from '../../logic/rivals';
@@ -59,7 +59,7 @@ function bakeRivals(scene: Phaser.Scene): void {
         const { canvas, ctx } = makeCanvas(FRAME, FRAME);
         ctx.translate(FRAME / 2, FRAME / 2);
         draw(makeDraw(ctx, seed, f, GROUND));
-        scene.textures.addCanvas(key, canvas);
+        addPainted(scene.textures, key, canvas);
       };
       bake(KEY.back(naked, f), 140 + f, (d) => drawCrabBack(d, naked, RIVAL_COLORS, naked));
       bake(KEY.front(naked, f), 150 + f, (d) => drawCrabFront(d, naked, RIVAL_COLORS));
