@@ -71,7 +71,7 @@ export const CHAPTER_1: readonly LevelDef[] = [
     teach: ['feast'],
   },
   {
-    id: 'farm-7', name: 'One Bite', snake: 'corn', start: { x: 190, y: 270 }, heading: 0, length: 144, target: 540, par: 55,
+    id: 'farm-7', name: 'One Bite', snake: 'corn', start: { x: 190, y: 270 }, heading: 0, length: 144, target: 400, par: 55,
     prey: [{ kind: 'mouse', count: 4 }, { kind: 'rat', count: 1 }],
     enemies: [{ kind: 'crow', count: 2, from: 4 }],
     lives: 1,
