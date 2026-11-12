@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { creditAt } from '../dev/promo/credit';
 import { boilAt } from '../dev/promo/sprites';
 import {
-  backOff, BACKED_AT, BIT_AT, captionAt, clock2h, clock45, cobraLabel, crawlOut, CREDIT, CTA, CTA_AT, CTA_END, ctaAt, CUT, EATS_AT, FACED_AT, HEAD_AT, headInside,
+  backOff, BACKED_AT, BIT_AT, captionAt, cockAt, jawsOpen, clock2h, clock45, cobraLabel, crawlOut, CREDIT, CTA, CTA_AT, CTA_END, ctaAt, CUT, EATS_AT, FACED_AT, HEAD_AT, headInside,
   HOOK_DEPTH, HOOK_LINES, hookAlpha, hookClock, IRIS_AT, irisAt, LAST_END, latinName, LINE_WORDS, LINES, LOOP_S, MINUTES_END, monitorIn, monitorLabel,
   MOVING_END, placeLabel, pythonLabel, rear, sceneAt, snakeEater, SNAKE_EATER_AT, SOUNDS, stateAt, stir, strikeAt, swallowPose, TEXT, TWO_AT, VOICE_LIFT, wrap,
 } from '../dev/promo/cobra/story';
@@ -67,6 +67,10 @@ describe('promo short: the king cobra that ate a python (narrated, InkSnake)', (
   it('tells it in order: the bite on "bit", the python out, the wait, the monitor, the face-off, the swallow', () => {
     expect(strikeAt(BIT_AT)).toBeGreaterThan(0.9);
     expect(strikeAt(BIT_AT - 0.3)).toBe(0);
+    expect(cockAt(BIT_AT - 0.2)).toBe(1);
+    expect(cockAt(BIT_AT)).toBe(0);
+    expect(jawsOpen(BIT_AT - 0.05)).toBe(true);
+    expect(jawsOpen(BIT_AT + 0.3)).toBe(false);
     expect(crawlOut(BIT_AT)).toBe(0);
     expect(crawlOut(TWO_AT)).toBe(1);
     expect(stir(TWO_AT)).toBe(1);

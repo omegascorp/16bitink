@@ -24,41 +24,49 @@ import { clock45, headInside, swallowPose } from './story';
  * of the mouth to the left; the cobra's own body loops across the mud in
  * front. As the swallow goes on (depth) the python slides in along itself.
  */
-const FOCUS: Pt = { x: 540, y: 1000 };
+const FOCUS: Pt = { x: 600, y: 980 };
+/** Pushed in on the head, now the jaws are stretched no more than the python needs. */
+const FRAMING = 1.18;
 
-const SNOUT: Pt = pt(296, 770);
-const CHIN: Pt = pt(316, 1190);
-const CORNER: Pt = pt(652, 994);
+/**
+ * The python is a little slimmer than the cobra (PY_W under the coil's
+ * width), and the jaws are stretched round it no more than they need: the
+ * upper lip along the python's back, the lower lip along its belly, the skull
+ * above them its own depth, so the head still reads as a cobra's.
+ */
+const SNOUT: Pt = pt(330, 866);
+const CHIN: Pt = pt(350, 1092);
+const CORNER: Pt = pt(700, 990);
 
-const UPPER_LIP: readonly Pt[] = cub(SNOUT, pt(430, 738), pt(592, 800), CORNER, 40);
-const LOWER_LIP: readonly Pt[] = cub(CHIN, pt(462, 1214), pt(614, 1162), CORNER, 40);
+const UPPER_LIP: readonly Pt[] = cub(SNOUT, pt(450, 852), pt(600, 900), CORNER, 40);
+const LOWER_LIP: readonly Pt[] = cub(CHIN, pt(470, 1104), pt(610, 1072), CORNER, 40);
 
 /** The head's top, from the snout's blunt front over the crown (a low rise over the eye) on into the swollen neck. */
 const HEAD_TOP: readonly Pt[] = [
-  ...cub(pt(290, 778), pt(268, 742), pt(282, 690), pt(336, 672), 14),
-  ...cub(pt(336, 672), pt(400, 652), pt(470, 632), pt(560, 634), 14).slice(1),
-  ...cub(pt(560, 634), pt(660, 636), pt(790, 652), pt(906, 694), 16).slice(1),
+  ...cub(pt(324, 872), pt(302, 842), pt(312, 792), pt(360, 772), 14),
+  ...cub(pt(360, 772), pt(420, 752), pt(490, 738), pt(580, 738), 14).slice(1),
+  ...cub(pt(580, 738), pt(680, 740), pt(800, 752), pt(920, 772), 16).slice(1),
 ];
-const HEAD_BACK: readonly Pt[] = cub(pt(906, 694), pt(880, 790), pt(790, 910), CORNER, 14);
+const HEAD_BACK: readonly Pt[] = cub(pt(920, 772), pt(890, 850), pt(800, 930), CORNER, 14);
 const HEAD: readonly Pt[] = [...HEAD_TOP, ...HEAD_BACK.slice(1), ...[...UPPER_LIP].reverse().slice(1)];
-const EYE: Pt = pt(478, 702);
+const EYE: Pt = pt(505, 792);
 
 /** The lower jaw and throat: from the chin back along the lower lip to the mouth's corner, then down the stretched throat to the neck's underside and forward under the python to the chin. */
 function lowerJaw(): Pt[] {
-  const throat = cub(CORNER, pt(700, 1070), pt(760, 1170), pt(800, 1232), 12);
-  const under = cub(pt(800, 1232), pt(640, 1250), pt(460, 1252), pt(CHIN.x + 6, CHIN.y + 34), 16);
-  const tip = cub(pt(CHIN.x + 6, CHIN.y + 34), pt(CHIN.x - 8, CHIN.y + 24), pt(CHIN.x - 8, CHIN.y + 6), CHIN, 6);
+  const throat = cub(CORNER, pt(740, 1050), pt(790, 1110), pt(820, 1150), 12);
+  const under = cub(pt(820, 1150), pt(660, 1160), pt(480, 1152), pt(CHIN.x + 6, CHIN.y + 30), 16);
+  const tip = cub(pt(CHIN.x + 6, CHIN.y + 30), pt(CHIN.x - 8, CHIN.y + 22), pt(CHIN.x - 8, CHIN.y + 6), CHIN, 6);
   return [...LOWER_LIP, ...throat.slice(1), ...under.slice(1), ...tip.slice(1, -1)];
 }
 const LOWER_JAW = lowerJaw();
 
 // ---------------------------------------------------------------- the cobra's neck and coil
 
-const NECK = spineOf([pt(540, 966), pt(720, 960), pt(900, 966), pt(1080, 984), pt(1260, 1000), pt(1460, 1010)], 2);
+const NECK = spineOf([pt(560, 962), pt(720, 958), pt(900, 962), pt(1080, 975), pt(1260, 990), pt(1460, 1000)], 2);
 const NS = lengths(NECK);
-/** The neck's depth from its front (px along): the python inside, then narrowing off to the right. */
-const DEPTH: readonly (readonly [number, number])[] = [[0, 520], [160, 548], [340, 540], [480, 480], [620, 380], [760, 292], [900, 244], [4000, 228]];
-const BASE = 228;
+/** The neck's depth from its front (px along): the python inside, a modest swell, then the cobra's own width off to the right. */
+const DEPTH: readonly (readonly [number, number])[] = [[0, 390], [160, 380], [340, 335], [480, 305], [620, 285], [760, 268], [900, 255], [4000, 250]];
+const BASE = 250;
 
 function depthAt(s: number): number {
   for (let i = 1; i < DEPTH.length; i++) {
@@ -73,14 +81,14 @@ const neck = (gulp: number): Lay => ({ spine: NECK, widths: NS.map((s) => depthA
 
 /** The cobra's body further back, looping across the mud in front from off the right edge, its tail off the left. */
 const COIL_SPINE = spineOf([pt(1320, 1470), pt(1080, 1590), pt(760, 1640), pt(420, 1626), pt(100, 1590), pt(-300, 1550)], 4);
-const COIL: Lay = { spine: COIL_SPINE, widths: COIL_SPINE.map(() => 184), base: 184, headRight: true };
+const COIL: Lay = { spine: COIL_SPINE, widths: COIL_SPINE.map(() => BASE), base: BASE, headRight: true };
 
 // ---------------------------------------------------------------- the python
 
 /** The python's free half: out of the mouth and away to the left, drooping to the mud. */
-const PY_SPINE = spineOf([pt(600, 980), pt(420, 982), pt(240, 1000), pt(60, 1040), pt(-160, 1100), pt(-420, 1170)], 2);
+const PY_SPINE = spineOf([pt(740, 978), pt(600, 980), pt(420, 982), pt(240, 1000), pt(60, 1040), pt(-160, 1100), pt(-420, 1170)], 2);
 const PY_S = lengths(PY_SPINE);
-const PY_W = 372;
+const PY_W = 220;
 /** The python's whole length, screen px (from its head inside the cobra to its tail's tip). */
 export const PY_LEN = 2600;
 
@@ -134,14 +142,14 @@ function stretchedSkin(ctx: CanvasRenderingContext2D, lay: Lay): void {
   path(ctx, outline(lay));
   ctx.clip();
   const fade = ctx.createLinearGradient(600, 0, 1080, 0);
-  fade.addColorStop(0, rgba(COBRA.skin, 0.46));
-  fade.addColorStop(0.55, rgba(COBRA.skin, 0.22));
+  fade.addColorStop(0, rgba(COBRA.skin, 0.2));
+  fade.addColorStop(0.55, rgba(COBRA.skin, 0.08));
   fade.addColorStop(1, rgba(COBRA.skin, 0));
   ctx.strokeStyle = fade;
   ctx.lineCap = 'butt';
   const step = 34;
   for (const dir of [0.62, -0.62]) {
-    ctx.lineWidth = 7;
+    ctx.lineWidth = 4;
     ctx.beginPath();
     for (let k = -40; k < 70; k++) {
       const x0 = 300 + k * step;
@@ -156,7 +164,7 @@ function stretchedSkin(ctx: CanvasRenderingContext2D, lay: Lay): void {
   ctx.fillStyle = 'rgba(138,116,72,0.5)';
   ctx.fillRect(400, 600, 1100, 700);
   ctx.restore();
-  const round = ctx.createLinearGradient(0, 700, 0, 1240);
+  const round = ctx.createLinearGradient(0, 770, 0, 1160);
   round.addColorStop(0, 'rgba(20,12,8,0.3)');
   round.addColorStop(0.16, 'rgba(255,214,150,0.14)');
   round.addColorStop(0.45, 'rgba(255,240,210,0)');
@@ -173,10 +181,9 @@ function mouthEdge(ctx: CanvasRenderingContext2D): void {
   ctx.save();
   path(ctx, [...lips, pt(CHIN.x - 240, CHIN.y), pt(SNOUT.x - 240, SNOUT.y)]);
   ctx.clip();
-  strokeLine(ctx, lips, 80, '#050406', 0.34);
-  strokeLine(ctx, lips, 36, '#050406', 0.38);
-  strokeLine(ctx, lips.map((p) => pt(p.x - 8, p.y)), 13, '#d9aaa0', 0.95);
-  strokeLine(ctx, lips.map((p) => pt(p.x - 11, p.y)), 3, '#f4d2c6', 0.7);
+  strokeLine(ctx, lips, 46, '#050406', 0.3);
+  strokeLine(ctx, lips, 20, '#050406', 0.36);
+  strokeLine(ctx, lips.map((p) => pt(p.x - 5, p.y)), 6, '#c99a92', 0.8);
   ctx.restore();
 }
 
@@ -241,7 +248,7 @@ function drawEye(ctx: CanvasRenderingContext2D, c: Pt, r: number): void {
 
 function drawHead(ctx: CanvasRenderingContext2D, boil: number): void {
   const pen = new Pen(ctx, 9100 + boil, 0.7);
-  const g = ctx.createLinearGradient(0, 630, 0, 1000);
+  const g = ctx.createLinearGradient(0, 735, 0, 990);
   g.addColorStop(0, '#5f5630');
   g.addColorStop(0.25, '#6f633a');
   g.addColorStop(0.62, '#574c2a');
@@ -250,44 +257,44 @@ function drawHead(ctx: CanvasRenderingContext2D, boil: number): void {
   ctx.save();
   path(ctx, HEAD);
   ctx.clip();
-  glaze(ctx, 560, 650, 300, 22, -0.02, '#d9b77a', 0.32);
-  glaze(ctx, 780, 760, 160, 120, 0, COBRA.deep, 0.45);
-  glaze(ctx, 360, 720, 90, 50, 0, '#8d8660', 0.4);
+  glaze(ctx, 580, 750, 280, 18, -0.02, '#d9b77a', 0.32);
+  glaze(ctx, 790, 830, 140, 80, 0, COBRA.deep, 0.45);
+  glaze(ctx, 380, 806, 80, 40, 0, '#8d8660', 0.4);
   // The pale lip band along the upper lip, its scales edged black behind.
   const n = normals(UPPER_LIP);
   const band = UPPER_LIP.map((p, i) => {
     const s = n[i]!.y < 0 ? 1 : -1;
-    const w = 44 - 16 * (i / (UPPER_LIP.length - 1));
+    const w = 30 - 12 * (i / (UPPER_LIP.length - 1));
     return pt(p.x + n[i]!.x * w * s, p.y + n[i]!.y * w * s);
   });
-  const lipWash = ctx.createLinearGradient(0, 740, 0, 1000);
+  const lipWash = ctx.createLinearGradient(0, 840, 0, 990);
   lipWash.addColorStop(0, '#e4d396');
   lipWash.addColorStop(1, '#c4ae6c');
   fill(ctx, [...UPPER_LIP, ...band.reverse()], lipWash, 0.95);
-  glaze(ctx, 430, 760, 120, 10, 0.1, '#ffffff', 0.25);
-  for (let i = 0; i < 260; i++) {
-    const x = 320 + pen.rng() * 620;
-    const y = 640 + pen.rng() * 260;
+  glaze(ctx, 440, 850, 110, 7, 0.05, '#ffffff', 0.25);
+  for (let i = 0; i < 200; i++) {
+    const x = 330 + pen.rng() * 600;
+    const y = 740 + pen.rng() * 170;
     pen.hair([pt(x, y), pt(x + 8, y + 3), pt(x + 6, y + 10)], 1.2, COBRA.line, 0.16);
   }
   ctx.restore();
-  lipScales(ctx, UPPER_LIP, 2, 36, 44, 1);
+  lipScales(ctx, UPPER_LIP, 2, 36, 30, 1);
   // The crown's big shields seen from the side: the prefrontal, supraocular, parietal and the big occipitals behind.
-  for (const [x, y, d] of [[352, 676, 26], [410, 656, 30], [548, 636, 40], [668, 636, 46], [800, 642, 52]] as const) {
+  for (const [x, y, d] of [[372, 776, 20], [425, 758, 22], [560, 742, 30], [680, 742, 34], [810, 752, 38]] as const) {
     pen.stroke(cub(pt(x, y + 3), pt(x + 6, y + d * 0.5), pt(x + 18, y + d * 0.8), pt(x + 28, y + d), 8), 2.2, COBRA.line, 0.6, false);
   }
-  pen.stroke(cub(pt(430, 664), pt(462, 650), pt(510, 652), pt(536, 668), 10), 3, COBRA.line, 0.7, false);
+  pen.stroke(cub(pt(462, 768), pt(488, 752), pt(528, 754), pt(550, 770), 10), 3, COBRA.line, 0.7, false);
   // The scales behind the eye.
-  for (const pts of [[pt(530, 690), pt(518, 724), pt(526, 752)], [pt(600, 668), pt(586, 720), pt(596, 772)], [pt(536, 728), pt(600, 736), pt(660, 724)]]) {
+  for (const pts of [[pt(548, 780), pt(538, 808), pt(544, 832)], [pt(612, 764), pt(600, 806), pt(608, 850)], [pt(552, 810), pt(610, 816), pt(664, 806)]]) {
     pen.stroke(pts, 2, COBRA.line, 0.5, false);
   }
   ctx.save();
   ctx.fillStyle = COBRA.line;
   ctx.beginPath();
-  ctx.ellipse(318, 724, 10, 8, -0.4, 0, Math.PI * 2);
+  ctx.ellipse(338, 810, 9, 7, -0.4, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
-  drawEye(ctx, EYE, 31);
+  drawEye(ctx, EYE, 27);
   // The low sun behind catching the crown.
   ctx.save();
   path(ctx, HEAD);
@@ -302,7 +309,7 @@ function drawHead(ctx: CanvasRenderingContext2D, boil: number): void {
 
 function drawLowerJaw(ctx: CanvasRenderingContext2D, boil: number): void {
   const pen = new Pen(ctx, 9200 + boil, 0.7);
-  const g = ctx.createLinearGradient(0, 1000, 0, 1260);
+  const g = ctx.createLinearGradient(0, 1060, 0, 1160);
   g.addColorStop(0, '#d9c78a');
   g.addColorStop(0.5, '#e8d9a2');
   g.addColorStop(1, '#a08c55');
@@ -310,17 +317,17 @@ function drawLowerJaw(ctx: CanvasRenderingContext2D, boil: number): void {
   ctx.save();
   path(ctx, LOWER_JAW);
   ctx.clip();
-  glaze(ctx, 520, 1250, 260, 18, 0.02, mix('#5e5833', '#000000', 0.2), 0.5);
-  glaze(ctx, 700, 1120, 90, 110, 0, '#4a4024', 0.4);
-  glaze(ctx, 430, 1205, 120, 8, 0.05, '#fff6d8', 0.35);
+  glaze(ctx, 540, 1152, 240, 12, 0.02, mix('#5e5833', '#000000', 0.2), 0.5);
+  glaze(ctx, 730, 1080, 60, 60, 0, '#4a4024', 0.4);
+  glaze(ctx, 440, 1110, 110, 6, 0.03, '#fff6d8', 0.35);
   // The throat's skin stretched between its scales, and a few dark mottles.
   for (let i = 0; i < 9; i++) {
     const x = 520 + i * 34;
-    pen.hair(cub(pt(x, 1236), pt(x + 8, 1180), pt(x + 18, 1120), pt(x + 30, 1060), 6), 2, '#8a7848', 0.45);
+    pen.hair(cub(pt(x, 1150), pt(x + 6, 1128), pt(x + 12, 1104), pt(x + 20, 1082), 6), 2, '#8a7848', 0.45);
   }
-  for (const [x, y] of [[560, 1210], [640, 1160], [700, 1210], [610, 1236]] as const) glaze(ctx, x, y, 14, 9, 0, '#3a3420', 0.4);
+  for (const [x, y] of [[560, 1132], [640, 1112], [700, 1136], [610, 1146]] as const) glaze(ctx, x, y, 12, 7, 0, '#3a3420', 0.4);
   ctx.restore();
-  lipScales(ctx, LOWER_LIP, 3, 38, 40, -1);
+  lipScales(ctx, LOWER_LIP, 3, 38, 24, -1);
   pen.stroke([...LOWER_LIP, ...LOWER_JAW.slice(LOWER_LIP.length, LOWER_LIP.length + 4)], 4.5, COBRA.line, 1);
   pen.stroke(LOWER_JAW.slice(LOWER_LIP.length + 12), 4, COBRA.line, 1);
 }
@@ -328,18 +335,18 @@ function drawLowerJaw(ctx: CanvasRenderingContext2D, boil: number): void {
 /** The python's head inside the cobra's neck, dashed, nose first (shown on "head first"). */
 function drawInside(ctx: CanvasRenderingContext2D, show: number): void {
   if (show <= 0) return;
-  const c = pt(820, 972);
-  const k = 4.6;
+  const c = pt(840, 966);
+  const k = 7.2;
   const head = [
     ...cub(pt(-12, -12), pt(10, -12), pt(32, -10), pt(44, -6), 10),
     ...cub(pt(44, -6), pt(51, -3), pt(51.5, 3), pt(44, 6), 6).slice(1),
     ...cub(pt(44, 6), pt(30, 10), pt(10, 12), pt(-12, 12), 10).slice(1),
   ].map((p) => pt(c.x + p.x * k, c.y + p.y * k));
   const half = 12 * k;
-  const body = [[pt(600, c.y - half), pt(c.x - 12 * k, c.y - half)], [pt(600, c.y + half), pt(c.x - 12 * k, c.y + half)]];
+  const body = [[pt(650, c.y - half), pt(c.x - 12 * k, c.y - half)], [pt(650, c.y + half), pt(c.x - 12 * k, c.y + half)]];
   ctx.save();
   ctx.globalAlpha = show;
-  fill(ctx, [pt(600, c.y - half), ...head, pt(600, c.y + half)], 'rgba(240,210,140,0.24)');
+  fill(ctx, [pt(650, c.y - half), ...head, pt(650, c.y + half)], 'rgba(240,210,140,0.24)');
   ctx.setLineDash([22, 14]);
   ctx.lineCap = 'round';
   for (const [w, colour] of [[14, 'rgba(11,26,42,0.7)'], [6, '#fff3d0']] as const) {
@@ -356,7 +363,7 @@ function drawInside(ctx: CanvasRenderingContext2D, show: number): void {
   ctx.setLineDash([]);
   ctx.fillStyle = '#fff3d0';
   ctx.beginPath();
-  ctx.arc(c.x + 37 * k, c.y - 4.6 * k, 10, 0, Math.PI * 2);
+  ctx.arc(c.x + 37 * k, c.y - 4.6 * k, 9, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }
@@ -373,22 +380,22 @@ function drawHeadLayer(ctx: CanvasRenderingContext2D, boil: number, nod: number)
   drawLowerJaw(l, boil);
   l.save();
   l.globalCompositeOperation = 'destination-out';
-  const j = l.createLinearGradient(640, 0, 790, 0);
+  const j = l.createLinearGradient(700, 0, 830, 0);
   j.addColorStop(0, 'rgba(0,0,0,0)');
   j.addColorStop(1, 'rgba(0,0,0,1)');
   l.fillStyle = j;
-  l.fillRect(600, 1000, 400, 300);
+  l.fillRect(660, 990, 400, 260);
   l.restore();
   l.translate(CORNER.x, CORNER.y);
   l.rotate(-nod);
   l.translate(-CORNER.x, -CORNER.y);
   drawHead(l, boil);
   l.globalCompositeOperation = 'destination-out';
-  const g = l.createLinearGradient(740, 0, 912, 0);
+  const g = l.createLinearGradient(800, 0, 926, 0);
   g.addColorStop(0, 'rgba(0,0,0,0)');
   g.addColorStop(1, 'rgba(0,0,0,1)');
   l.fillStyle = g;
-  l.fillRect(700, 560, 400, 480);
+  l.fillRect(760, 650, 400, 420);
   l.globalCompositeOperation = 'source-over';
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -415,7 +422,7 @@ export function drawSwallow(ctx: CanvasRenderingContext2D, cast: Cast, t: number
   const h = swallowPose(t);
   ctx.save();
   ctx.translate(FOCUS.x, FOCUS.y);
-  ctx.scale(h.zoom, h.zoom);
+  ctx.scale(h.zoom * FRAMING, h.zoom * FRAMING);
   ctx.translate(-FOCUS.x, -FOCUS.y);
   ctx.drawImage(cast.dusk, -100 - 20 * h.depth, -100);
   drawLaid(ctx, cast.cobra, boil, COIL, COBRA.line, 0.8);

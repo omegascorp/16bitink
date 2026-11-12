@@ -150,6 +150,16 @@ export const strikeAt = (t: number): number => {
   const u = wrap(t);
   return pulse(u, BIT_AT - 0.12, 0.12, 0.7);
 };
+/** The cobra drawing its head up just before the strike (0 .. 1), dropping out as the strike starts. */
+export const cockAt = (t: number): number => {
+  const u = wrap(t);
+  return u < BIT_AT - 0.12 ? ramp(u, BIT_AT - 0.55, BIT_AT - 0.2) : clamp01(1 - (u - BIT_AT + 0.12) / 0.1);
+};
+/** The jaws open from the wind-up through the strike, then shut on the python's back. */
+export const jawsOpen = (t: number): boolean => {
+  const u = wrap(t);
+  return u >= BIT_AT - 0.3 && u < BIT_AT + 0.1;
+};
 /** The python crawling out onto the mud after the bite (0 in the water .. 1 lying on the flat). */
 export const crawlOut = (t: number): number => ramp(wrap(t), PYTHON_AT, WAITED_AT + 0.2);
 /** The cobra drawing off after the bite (0 by the python .. 1 off to the left, waiting). */
@@ -312,7 +322,7 @@ export function stateAt(t: number): Readonly<Record<string, number>> {
   return {
     iris: irisAt(t), hookClock: hookClock(t), depth: s.depth, gulp: s.gulp, zoom: s.zoom, nod: s.nod, dusk: s.dusk,
     hook: hookAlpha(t), cta: ctaAt(t), latin: latinName(t), eater: snakeEater(t), tongue: rest * tongueAt(t),
-    strike: flat * strikeAt(t), crawl: flat * crawlOut(t), off: flat * drawOff(t), stir: flat * stir(t), late: flat * lateAt(t),
+    strike: flat * strikeAt(t), cock: flat * cockAt(t), crawl: flat * crawlOut(t), off: flat * drawOff(t), stir: flat * stir(t), late: flat * lateAt(t),
     monitor: flat * monitorIn(t), clock: clock2h(t).show, rear: face * rear(t), back: face * backOff(t),
     inside: headInside(t), clock45: clock45(t).show,
   };

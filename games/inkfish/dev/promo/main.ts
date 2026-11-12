@@ -138,6 +138,9 @@ import { PAPER_ON_DARK, withCredit } from './credit';
  * gulpgrouper (gameplay: the viperfish swallows a whole goliath grouper).
  * gulpcuda (gameplay: the viperfish swallows a whole barracuda).
  * beetle (a water beetle swallowed by a frog walks out the back door, Sugiura 2020).
+ * gulpmako (gameplay: the viperfish swallows a whole mako shark).
+ * gulpmoray (gameplay: the viperfish swallows a whole moray eel).
+ * spermsquid (a sperm whale swallows a giant squid whole).
  * They're loaded lazily (import() on demand).
  * Plays live; ?t=4.2 freezes one moment. For the chain, ?captions adds the
  * ad text, ?hook=some+words a viral-style hook line instead, and ?debug
@@ -579,6 +582,21 @@ const SHORTS: Readonly<Record<string, () => Promise<Short>>> = {
     await loadCaptionFont();
     const { createBeetle } = await import('./beetle/render');
     return withCredit(createBeetle(ctx), ctx);
+  },
+  gulpmako: async () => {
+    await loadCaptionFont();
+    const { createGulpMako } = await import('./gulpmako/render');
+    return createGulpMako(ctx);
+  },
+  gulpmoray: async () => {
+    await loadCaptionFont();
+    const { createGulpMoray } = await import('./gulpmoray/render');
+    return createGulpMoray(ctx);
+  },
+  spermsquid: async () => {
+    await loadCaptionFont();
+    const { createSpermSquid } = await import('./spermsquid/render');
+    return withCredit(createSpermSquid(ctx), ctx);
   },
   orcaflip: async () => {
     await loadCaptionFont();

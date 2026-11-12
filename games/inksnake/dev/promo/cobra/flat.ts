@@ -8,7 +8,8 @@ import { drawHeadOn, drawLaid, type Lay, outline, strokeLine } from './lay';
 import { drawBite, drawClock, drawLength, drawTag } from './marks';
 import { drawMonitor } from './monitor';
 import {
-  BIT_AT, clock2h, THEN_AT, TWO_AT, MONITOR_AT, UP_END, cobraLabel, crawlOut, CUT, drawOff, lateAt, monitorIn, monitorLabel, placeLabel, pythonLabel, stir, strikeAt, WAITED_AT, wrap,
+  BIT_AT, clock2h, cockAt, THEN_AT, TWO_AT, MONITOR_AT, UP_END, cobraLabel, crawlOut, CUT, drawOff, jawsOpen, lateAt, monitorIn, monitorLabel, placeLabel, pythonLabel, stir, strikeAt,
+  WAITED_AT, wrap,
 } from './story';
 
 /**
@@ -141,20 +142,26 @@ export function drawFlat(ctx: CanvasRenderingContext2D, cast: Cast, t: number, b
     ctx.restore();
   }
   const water = late > 0.5 ? '#cdbf98' : '#a9c2c0';
-  // The cobra in the water, striking on "bit", then drawn off with its head up, waiting.
+  // The cobra lies beyond the python, so it goes down first: the python's body hides its chin, and in the
+  // bite its dropped jaw, with the upper jaw over the python's back. It draws its head up, strikes with the
+  // jaws open on "bit", shuts them on the python, then draws off with its head up, waiting.
   const k = strikeAt(t);
-  const co = layAlong(CO_PATH, cobraHeadAt(t), CO_LEN, CO_W, { x: 30 * k, y: 62 * k }, (s) => 7 * Math.sin(s * 0.018 - u * 2.2));
+  const cock = cockAt(t);
+  const co = layAlong(CO_PATH, cobraHeadAt(t), CO_LEN, CO_W, { x: 34 * k - 10 * cock, y: 10 * k - 40 * cock }, (s) => 7 * Math.sin(s * 0.018 - u * 2.2));
   drawLaid(ctx, cast.cobra, boil, co, COBRA.line, 0.3);
   inWater(ctx, co, water);
+  const lift = 0.4 * ramp(u, BIT_AT + 0.6, WAITED_AT);
+  drawHeadOn(ctx, jawsOpen(t) ? cast.cobraHead.strike : cast.cobraHead.shut, boil, co, lift * (1 - k) + 0.3 * cock - 0.22 * k);
   // The python, bitten, crawling out; its wriggle dying away over the wait.
   const st = stir(t);
   const py = layAlong(PY_PATH, pythonHeadAt(t), PY_LEN, PY_W, { x: 0, y: 0 }, (s) => (10 * st + 2) * Math.sin(s * 0.03 - u * 7) * Math.min(1, s / 120));
   drawLaid(ctx, cast.python, boil, py, RETIC.line, 0.5);
   inWater(ctx, py, water);
   drawHeadOn(ctx, cast.pythonHead, boil, py, 0.05 * st);
-  const lift = 0.4 * ramp(u, BIT_AT + 0.6, WAITED_AT);
-  drawHeadOn(ctx, cast.cobraHead.shut, boil, co, lift * (1 - k) - 0.35 * k);
-  drawBite(ctx, { x: co.spine[0]!.x + 160, y: co.spine[0]!.y + 50 }, u > BIT_AT - 0.05 && u < BIT_AT + 0.45 ? 1 - (u - BIT_AT + 0.05) / 0.5 : 0);
+  // The burst where the fangs went in: on the python's back under the cobra's snout.
+  const snout = co.spine[0]!;
+  const fade = u > BIT_AT - 0.05 && u < BIT_AT + 0.45 ? 1 - (u - BIT_AT + 0.05) / 0.5 : 0;
+  drawBite(ctx, { x: snout.x + 160, y: snout.y + 30 }, fade, Math.PI * 0.28, 0.6);
   // The monitor walking in over the mud from the right, and stopping by the python.
   const m = monitorIn(t);
   if (m > 0) {

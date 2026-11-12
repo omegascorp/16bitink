@@ -80,8 +80,8 @@ export function drawClock(ctx: CanvasRenderingContext2D, c: Pt, r: number, turns
   drawTextLine(ctx, label, c.x, c.y + r + 70, 72, 700, Math.min(1, show * 1.4), PAPER_ON_DARK);
 }
 
-/** The bite: a burst of short ink strokes round where the fangs went in. */
-export function drawBite(ctx: CanvasRenderingContext2D, c: Pt, k: number): void {
+/** The bite: a burst of short ink strokes round where the fangs went in, fanned over the top and turned by `spin`. */
+export function drawBite(ctx: CanvasRenderingContext2D, c: Pt, k: number, spin = 0, size = 1): void {
   if (k <= 0) return;
   ctx.save();
   ctx.lineCap = 'round';
@@ -90,9 +90,9 @@ export function drawBite(ctx: CanvasRenderingContext2D, c: Pt, k: number): void 
     ctx.strokeStyle = colour;
     ctx.lineWidth = w;
     for (let i = 0; i < 7; i++) {
-      const a = -Math.PI * 0.95 + (i / 6) * Math.PI * 0.9;
-      const r0 = 60 + 20 * (1 - k);
-      const r1 = r0 + 46 * k;
+      const a = -Math.PI * 0.95 + (i / 6) * Math.PI * 0.9 + spin;
+      const r0 = (60 + 20 * (1 - k)) * size;
+      const r1 = r0 + 46 * k * size;
       ctx.beginPath();
       ctx.moveTo(c.x + Math.cos(a) * r0, c.y + Math.sin(a) * r0);
       ctx.lineTo(c.x + Math.cos(a) * r1, c.y + Math.sin(a) * r1);
