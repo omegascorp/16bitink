@@ -19,7 +19,7 @@ const SETS = {
   seamonsters: { ids: ['legend', 'lineup', 'eye'], dir: 'promo/longform', prefix: '4 - thumb-', badge: '4:37' },
   bitecomp: { ids: ['split', 'rex', 'twist'], dir: 'promo/longform', prefix: '6 - thumb-', badge: '2:48' },
   swallowed: { ids: ['split', 'balloon', 'cannibal'], dir: 'promo/longform', prefix: '7 - thumb-', badge: '2:19' },
-  survival: { ids: ['crowd', 'shock', 'ends', 'final'], dir: 'promo/longform', prefix: '8 - thumb-', badge: '5:30' },
+  survival: { ids: ['crowd', 'shock', 'ends', 'final', 'roster', 'trophy', 'podium'], dir: 'promo/longform', prefix: '8 - thumb-', badge: '5:30' },
 };
 const setName = process.argv[2] ?? 'level1';
 const SET = SETS[setName];
