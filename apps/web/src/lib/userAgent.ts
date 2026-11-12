@@ -30,7 +30,9 @@ const BROWSERS: readonly (readonly [RegExp, string])[] = [
   [/SamsungBrowser\//, 'Samsung Internet'],
   [/YaBrowser\//, 'Yandex'],
   [/Firefox\/|FxiOS\//, 'Firefox'],
-  [/CriOS\/|Chrome\//, 'Chrome'],
+  // Chrome on iOS is WebKit underneath: it behaves like Safari, not like Chrome elsewhere.
+  [/CriOS\//, 'Chrome iOS'],
+  [/Chrome\//, 'Chrome'],
   [/Safari\//, 'Safari'],
 ];
 

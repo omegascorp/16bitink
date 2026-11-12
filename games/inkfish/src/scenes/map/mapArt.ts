@@ -72,7 +72,7 @@ export function bakeMapBackground(scene: Phaser.Scene, layout: MapLayout): Phase
     ctx.globalAlpha = 1;
     const key = `map-bg-${i}`;
     if (scene.textures.exists(key)) scene.textures.remove(key);
-    scene.textures.addCanvas(key, canvas);
+    scene.textures.addImage(key, canvas as unknown as HTMLImageElement);
     images.push(scene.add.image(x0, 0, key).setOrigin(0).setScale(1 / BG_RES));
   }
   return images;

@@ -8,6 +8,23 @@ const isGame = (slug: string): boolean => slug === 'inkfish' || slug === 'inkcra
 const batch = (events: unknown[], extra: Record<string, unknown> = {}): string =>
   JSON.stringify({ visitor: 'visitor-0001', session: 'session-0001', sentAt: 1_000_000, events, ...extra });
 
+describe('parseBatch error stacks and hidden time', () => {
+  it('keeps a capped stack and hiddenMs, and drops an over-long stack', () => {
+    const ok = parseBatch(batch([
+      { type: 'load_fail', at: 1, game: 'inkfish', ms: 900, stage: 'mount', error: 'x', stack: 'at f (a.js:1:2)', hiddenMs: 4000 },
+      { type: 'js_error', at: 2, path: '/', error: 'y', stack: 'at g' },
+      { type: 'game_ready', at: 3, game: 'inkfish', ms: 100, stage: 'ready', hiddenMs: 5 },
+      { type: 'js_error', at: 4, path: '/', error: 'z', stack: 'x'.repeat(601) },
+    ]));
+    expect(ok?.events).toHaveLength(3);
+    expect(ok?.events[0]).toMatchObject({ stack: 'at f (a.js:1:2)', hiddenMs: 4000 });
+  });
+
+  it('still reads old events without them', () => {
+    expect(parseBatch(batch([{ type: 'game_ready', at: 1, game: 'inkfish', ms: 100, stage: 'ready' }]))?.events).toHaveLength(1);
+  });
+});
+
 describe('parseBatch', () => {
   it('accepts every event type', () => {
     const parsed = parseBatch(batch([

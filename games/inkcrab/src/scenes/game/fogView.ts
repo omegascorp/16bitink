@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { addPainted } from '../../art/textures';
 import { BLUE_HEX } from '../../art/palette';
 import { bankCentres, clearRadius, FOG, fogAt, type FogSpec } from '../../logic/fog';
 import { createRng } from '../../logic/rng';
@@ -75,7 +76,7 @@ export class FogView {
     g.addColorStop(1, `${MIST}00`);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, PUFF_PX, PUFF_PX);
-    this.scene.textures.addCanvas(this.key, canvas);
+    addPainted(this.scene.textures, this.key, canvas);
   }
 
   /** `time` in seconds (the beach's clock); `crab` the middle of the crab (world px) and its size. */

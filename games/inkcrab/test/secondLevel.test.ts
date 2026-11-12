@@ -48,6 +48,35 @@ describe('the second level', () => {
     for (const f of finds) expect(surfaceRow(terrain, Math.floor((f.x + f.w / 2) / 16))).toBe(15);
   });
 
+  it('lays its cowries on the way to the shelf, the first one dig down just past the start', () => {
+    const { items } = buildLevel(def);
+    const cols = items.filter((i) => i.kind.type === 'find').map((i) => Math.floor((i.x + i.w / 2) / 16)).sort((a, b) => a - b);
+    expect(cols[0]! - def.startCol).toBeLessThanOrEqual(6);
+    expect(cols.at(-1)).toBeLessThan(32);
+    expect(def.finds?.[0]?.[1]).toBe(1);
+  });
+
+  it('gives up its first cowry to a short dig down from right above it', () => {
+    const b = new Beach(buildLevel(def));
+    const T = b.tileSize;
+    const col = def.finds![0]![0];
+    b.crab = { ...b.crab, body: { ...b.crab.body, x: (col + 0.5) * T - b.crab.body.w / 2 } };
+    let found = 0;
+    for (let i = 0; i < 3 * 60 && !found; i++) {
+      for (const e of b.step({ ...IDLE, aimY: 1, work: true }, 1 / 60)) if (e.type === 'collected') found = e.count;
+    }
+    expect(found).toBe(1);
+  });
+
+  it('points the dig lesson at the first cowry once the crab has eaten', () => {
+    const b = new Beach(buildLevel(def));
+    const coach = new Coach(def.teach ?? []);
+    coach.observe(b, [{ type: 'ate', id: 0, points: 1, wasted: 0, x: 0, y: 0 }]);
+    const h = coach.hint(b, 'touch');
+    expect(h?.lesson).toBe('dig');
+    expect(Math.floor(h!.target!.x / 16)).toBe(def.finds![0]![0]);
+  });
+
   it('points to the nerite up on the shelf once the snail is full', () => {
     const b = new Beach(buildLevel(def));
     const coach = new Coach(def.teach ?? []);

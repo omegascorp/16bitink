@@ -15,6 +15,12 @@ const LONG = 134;
 const INKED = 40;
 
 const FIT = new Map<ShellKind, number>();
+/** Draws (and so measures) a kind's first frame when its fit is asked for before it's been baked: set by textures.ts. */
+let measurer: ((kind: ShellKind) => void) | null = null;
+
+export function setShellMeasurer(measure: ((kind: ShellKind) => void) | null): void {
+  measurer = measure;
+}
 
 /** Measures a baked shell drawing (frame px, one texture px each) and records its kind's fit. */
 export function measureShell(kind: ShellKind, canvas: HTMLCanvasElement): void {
@@ -39,8 +45,9 @@ export function measureShell(kind: ShellKind, canvas: HTMLCanvasElement): void {
   FIT.set(kind, fitFor(x1 - x0 + 1, y1 - y0 + 1));
 }
 
-/** How much to scale a kind's drawing so it's drawn to its size (1 until it's been measured). */
+/** How much to scale a kind's drawing so it's drawn to its size (1 until it's been measured; measured now if it can be). */
 export function shellFit(kind: ShellKind): number {
+  if (!FIT.has(kind)) measurer?.(kind);
   return FIT.get(kind) ?? 1;
 }
 

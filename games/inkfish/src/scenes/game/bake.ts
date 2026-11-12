@@ -46,7 +46,7 @@ export function bakeBand(
     const { canvas, ctx } = makeCanvas(CHUNK_W, fit.texH);
     ctx.setTransform(fit.res, 0, 0, fit.res, -x * fit.res, -band.top * fit.res);
     draw(ctx, x, x + chunkWorld);
-    scene.textures.addCanvas(key, canvas);
+    scene.textures.addImage(key, canvas as unknown as HTMLImageElement);
     images.push(scene.add.image(x, band.top, key).setOrigin(0).setScale(1 / fit.res).setDepth(depth));
   }
   // They belong to this level alone: free them (and their GPU memory) when it ends.

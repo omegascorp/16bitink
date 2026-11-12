@@ -1,4 +1,12 @@
 import Phaser from 'phaser';
+import { runInSlices } from '@16bitink/game-sdk';
+import { textureJobs } from '../art/textures';
+import { TILE_SIZE } from '../level/build';
+import { currentPlanet } from '../level/planets';
+import { prospectorLook } from '../logic/gear';
+import { hasTool } from '../logic/tools';
+import { wreckOf } from '../logic/repairs';
+import { landerLookOf } from '../logic/ship';
 import { PAPER } from '../art/palette';
 import { getHost, getProfile, REG } from '../host';
 import { installPaidPlanets } from '../level/planets';
@@ -44,6 +52,25 @@ export class BootScene extends Phaser.Scene {
     };
     // The narrator runs over every scene from now on (NarratorScene).
     this.scene.launch('Narrator');
-    void loadPaidPlanets(this).then(() => this.time.delayedCall(30, start));
+    void loadPaidPlanets(this)
+      .then(() => this.preBake(label))
+      .then(() => this.time.delayedCall(30, start));
+  }
+
+  /** Draws the world's sprites a slice at a time with a moving loading bar, so GameScene finds them baked and the page never freezes. */
+  private async preBake(label: string): Promise<void> {
+    const profile = getProfile(this);
+    const [key] = firstScene(profile);
+    if (key !== 'Game') return;
+    const loading = getHost(this).loading;
+    try {
+      const planet = currentPlanet(profile);
+      const skyH = planet.world.site.surface * TILE_SIZE;
+      const jobs = textureJobs(this, planet.world.id, planet.style, skyH, prospectorLook(profile.gear, hasTool(profile, 'pulse')), landerLookOf(profile.ship), wreckOf(profile));
+      await runInSlices(jobs, { onProgress: (f) => loading?.progress(f * 0.95, label) });
+    } catch (err) {
+      // GameScene bakes whatever is missing itself, so a failure here only costs the smooth bar.
+      console.error('[inkmine] pre-bake failed', err);
+    }
   }
 }

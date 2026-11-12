@@ -19,6 +19,7 @@ import { loadPaidBeaches } from './BootScene';
 import { crispText, DPR, screenZoom, toView, uiCamera, uiScaleFor, viewSize } from './hidpi';
 import { HAND_FONT, inkButton, inkText } from './ui';
 import { GAME_VERSION } from '../version';
+import { prefetchLevel } from './game/levelArt';
 
 const DRAG_THRESHOLD = 8;
 const SOFT_INK = '#4a463e';
@@ -102,6 +103,8 @@ export class MenuScene extends Phaser.Scene {
     this.centerCamera(1);
     this.chart.update(cam.worldView.x, cam.worldView.right, true);
     this.bindInput();
+    // The level the player is most likely to tap next is drawn ahead while the map shows.
+    prefetchLevel(this, current.levelId);
     const relayout = (): void => {
       this.scene.restart();
     };

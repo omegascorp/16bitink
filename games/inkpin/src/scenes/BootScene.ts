@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { getHost, setFullError } from '../host';
 import { installPaidChapters, LEVELS } from '../level';
 import { parseChapters } from '../level/validate';
+import { firstScreen } from './firstScreen';
+import { readProgress } from './progress';
 
 /** The message an owner sees when the full game could not be fetched. */
 export const FULL_GAME_ERROR = 'Could not load the full game. Check your connection and try again.';
@@ -47,7 +49,21 @@ export class BootScene extends Phaser.Scene {
     // The levels are known now: a dev ?level= can be held to what is installed.
     const start = this.registry.get('startLevel') as number | undefined;
     if (start !== undefined) this.registry.set('startLevel', Math.min(start, LEVELS.length - 1));
-    if (host?.loading) this.game.events.once(Phaser.Core.Events.POST_RENDER, () => host.loading?.ready());
-    this.scene.start('menu');
+    // Progress is read from the account's store, so a player new to this device but not to the game gets the map.
+    const first = firstScreen(readProgress(), start !== undefined);
+    if (host?.loading) this.readyOnFirstFrame(first.scene, host.loading);
+    if (first.scene === 'game') {
+      this.registry.set('level', first.level);
+      this.scene.start('game');
+    } else {
+      this.scene.start('menu');
+    }
+  }
+
+  /** Lifts the site's loading screen once scene `key` is created and drawn. */
+  private readyOnFirstFrame(key: string, loading: { ready(): void }): void {
+    this.scene.get(key).events.once(Phaser.Scenes.Events.CREATE, () => {
+      this.game.events.once(Phaser.Core.Events.POST_RENDER, () => loading.ready());
+    });
   }
 }

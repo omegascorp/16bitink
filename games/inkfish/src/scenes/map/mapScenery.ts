@@ -128,7 +128,7 @@ export function mapNight(scene: Phaser.Scene, layout: MapLayout): Phaser.GameObj
   }
   const key = 'map-night';
   if (scene.textures.exists(key)) scene.textures.remove(key);
-  scene.textures.addCanvas(key, canvas);
+  scene.textures.addImage(key, canvas as unknown as HTMLImageElement);
   return scene.add.image(0, top, key).setOrigin(0).setScale(1 / res);
 }
 

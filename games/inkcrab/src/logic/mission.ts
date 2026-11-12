@@ -99,7 +99,11 @@ export function missionNotes(m: Mission): string[] {
   const notes: string[] = [];
   if (m.chain) notes.push('Small hermit crabs follow you. Each move to a bigger shell needs one more of them, grown to fill its shell, to take the one you leave.');
   if (m.finds) notes.push(`${FINDS[m.find].lore} They're buried: look for highlighted sand.`);
-  if (m.marked) notes.push(`They're size ${m.marked.size}: they hunt you until you've grown past them.`);
+  if (m.marked) {
+    notes.push(SPECIES[m.marked.species].hunts
+      ? `They're size ${m.marked.size}: they hunt you until you've grown past them.`
+      : `They're size ${m.marked.size}: grow past them, then walk into them to eat them.`);
+  }
   if (m.giant) notes.push(`The giant is size ${m.giant.size}: it hunts you until you're full grown.`);
   if (m.lives === 1) notes.push('Only one life: one catch ends the level.');
   return notes;

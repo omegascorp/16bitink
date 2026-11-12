@@ -27,6 +27,19 @@ describe('pageLoads', () => {
     });
   });
 
+  it('splits by device too, under `device`, keeping browsers as before', () => {
+    const rows: PageVisitRow[] = [
+      { path: '/', browser: 'Chrome iOS', device: 'mobile', loadMs: 4000, stayMs: 9000 },
+      { path: '/', browser: 'Chrome', device: 'mobile', loadMs: 2000, stayMs: 9000 },
+      { path: '/', browser: 'Chrome', device: 'desktop', loadMs: 500, stayMs: 9000 },
+    ];
+    const [home] = pageLoads(rows, 10, 2);
+    expect(home.browsers.map((b) => b.browser)).toEqual(['Chrome']);
+    expect(home.devices).toEqual([expect.objectContaining({ device: 'mobile', visits: 2, medianLoadSeconds: 2 })]);
+    expect(home.devices[0]).not.toHaveProperty('browser');
+    expect(pageLoads(rows, 10, 1)[0].browsers.map((b) => b.browser).sort()).toEqual(['Chrome', 'Chrome iOS']);
+  });
+
   it('leaves out games nobody tapped', () => {
     expect(gameLoads([{ game: 'inkfish', browser: 'Chrome', tapped: false, ready: false, stalled: false, failed: false, abandoned: false, loadMs: null }], 1)).toEqual([]);
   });

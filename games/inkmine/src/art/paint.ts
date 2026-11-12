@@ -208,18 +208,35 @@ export function glow(ctx: CanvasRenderingContext2D, c: Pt, r: number, color: str
   ctx.restore();
 }
 
-function scratch(w: number, h: number): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
+interface Scratch {
+  readonly canvas: HTMLCanvasElement;
+  readonly ctx: CanvasRenderingContext2D;
+}
+
+/** Reusable scratch canvases for `finishSprite`, by role: making a few per sprite for hundreds of sprites is slow. */
+const pool = new Map<string, Scratch>();
+
+/** A cleared canvas of this size. With a `role`, the same canvas comes back each time (resized, which clears it), so use it before asking for that role again. */
+function scratch(w: number, h: number, role?: string, readback = false): Scratch {
+  const held = role ? pool.get(role) : undefined;
+  if (held) {
+    held.canvas.width = w;
+    held.canvas.height = h;
+    return held;
+  }
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', readback ? { willReadFrequently: true } : undefined);
   if (!ctx) throw new Error('2D canvas is not available');
-  return { canvas, ctx };
+  const made = { canvas, ctx };
+  if (role) pool.set(role, made);
+  return made;
 }
 
 /** The pixels of `src` whose neighbour `by` px towards (dx, dy) is empty: a band along one side of the figure. */
 function edgeBand(src: HTMLCanvasElement, dx: number, dy: number, color: string): HTMLCanvasElement {
-  const { canvas, ctx } = scratch(src.width, src.height);
+  const { canvas, ctx } = scratch(src.width, src.height, 'band');
   ctx.drawImage(src, 0, 0);
   ctx.globalCompositeOperation = 'destination-out';
   ctx.drawImage(src, -dx, -dy);
@@ -235,7 +252,7 @@ const SOLID_TO = 170;
 
 /** The figure's solid pixels in ink, ramped smoothly so the outline stays antialiased. */
 function solidInk(src: HTMLCanvasElement, ink: string): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
-  const out = scratch(src.width, src.height);
+  const out = scratch(src.width, src.height, 'ink', true);
   out.ctx.drawImage(src, 0, 0);
   const img = out.ctx.getImageData(0, 0, src.width, src.height);
   const [r, g, b] = rgbOf(ink);
@@ -270,7 +287,7 @@ export function finishSprite(canvas: HTMLCanvasElement, o: FinishOpts): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   const u = o.unit;
-  const src = scratch(canvas.width, canvas.height);
+  const src = scratch(canvas.width, canvas.height, 'src');
   src.ctx.drawImage(canvas, 0, 0);
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);

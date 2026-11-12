@@ -1,4 +1,5 @@
 import type Phaser from 'phaser';
+import type { SliceJob } from '@16bitink/game-sdk';
 import { ORE_KINDS } from '../logic/ore';
 import { CHARGE_FRAME, drawCharge, drawLineCharge, LINE_FRAME_W } from './chargeArt';
 import { makeDraw } from './kit';
@@ -101,9 +102,33 @@ export function render(w: number, h: number, ox: number, oy: number, res: number
   return canvas;
 }
 
+/** While set, `bake` queues its drawing here instead of drawing it at once (see `collectJobs`). */
+let queue: SliceJob[] | null = null;
+
+/** The drawings `build` would make, as one job each, so a loading screen can run them a slice at a time. Nothing is drawn by this call. */
+export function collectJobs(build: () => void): SliceJob[] {
+  const jobs: SliceJob[] = [];
+  queue = jobs;
+  try {
+    build();
+  } finally {
+    queue = null;
+  }
+  return jobs;
+}
+
+/** The jobs that bake what a world's first scene needs, as `generateTextures` would. */
+export function textureJobs(scene: Phaser.Scene, world: string, style: GroundStyle, skyHeight: number, look: ProspectorLook, landerLook: Look, wreck: Wreck = SOUND): SliceJob[] {
+  return collectJobs(() => generateTextures(scene, world, style, skyHeight, look, landerLook, wreck));
+}
+
 function bake(scene: Phaser.Scene, key: string, w: number, h: number, ox: number, oy: number, res: number, draw: (ctx: CanvasRenderingContext2D) => void, finish?: Finish, after?: (ctx: CanvasRenderingContext2D) => void): void {
+  if (queue) {
+    queue.push(() => bake(scene, key, w, h, ox, oy, res, draw, finish, after));
+    return;
+  }
   if (scene.textures.exists(key)) return;
-  scene.textures.addCanvas(key, render(w, h, ox, oy, res, draw, finish, after));
+  scene.textures.addImage(key, render(w, h, ox, oy, res, draw, finish, after) as unknown as HTMLImageElement);
 }
 
 function light(ctx: CanvasRenderingContext2D, w: number, h: number): void {

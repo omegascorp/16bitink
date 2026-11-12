@@ -241,6 +241,8 @@ export interface ErrorStats {
   /** A few of the OS · browser pairs that hit it. */
   readonly agents: readonly string[];
   readonly last: Date;
+  /** The first frames of the stack, from one of the reports, when any carried one. */
+  readonly stack: string | null;
 }
 
 /** The errors visitors hit, most frequent first; not the ones in-app browsers' own scripts sent before the site dropped them. */
@@ -260,7 +262,7 @@ export async function topErrors(range: Range, limit = 15): Promise<ErrorStats[]>
     {
       $group: {
         _id: { kind: '$meta.event', error: '$error', where: '$where' },
-        count: { $sum: 1 }, sessions: { $addToSet: '$session' }, agents: { $addToSet: '$agent' }, last: { $max: '$ts' },
+        count: { $sum: 1 }, sessions: { $addToSet: '$session' }, agents: { $addToSet: '$agent' }, last: { $max: '$ts' }, stack: { $max: '$stack' },
       },
     },
     { $sort: { count: -1, last: -1 } },
@@ -268,7 +270,7 @@ export async function topErrors(range: Range, limit = 15): Promise<ErrorStats[]>
     {
       $project: {
         _id: 0, kind: '$_id.kind', error: '$_id.error', where: '$_id.where', count: 1,
-        visits: { $size: '$sessions' }, agents: { $slice: ['$agents', 3] }, last: 1,
+        visits: { $size: '$sessions' }, agents: { $slice: ['$agents', 3] }, last: 1, stack: { $ifNull: ['$stack', null] },
       },
     },
   ]);

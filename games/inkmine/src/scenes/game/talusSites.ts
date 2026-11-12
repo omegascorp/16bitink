@@ -43,10 +43,10 @@ export class SearchShipSite {
     const ground = (x: number): number => surfaceAt(site, Math.floor((this.x + x) / T)) * T - this.floor;
     const S = SEARCH_SHIP;
     for (let f = 0; f < BOIL; f++) {
-      if (!scene.textures.exists(TEX.ship(f))) scene.textures.addCanvas(TEX.ship(f), render(S.w, S.h, S.ox, S.oy, ART_RES, (ctx) => drawSearchShip(makeDraw(ctx, 4200 + f, f, 0), ground, style), LANDER_FINISH));
+      if (!scene.textures.exists(TEX.ship(f))) scene.textures.addImage(TEX.ship(f), render(S.w, S.h, S.ox, S.oy, ART_RES, (ctx) => drawSearchShip(makeDraw(ctx, 4200 + f, f, 0), ground, style), LANDER_FINISH) as unknown as HTMLImageElement);
     }
     const H = SEARCH_HATCH;
-    if (!scene.textures.exists(TEX.hatch)) scene.textures.addCanvas(TEX.hatch, render(H.w, H.h, H.ox, H.oy, ART_RES, (ctx) => drawSearchHatch(makeDraw(ctx, 4250, 0, 0)), LANDER_FINISH));
+    if (!scene.textures.exists(TEX.hatch)) scene.textures.addImage(TEX.hatch, render(H.w, H.h, H.ox, H.oy, ART_RES, (ctx) => drawSearchHatch(makeDraw(ctx, 4250, 0, 0)), LANDER_FINISH) as unknown as HTMLImageElement);
     this.ship = scene.add.image(this.x, this.floor, TEX.ship(0)).setOrigin(S.ox / S.w, S.oy / S.h).setScale(1 / ART_RES).setDepth(1.8);
     this.hatch = scene.add.image(this.x, this.floor, TEX.hatch).setOrigin(H.ox / H.w, H.oy / H.h).setScale(1 / ART_RES).setDepth(1.85).setVisible(false);
   }

@@ -1,18 +1,26 @@
 import { runInSlices, type LoadingReporter } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
 import { PAPER } from '../art/palette';
-import { textureJobs } from '../art/textures';
+import { coreKeys } from '../art/texturePlan';
+import { bakeJobs, installTextureGuard } from '../art/textures';
 import { getHost, REG } from '../host';
-import { installPaidBeaches } from '../level/levels';
+import { installPaidBeaches, levelById, loadedLevels } from '../level/levels';
 import { parseBeaches } from '../level/validate';
 import { pullFromAccount } from '../logic/accountSave';
 import { firstScreen, loadProgress } from '../logic/save';
+import { levelArtJobs } from './game/levelArt';
 import { screenScene, viewSize } from './hidpi';
 import { inkText } from './ui';
 
-/** Shares of the site's loading bar: drawing the art, then fetching the full game's beaches, then the map. */
-const DRAWN_AT = 0.9;
-const FETCHED_AT = 0.96;
+/**
+ * Shares of the site's loading bar: drawing the art every screen uses, then
+ * fetching the full game's beaches, then drawing the first screen's own art
+ * (a new player's first level; the map draws its own). The rest of the
+ * game's art is drawn as each level starts (see GameScene).
+ */
+const CORE_AT = 0.3;
+const FETCHED_AT = 0.4;
+const DRAWN_AT = 0.96;
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -40,14 +48,22 @@ export class BootScene extends Phaser.Scene {
 
   private async boot(label: string): Promise<void> {
     const loading = getHost(this).loading;
+    installTextureGuard(this.textures);
     // Drawn a slice at a time, so the loading bar moves and the page never freezes.
-    await runInSlices(textureJobs(this), { onProgress: (f) => loading?.progress(f * DRAWN_AT, label) });
+    await runInSlices(bakeJobs(this.textures, coreKeys()), { onProgress: (f) => loading?.progress(f * CORE_AT, label) });
     this.registry.set(REG.fullError, null);
-    if (getHost(this).unlocked) loading?.progress(DRAWN_AT, 'fetching the full game…');
+    if (getHost(this).unlocked) loading?.progress(CORE_AT, 'fetching the full game…');
     await Promise.all([loadPaidBeaches(this), pullFromAccount(getHost(this))]);
     // Read after the account's progress is pulled in, so a player new to this device but not to the game gets the map.
     const first = firstScreen(loadProgress(getHost(this).storage));
-    loading?.progress(FETCHED_AT, first.scene === 'Game' ? 'raking the beach…' : 'unfolding the map…');
+    if (first.scene === 'Game') {
+      const def = levelById(first.data.levelId ?? '') ?? loadedLevels()[0];
+      const raking = 'raking the beach…';
+      loading?.progress(FETCHED_AT, raking);
+      // The level is drawn before it starts, so the loading screen lifts onto it finished.
+      if (def) await runInSlices(levelArtJobs(this.textures, def), { onProgress: (f) => loading?.progress(FETCHED_AT + f * (DRAWN_AT - FETCHED_AT), raking) });
+    }
+    loading?.progress(DRAWN_AT, first.scene === 'Game' ? 'raking the beach…' : 'unfolding the map…');
     if (loading) readyOnFirstFrame(this, first.scene, loading);
     if (first.scene === 'Game') this.scene.start('Game', first.data);
     else this.scene.start('Menu');

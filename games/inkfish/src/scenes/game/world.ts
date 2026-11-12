@@ -162,7 +162,7 @@ function ensureMarkTexture(scene: Phaser.Scene): void {
   ctx.scale(ART_RES, ART_RES);
   const pts = Array.from({ length: 7 }, (_, k) => [1 + k * MARK.step, MARK.h / 2 + Math.sin(k * 1.4) * MARK.wave] as const);
   strokeLine(ctx, pts, 0.8, INK, 0.16);
-  scene.textures.addCanvas(MARK.key, canvas);
+  scene.textures.addImage(MARK.key, canvas as unknown as HTMLImageElement);
 }
 
 /** A few loose clouds drifting in the open air above the surface. */

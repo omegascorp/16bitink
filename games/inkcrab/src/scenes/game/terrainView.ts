@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { addPainted } from '../../art/textures';
 import { ART_RES, type GroundStyle, PALE_SAND } from '../../art/palette';
 import { CHUNK_PAD, chunkHasGround, drawChunk, makeSandPatterns, type ChunkRect, type SandPatterns } from '../../art/sand';
 import type { TilePos } from '../../logic/dig';
@@ -9,7 +10,7 @@ const CHUNK_TILES = 16;
 interface Chunk {
   readonly rect: ChunkRect;
   readonly ctx: CanvasRenderingContext2D;
-  readonly texture: Phaser.Textures.CanvasTexture;
+  readonly texture: Phaser.Textures.Texture;
 }
 
 /** The sand, drawn in chunks that are redrawn only when a dig or a clump changes them. */
@@ -53,7 +54,8 @@ export class TerrainView {
       const chunk = this.chunks.get(key) ?? (chunkHasGround(this.terrain, rect) ? this.create(key, rect) : null);
       if (!chunk) continue;
       drawChunk(chunk.ctx, this.terrain, rect, this.tile, ART_RES, this.patternsFor(chunk.ctx), this.style);
-      chunk.texture.refresh();
+      // Uploads the redrawn canvas again (a CanvasTexture would also read it back on creation).
+      chunk.texture.source[0]?.update();
     }
     this.dirty.clear();
   }
@@ -76,7 +78,7 @@ export class TerrainView {
     canvas.height = px;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-    const texture = this.scene.textures.addCanvas(`${this.prefix}-${key}`, canvas);
+    const texture = addPainted(this.scene.textures, `${this.prefix}-${key}`, canvas);
     if (!texture) return null;
     this.scene.add.image(rect.tx * this.tile - CHUNK_PAD, rect.ty * this.tile - CHUNK_PAD, texture).setOrigin(0).setScale(1 / ART_RES).setDepth(1);
     const chunk = { rect, ctx, texture };

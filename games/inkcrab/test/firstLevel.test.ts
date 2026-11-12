@@ -34,4 +34,12 @@ describe('the first level', () => {
     expect(coach.learnt('move')).toBe(true);
     expect(coach.hint(b, 'keys')?.lesson).toBe('jump');
   });
+
+  it('lays a first meal in the open just past the start, and the walking lesson points at it', () => {
+    const b = new Beach(buildLevel(def));
+    const h = new Coach(def.teach ?? []).hint(b, 'touch');
+    expect(h?.lesson).toBe('move');
+    expect(h?.target).toBeDefined();
+    expect(Math.abs(h!.target!.x / b.tileSize - def.startCol)).toBeLessThan(12);
+  });
 });

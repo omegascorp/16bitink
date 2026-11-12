@@ -4,6 +4,13 @@ import type { ChangelogEntry } from './changelog';
 
 export const SITE_ENTRIES: readonly ChangelogEntry[] = [
   {
+    date: "2026-11-12",
+    title: "Reload when graphics fail to start",
+    changes: [
+      "When a game can't start its graphics but your browser supports them, the button now offers to reload the page, which fixes it, instead of a Try again that kept failing.",
+    ],
+  },
+  {
     date: "2026-10-24",
     title: "Sign in by email link",
     changes: [
@@ -71,6 +78,13 @@ export const SITE_ENTRIES: readonly ChangelogEntry[] = [
 
 export const GAME_ENTRIES: Readonly<Record<string, readonly ChangelogEntry[]>> = {
   inkfish: [
+    {
+      date: "2026-11-12",
+      title: "Faster start",
+      changes: [
+        "The game starts faster, most of all on Android phones.",
+      ],
+    },
     {
       date: "2026-10-14",
       title: "Food falls replace ink levels",
@@ -143,6 +157,17 @@ export const GAME_ENTRIES: Readonly<Record<string, readonly ChangelogEntry[]>> =
   ],
   inkcrab: [
     {
+      date: "2026-11-12",
+      title: "Faster start and easier first levels",
+      changes: [
+        "Pen Test now has a first meal just past the start, and the walking hint points at the nearest food.",
+        "Margin Wall's cowries now lie on the way to the shelf, the first one just under the sand past the start, so you learn to dig for a prize and reach the wall carrying sand to build with.",
+        "The hint for something buried just under the sand now says to stand over it and dig down, and it keeps pointing at a cowry until you have dug one up.",
+        "Fixed the note on marked sea slaters: they don't hunt you, you only need to grow past them to eat them.",
+        "The game starts several times faster: it now draws only the beach you are about to play, and draws the next one while you look at the map or your results.",
+      ],
+    },
+    {
       date: "2026-10-20",
       title: "Better digging lessons",
       changes: [
@@ -183,6 +208,13 @@ export const GAME_ENTRIES: Readonly<Record<string, readonly ChangelogEntry[]>> =
     },
   ],
   inkmine: [
+    {
+      date: "2026-11-12",
+      title: "Faster start",
+      changes: [
+        "The game starts faster on Chrome, and the loading bar now moves while the planet is drawn instead of the page freezing.",
+      ],
+    },
     {
       date: "2026-10-19",
       title: "A narrator for the story",
@@ -268,6 +300,13 @@ export const GAME_ENTRIES: Readonly<Record<string, readonly ChangelogEntry[]>> =
   ],
   inksnake: [
     {
+      date: "2026-11-12",
+      title: "One Bite made fairer",
+      changes: [
+        "Level 7, One Bite, now asks you to grow to 400 instead of 540, so a single life feels tense rather than unfair.",
+      ],
+    },
+    {
       date: "2026-10-25",
       title: "Touch joystick",
       changes: [
@@ -286,6 +325,13 @@ export const GAME_ENTRIES: Readonly<Record<string, readonly ChangelogEntry[]>> =
     },
   ],
   inkpin: [
+    {
+      date: "2026-11-12",
+      title: "Straight into the first level",
+      changes: [
+        "On your first visit the game opens right in level 1 instead of on the map. After that it opens on the map as before.",
+      ],
+    },
     {
       date: "2026-11-11",
       title: "Thumbstick, zoom and a new look",

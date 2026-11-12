@@ -18,6 +18,8 @@ export const SLOW_GAME_MS = 8000;
 export interface PageVisitRow {
   readonly path: string;
   readonly browser: string;
+  /** mobile, desktop or tablet; absent on rows from before it was read. */
+  readonly device?: string;
   /** When the page finished loading, if it did while the visitor was there. */
   readonly loadMs: number | null;
   /** Time on screen in all. */
@@ -40,6 +42,7 @@ export interface PageLoad {
 export interface GameVisitRow {
   readonly game: string;
   readonly browser: string;
+  readonly device?: string;
   readonly tapped: boolean;
   readonly ready: boolean;
   readonly stalled: boolean;
@@ -66,6 +69,8 @@ export interface Breakdown<T> {
   readonly all: T;
   /** Browsers with at least `minVisits` visits, most first. */
   readonly browsers: readonly T[];
+  /** The same per device (mobile, desktop, tablet), under `device` in place of `browser`. */
+  readonly devices: readonly (Omit<T, 'browser'> & { readonly device: string })[];
 }
 
 function pageLoad(browser: string, rows: readonly PageVisitRow[]): PageLoad {
@@ -97,12 +102,17 @@ function groups<R>(rows: readonly R[], key: (r: R) => string): [string, R[]][] {
   return [...m].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
 }
 
-function breakdown<R extends { readonly browser: string }, T>(
+function breakdown<R extends { readonly browser: string; readonly device?: string }, T extends { readonly browser: string }>(
   rows: readonly R[], minVisits: number, summarize: (browser: string, rows: readonly R[]) => T,
 ): Breakdown<T> {
+  const devices = groups(rows, (r) => r.device ?? 'unknown').filter(([, g]) => g.length >= minVisits).map(([d, g]) => {
+    const { browser: _label, ...rest } = summarize(d, g);
+    return { ...rest, device: d } as Omit<T, 'browser'> & { readonly device: string };
+  });
   return {
     all: summarize('all', rows),
     browsers: groups(rows, (r) => r.browser).filter(([, g]) => g.length >= minVisits).map(([b, g]) => summarize(b, g)),
+    devices,
   };
 }
 
@@ -124,8 +134,8 @@ export async function pageVisitRows(range: Range): Promise<PageVisitRow[]> {
   const pipeline: PipelineStage[] = [
     { $match: { ...inRange(range), 'meta.event': 'page_leave' } },
     // Leave reports add up over the page's life: the biggest is the whole stay.
-    { $group: { _id: { session: '$session', path: '$path' }, browser: { $first: '$browser' }, loadMs: { $max: '$loadMs' }, stayMs: { $max: '$ms' } } },
-    { $project: { _id: 0, path: '$_id.path', browser: 1, loadMs: { $ifNull: ['$loadMs', null] }, stayMs: { $ifNull: ['$stayMs', 0] } } },
+    { $group: { _id: { session: '$session', path: '$path' }, browser: { $first: '$browser' }, device: { $first: '$device' }, loadMs: { $max: '$loadMs' }, stayMs: { $max: '$ms' } } },
+    { $project: { _id: 0, path: '$_id.path', browser: 1, device: 1, loadMs: { $ifNull: ['$loadMs', null] }, stayMs: { $ifNull: ['$stayMs', 0] } } },
   ];
   return AnalyticsEvent.aggregate<PageVisitRow>(pipeline).exec();
 }
@@ -137,7 +147,7 @@ export async function gameVisitRows(range: Range): Promise<GameVisitRow[]> {
     { $sort: { ts: 1 } },
     {
       $group: {
-        _id: { session: '$session', game: '$meta.game' }, browser: { $first: '$browser' },
+        _id: { session: '$session', game: '$meta.game' }, browser: { $first: '$browser' }, device: { $first: '$device' },
         tapped: has(isEvent('play_tap')), ready: has(isEvent('game_ready')),
         stalled: has({ $and: [isEvent('game_ready'), { $eq: ['$stage', 'stall'] }] }),
         failed: has(isEvent('load_fail')), abandoned: has(isEvent('load_abandon')),
@@ -146,7 +156,7 @@ export async function gameVisitRows(range: Range): Promise<GameVisitRow[]> {
     },
     {
       $project: {
-        _id: 0, game: '$_id.game', browser: 1, tapped: 1, ready: 1, stalled: 1, failed: 1, abandoned: 1,
+        _id: 0, game: '$_id.game', browser: 1, device: 1, tapped: 1, ready: 1, stalled: 1, failed: 1, abandoned: 1,
         loadMs: { $ifNull: [{ $arrayElemAt: ['$loads', 0] }, null] },
       },
     },

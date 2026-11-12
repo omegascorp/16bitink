@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
-import { BLACK_SAND, BLUE, BLUE_HEX, GREY_SAND, MOON_SAND, PALE_SAND, RED, RED_HEX, SHINGLE, type GroundStyle } from '../art/palette';
+import { BLACK_SAND, BLUE, BLUE_HEX, GREY_SAND, MOON_SAND, PALE_SAND, PAPER, RED, RED_HEX, SHINGLE, type GroundStyle } from '../art/palette';
+import { runInSlices } from '@16bitink/game-sdk';
 import { TEX } from '../art/textures';
+import { levelArtJobs } from './game/levelArt';
 import { getHost, getSound, REG, trackGame } from '../host';
 import { buildLevel, START_SIZE } from '../level/build';
 import { isBeachFinale, levelById, levelOrder, loadedLevels, themeOf } from '../level/levels';
@@ -12,7 +14,7 @@ import { centre } from '../logic/items';
 import { shellPx, SHELLS } from '../logic/shells';
 import { commitProgress } from '../logic/accountSave';
 import { blotsFor, loadProgress, recordResult } from '../logic/save';
-import { Beach, type SimEvent } from '../logic/sim';
+import { Beach, type BeachSetup, type SimEvent } from '../logic/sim';
 import type { ChainStatus } from '../logic/mission';
 import { missionOf, parTimeOf } from '../level/missions';
 import { chainTarget, missionTarget } from './game/missionPointer';
@@ -45,7 +47,7 @@ import { wrackAt } from '../logic/kelp';
 import type { Box } from '../logic/hintFade';
 import { DPR, screenZoom, viewSize } from './hidpi';
 import type { ResultData } from './ResultScene';
-import { HAND_FONT } from './ui';
+import { HAND_FONT, inkText } from './ui';
 
 /** Longest frame the simulation takes in one step (tab switches, hitches). */
 const MAX_DT = 1 / 20;
@@ -107,13 +109,42 @@ export class GameScene extends Phaser.Scene {
   private sightings!: Sightings;
   private soundscape!: Soundscape;
 
+  /** The level is laid out: false while its art is still being drawn. */
+  private built = false;
+  /** Counts starts, so a drawing finishing after the level was left or restarted is dropped. */
+  private runs = 0;
+
   constructor() {
     super('Game');
   }
 
   create(data: GameData): void {
+    this.built = false;
+    const run = ++this.runs;
     this.level = levelById(data?.levelId) ?? loadedLevels()[0]!;
     const setup = buildLevel(this.level);
+    // The level's own art is drawn as it starts (the boot draws only what the first screen needs): at once when it's
+    // already drawn (or was drawn ahead on the map), otherwise a slice at a time over a plain page, so it never freezes.
+    const jobs = levelArtJobs(this.textures, this.level, setup);
+    if (jobs.length === 0) {
+      this.build(setup);
+      return;
+    }
+    this.cameras.main.setBackgroundColor(PAPER);
+    const label = inkText(this, this.scale.width / 2, this.scale.height / 2, 'raking the beach…', 32 * DPR);
+    void runInSlices(jobs).then(() => {
+      label.destroy();
+      // Left (or restarted) while drawing: the new run builds its own.
+      if (run === this.runs && this.sys.isActive()) this.build(setup);
+    }, (err: unknown) => {
+      console.error('[inkcrab] could not draw the level', err);
+      label.setText('Your browser could not draw the beach. Try another browser.');
+    });
+  }
+
+  /** Lays out the level, once its art is drawn. */
+  private build(setup: BeachSetup): void {
+    this.built = true;
     this.beach = new Beach(setup);
     // A shell chain's line is explained by the coach the first time round.
     const chain = missionOf(this.level).chain > 0 && !(this.level.teach ?? []).includes('line') ? ['line' as const] : [];
@@ -269,6 +300,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(time: number, delta: number): void {
+    if (!this.built) return;
     const dt = Math.min(delta / 1000, MAX_DT);
     const events = this.beach.step(this.input2.read(this.touch), dt);
     for (const e of events) this.react(e);

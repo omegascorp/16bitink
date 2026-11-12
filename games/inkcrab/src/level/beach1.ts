@@ -17,20 +17,22 @@ export const BEACH_1: readonly LevelDef[] = [
     profile: [[0, 15], [16, 15], [17, 13], [30, 13], [42, 14], [55, 12]],
     startCol: 6,
     shells: [['snail', 3, 40, 0]],
-    food: { surface: 14, buried: 4, shallow: 4 },
+    // A first meal just past the start, so the first bite comes in seconds and the move hint has food to point at.
+    food: { surface: 14, buried: 4, shallow: 4, start: 6 },
     critters: [{ count: 3, sizes: [1, 1], species: 'slater' }],
     teach: ['move', 'jump', 'swap'],
   },
   {
     id: 'margin-wall', name: 'Margin Wall', seed: 104, width: 60, height: 32, parTime: 120,
-    hint: 'Dig sand, then drop it to build up to the nerite on the shelf.',
+    hint: 'Dig down to the cowries on your way. Then put the sand down at the shelf as a step, and climb up to the nerite.',
     // The shelf is 4 high: a size-3 crab in its snail jumps 3.3, so one clump of sand at the wall gets it up.
     profile: [[0, 15], [32, 15], [33, 11], [46, 11], [47, 15], [59, 15]],
     startCol: 6,
     shells: [['snail', 3, 16, 0], ['nerite', 4, 40, 0]],
     food: { surface: 14, buried: 10, shallow: 5 },
-    // The cowries lie in the open sand, never in the shelf's face, so the mission doesn't hang on the wall too.
-    finds: [[19, 2], [27, 2], [52, 2]],
+    // The cowries lie on the way to the shelf, never in its face: the first a single dig down just past the start,
+    // where the dig lesson points at it, so digging is learnt for a prize, and the crab reaches the wall carrying sand to build with.
+    finds: [[11, 1], [21, 2], [27, 2]],
     critters: [{ count: 3, sizes: [1, 1], species: 'slater' }],
     teach: ['dig', 'drop', 'reach', 'swap'],
   },

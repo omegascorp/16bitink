@@ -55,6 +55,10 @@ const ICE_NEAR = 8;
 const GLOW_NEAR = 8;
 /** How close (tiles) something buried (a find, a shell) is before the dig lesson speaks up, pointing at it. */
 const DIG_NEAR = 8;
+/** How deep (tiles below the surface row) something buried can be and still be dug straight down to: a small crab can't jump out of a hole two deep. */
+const SHALLOW_TILES = 1;
+/** How close (tiles) food in the open is before the move lesson points at it. */
+const MEAL_NEAR = 12;
 /** Seconds into a level before the dig lesson speaks up anyway, with nothing buried near. */
 const DIG_AFTER = 20;
 /** How far ahead (tiles) a bank too high to jump makes the drop lesson speak up. */
@@ -67,6 +71,7 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     swap: 'Your shell is full! Walk to the bigger shell and press E to move in. Out of your shell anything can catch you, so move when no one\'s about.',
     dig: 'Dig a slope: hold → (or ←) and ↓, then press X. Digging straight down can trap you.',
     digHere: 'Something\'s buried here! Dig a slope down to it: hold → (or ←) and ↓, then press X.',
+    digDown: 'Something\'s buried just under the sand! Stand over it, hold ↓ and press X to dig down to it.',
     drop: 'Too high to jump? Build a step: press ↑ + C to put sand under you (or C facing the bank), then jump.',
     reach: 'That shell is too high to jump to. Build a step: dig some sand, then press ↑ + C by the bank to put it under you, and jump up.',
     full: 'You\'re full of sand. Drop some with C before you dig more.',
@@ -103,6 +108,7 @@ const TEXT: Readonly<Record<Controls, Readonly<Record<string, string>>>> = {
     swap: 'Your shell is full! Walk to the bigger shell and press grab to move in. Out of your shell anything can catch you, so move when no one\'s about.',
     dig: 'Dig a slope: push the stick down and sideways, and hold dig. Digging straight down can trap you.',
     digHere: 'Something\'s buried here! Dig a slope down to it: push the stick down and sideways, and hold dig.',
+    digDown: 'Something\'s buried just under the sand! Stand over it, push the stick down and hold dig.',
     drop: 'Too high to jump? Build a step: push the stick up and press dig to put sand under you, then jump.',
     reach: 'That shell is too high to jump to. Build a step: dig some sand, then by the bank push the stick up and press dig to put it under you, and jump up.',
     full: 'You\'re full of sand. Press dig to drop some before you dig more.',
@@ -241,6 +247,8 @@ export class Coach {
   private readonly facing = new Set<Lesson>();
   /** Where (world y of its feet) the crab took hold of the roots, while it's climbing. */
   private climbFrom: number | null = null;
+  /** The crab has dug at least once on this level. */
+  private dug = false;
 
   constructor(private readonly lessons: readonly Lesson[]) {}
 
@@ -255,7 +263,12 @@ export class Coach {
         // Reaching a shell up high is learnt by moving into one that was out of reach.
         if (this.facing.delete('reach')) this.done.add('reach');
       }
-      else if (e.type === 'tiles' && e.dug) this.done.add('dig');
+      else if (e.type === 'tiles' && e.dug) {
+        this.dug = true;
+        // Where finds are to be dug up, digging is learnt on the first one picked up, not on the first scrape.
+        if (!beach.mission.finds) this.done.add('dig');
+      }
+      else if (e.type === 'collected') this.done.add('dig');
       else if (e.type === 'revealed' && beach.items.get(e.id)?.kind.type === 'shell') this.done.add('buried');
       else if (e.type === 'thrown') this.done.add('vent');
       else if (e.type === 'rapped') this.done.add('rival');
@@ -378,12 +391,15 @@ export class Coach {
       if (kelp) return { lesson: 'kelp', text: t.kelp!, target: kelp };
     }
     if (open('climb') && this.rootsNear(beach)) return { lesson: 'climb', text: t.climb!, target: this.perchedShell(beach) ?? undefined };
-    if (open('move')) return { lesson: 'move', text: t.move! };
-    // Digging is taught when there's something to dig for, or after a while anyway.
+    if (open('move')) {
+      const meal = this.mealNear(beach);
+      return { lesson: 'move', text: t.move!, ...(meal ? { target: centre(meal) } : {}) };
+    }
+    // Digging is taught when there's something to dig for, or after a while anyway (until the first dig).
     if (open('dig')) {
       const buried = this.buriedNear(beach);
-      if (buried) return { lesson: 'dig', text: t.digHere!, target: centre(buried) };
-      if (beach.elapsed >= DIG_AFTER) return { lesson: 'dig', text: t.dig! };
+      if (buried) return { lesson: 'dig', text: this.shallow(beach, buried) ? t.digDown! : t.digHere!, target: centre(buried) };
+      if (!this.dug && beach.elapsed >= DIG_AFTER) return { lesson: 'dig', text: t.dig! };
     }
     // Building up is taught carrying sand at a bank too high to jump.
     if (open('drop') && c.sand > 0) {
@@ -408,6 +424,20 @@ export class Coach {
   /** How far (tiles) a shell lies above the crab's feet. */
   private riseTo(beach: Beach, shell: Item): number {
     return (beach.crab.body.y + beach.crab.body.h - (shell.y + shell.h)) / beach.tileSize;
+  }
+
+  /** The nearest food lying in the open within a few tiles, for the move hint to point at. */
+  private mealNear(beach: Beach): Item | null {
+    const at = centre(beach.crab.body);
+    const item = this.nearest(beach, (i) => !i.buried && i.kind.type === 'food');
+    return item && Math.abs(centre(item).x - at.x) < MEAL_NEAR * beach.tileSize ? item : null;
+  }
+
+  /** Buried so near the top that digging straight down to it can't trap the crab: a slope from afar would tunnel past it. */
+  private shallow(beach: Beach, item: Item): boolean {
+    const T = beach.tileSize;
+    const col = Math.floor(centre(item).x / T);
+    return Math.floor((item.y + item.h - 1) / T) - surfaceRow(beach.terrain, col) <= SHALLOW_TILES;
   }
 
   /** The nearest buried find or shell within a few tiles, to dig for. */

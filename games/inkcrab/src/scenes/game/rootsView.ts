@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { addPainted } from '../../art/textures';
 import { ART_RES } from '../../art/palette';
 import { chunkHasRoots, drawRootChunk } from '../../art/roots';
 import { CHUNK_PAD, type ChunkRect } from '../../art/sand';
@@ -34,7 +35,7 @@ export class RootsView {
         if (!ctx) continue;
         drawRootChunk(ctx, roots, rect, tile, ART_RES, CHUNK_PAD, ground);
         const key = `${this.prefix}-${cx},${cy}`;
-        if (!scene.textures.addCanvas(key, canvas)) continue;
+        if (!addPainted(scene.textures, key, canvas)) continue;
         this.keys.push(key);
         scene.add.image(rect.tx * tile - CHUNK_PAD, rect.ty * tile - CHUNK_PAD, key).setOrigin(0).setScale(1 / ART_RES).setDepth(DEPTH);
       }

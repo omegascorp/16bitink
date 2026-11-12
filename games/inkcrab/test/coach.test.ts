@@ -4,18 +4,19 @@ import { Coach, ledgeAhead, nextShell, tallBankAhead } from '../src/logic/coach'
 import { makeCritter } from '../src/logic/critters';
 import { digColumns } from '../src/logic/dig';
 import { meterGoal } from '../src/logic/growth';
-import { findItem, makeItem, shell } from '../src/logic/items';
+import { findItem, food, makeItem, shell } from '../src/logic/items';
+import { PLAIN } from '../src/logic/mission';
 import { Beach, IDLE, type Input, type SimEvent } from '../src/logic/sim';
 import { createTerrain, setTile, TILE, type Terrain } from '../src/logic/terrain';
 
 const T = 16;
 
 /** A flat beach (surface at row 10), the crab at column 5; `bank` raises columns [from, to] to `top`. */
-function beach(items = [] as ReturnType<typeof makeItem>[], bank?: { from: number; to: number; top: number }): Beach {
+function beach(items = [] as ReturnType<typeof makeItem>[], bank?: { from: number; to: number; top: number }, finds = 0): Beach {
   const terrain: Terrain = createTerrain(60, 30);
   for (let x = 0; x < 60; x++) for (let y = 10; y < 30; y++) setTile(terrain, x, y, TILE.sand);
   if (bank) for (let x = bank.from; x <= bank.to; x++) for (let y = bank.top; y < 10; y++) setTile(terrain, x, y, TILE.sand);
-  return new Beach({ terrain, items, start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 1, surfaceFood: 0 });
+  return new Beach({ terrain, items, start: { x: 5 * T, y: 10 * T }, tileSize: T, startShell: shellOf('periwinkle'), seed: 1, surfaceFood: 0, mission: { ...PLAIN, kinds: finds ? ['collect'] : ['grow'], finds } });
 }
 
 /** Steps the beach and lets the coach watch. */
@@ -49,6 +50,33 @@ describe('the coach', () => {
     play(b, coach, { aimY: 1, dig: true });
     expect(coach.learnt('dig')).toBe(true);
     expect(coach.hint(b, 'keys')).toBeNull();
+  });
+
+  it('where finds are to be dug up, keeps pointing at one until the first is picked up, not just the first scrape', () => {
+    const cowrie = makeItem(7, findItem('cowrie'), 12 * T, 12 * T, true);
+    const b = beach([cowrie], undefined, 1);
+    const coach = new Coach(['dig']);
+    play(b, coach, { aimY: 1, dig: true });
+    expect(coach.learnt('dig')).toBe(false);
+    expect(coach.hint(b, 'keys')?.target?.x).toBeCloseTo(cowrie.x + cowrie.w / 2);
+    coach.observe(b, [{ type: 'collected', x: 0, y: 0, count: 1 }]);
+    expect(coach.learnt('dig')).toBe(true);
+  });
+
+  it('once the crab has dug, doesn\'t repeat the general dig lesson with nothing buried near', () => {
+    const b = beach([], undefined, 1);
+    const coach = new Coach(['dig']);
+    play(b, coach, { aimY: 1, dig: true });
+    play(b, coach, {}, 21);
+    expect(coach.hint(b, 'keys')).toBeNull();
+  });
+
+  it('points the walking lesson at the nearest food in the open', () => {
+    const crumb = makeItem(3, food('crumb'), 9 * T, 9 * T, false);
+    const b = beach([crumb, makeItem(4, food('worm'), 7 * T, 12 * T, true)]);
+    const h = new Coach(['move']).hint(b, 'keys');
+    expect(h?.lesson).toBe('move');
+    expect(h?.target?.x).toBeCloseTo(crumb.x + crumb.w / 2);
   });
 
   it('with nothing buried near, waits a while before teaching digging', () => {
@@ -158,6 +186,19 @@ describe('the coach', () => {
     expect(dig).toMatch(/→/);
     expect(dig).toMatch(/↓/);
     expect(dig).toMatch(/straight down/i);
+  });
+
+  it('says to dig straight down to something just under the sand, and at an angle to something deep', () => {
+    const shallow = beach([makeItem(7, findItem('cowrie'), 9 * T, 11 * T, true)]);
+    const near = new Coach(['dig']);
+    play(shallow, near, {}, 1);
+    expect(near.hint(shallow, 'touch')?.text).toMatch(/stand over it/i);
+    expect(near.hint(shallow, 'keys')?.text).toMatch(/↓/);
+    // Two down is already too deep for a small crab to jump out of a shaft.
+    const deep = beach([makeItem(7, findItem('cowrie'), 9 * T, 12 * T, true)]);
+    const far = new Coach(['dig']);
+    play(deep, far, {}, 1);
+    expect(far.hint(deep, 'touch')?.text).toMatch(/slope/i);
   });
 
   it('shows a way out when the crab is stuck down a hole, on any level', () => {

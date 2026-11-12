@@ -23,7 +23,7 @@ const PRE_RENDER = 'prerender';
 
 interface Page {
   readonly key: string;
-  readonly texture: Phaser.Textures.CanvasTexture;
+  readonly texture: Phaser.Textures.Texture;
   readonly ctx: CanvasRenderingContext2D;
   /** The filled outline, for packing (see skyline.ts). */
   skyline: Skyline;
@@ -151,7 +151,7 @@ class Atlas {
   private newPage(): Page {
     const key = `__ink-atlas-${this.pages.length}`;
     const { canvas, ctx } = makeCanvas(PAGE, PAGE);
-    const texture = this.game.textures.addCanvas(key, canvas);
+    const texture = this.game.textures.addImage(key, canvas as unknown as HTMLImageElement);
     if (!texture) throw new Error(`Could not create atlas page ${key}`);
     const page: Page = { key, texture, ctx, skyline: emptySkyline(PAGE), dirty: false };
     this.pages.push(page);
@@ -171,7 +171,8 @@ class Atlas {
     for (const page of this.pages) {
       if (!page.dirty) continue;
       page.dirty = false;
-      page.texture.refresh();
+      // Re-uploads the canvas; an image texture, unlike a CanvasTexture, never reads the whole page back.
+      page.texture.source[0]?.update();
     }
   }
 }

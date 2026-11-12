@@ -1,7 +1,7 @@
 import { runInSlices, type LoadingReporter } from '@16bitink/game-sdk';
 import Phaser from 'phaser';
 import { ensureFishTextures, inkTextureJobs } from '../art/textures';
-import { trackArt, warmArt } from '../art/artCache';
+import { allowArtSaving, trackArt, warmArt } from '../art/artCache';
 import { getHost, REG } from '../host';
 import { DEMO_CHAPTER } from '../levels/demo';
 import { firstScreen, loadSave } from '../logic/save';
@@ -48,20 +48,26 @@ export class BootScene extends Phaser.Scene {
     await Promise.all([warmArt('boot', exists), warmArt('menu', exists)]);
     loading?.progress(WARMED_AT, label);
     const stop = trackArt('boot');
-    // The map's fish too, which the menu would otherwise draw in one long freeze. A slice at a time, so the loading bar moves.
-    const fauna = mapFauna().map((shape) => () => ensureFishTextures(this, [shape], ['light']));
+    this.registry.set(REG.chapters, [DEMO_CHAPTER]);
+    this.registry.set(REG.fullError, null);
+    // The account's saves and the full game are fetched while the drawing goes on: they wait on the network, not the main thread.
+    const fetched = Promise.all([loadPaidChapters(this), pullFromAccount(host)]);
+    fetched.catch(() => undefined);
+    // The map's fish too, so the menu doesn't draw them in one long freeze (a slice at a time, so the bar moves) -
+    // but only when the map is the likely first screen: a level draws its own fish and the menu its fish on demand.
+    const toMap = firstScreen(loadSave(host.storage)).scene === 'Menu';
+    const fauna = toMap ? mapFauna().map((shape) => () => ensureFishTextures(this, [shape], ['light'])) : [];
     await runInSlices([...inkTextureJobs(this), ...fauna], {
       onProgress: (f) => loading?.progress(WARMED_AT + f * (DRAWN_AT - WARMED_AT), label),
     });
     stop();
-    this.registry.set(REG.chapters, [DEMO_CHAPTER]);
-    this.registry.set(REG.fullError, null);
     loading?.progress(DRAWN_AT, host.unlocked ? 'fetching the full game…' : 'finding your saves…');
-    await Promise.all([loadPaidChapters(this), pullFromAccount(host)]);
+    await fetched;
     // Read after the account's saves are pulled in, so a player new to this device but not to the game gets the map.
     const first = firstScreen(loadSave(host.storage));
     loading?.progress(FETCHED_AT, first.scene === 'Game' ? 'filling the tide pool…' : 'unfolding the map…');
     if (loading) readyOnFirstFrame(this, first.scene, loading);
+    else allowArtSaving();
     if (first.scene === 'Game') this.scene.start('Game', first.data);
     else this.scene.start('Menu');
   }
@@ -74,7 +80,10 @@ export class BootScene extends Phaser.Scene {
 function readyOnFirstFrame(scene: Phaser.Scene, key: 'Menu' | 'Game', loading: LoadingReporter): void {
   const shown = key === 'Game' ? LEVEL_BUILT : Phaser.Scenes.Events.CREATE;
   scene.scene.get(key).events.once(shown, () => {
-    scene.game.events.once(Phaser.Core.Events.POST_RENDER, () => loading.ready());
+    scene.game.events.once(Phaser.Core.Events.POST_RENDER, () => {
+      loading.ready();
+      allowArtSaving();
+    });
   });
 }
 

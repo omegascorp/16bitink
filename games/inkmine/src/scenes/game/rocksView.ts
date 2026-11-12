@@ -53,7 +53,7 @@ export class RocksView {
     const T = this.mine.tile;
     const size = T + BLEED * 2;
     // Drawn as the ground draws that tile, shifted so the tile's corner lands at (BLEED, BLEED).
-    this.scene.textures.addCanvas(key, render(size, size, BLEED - col * T, BLEED - row * T, ART_RES, (ctx) => looseRock(ctx, col, row, T, this.style)));
+    this.scene.textures.addImage(key, render(size, size, BLEED - col * T, BLEED - row * T, ART_RES, (ctx) => looseRock(ctx, col, row, T, this.style)) as unknown as HTMLImageElement);
     return key;
   }
 }

@@ -167,6 +167,18 @@ async function saveGroup(group: string, keys: ReadonlySet<string>): Promise<void
   }
 }
 
+/** Saving waits until the game is showing, so PNG encoding never competes with the boot. */
+let savingAllowed = false;
+
+/** Lets queued drawings be saved (in idle time) from now on. Call once the first screen is up. */
+export function allowArtSaving(): void {
+  savingAllowed = true;
+  if (!saving && pending.length > 0) {
+    saving = true;
+    idle(saveNext);
+  }
+}
+
 /** Queues a freshly drawn canvas to be saved, in idle time. */
 export function rememberArt(key: string, canvas: HTMLCanvasElement): void {
   if (!artCacheEnabled || stored.has(key)) return;
@@ -174,7 +186,7 @@ export function rememberArt(key: string, canvas: HTMLCanvasElement): void {
   if (pendingBytes + bytes > MAX_PENDING_BYTES) return;
   pending.push({ key, canvas });
   pendingBytes += bytes;
-  if (!saving) {
+  if (savingAllowed && !saving) {
     saving = true;
     idle(saveNext);
   }

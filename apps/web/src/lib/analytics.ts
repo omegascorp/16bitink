@@ -1,5 +1,6 @@
 import { OFFER_PLACES } from '@16bitink/game-sdk';
 import { z } from 'zod';
+import { MAX_STACK } from './stackText';
 
 /**
  * First-party analytics: what the browser may send to POST /api/events, and
@@ -24,11 +25,15 @@ const Version = { version: z.string().regex(/^[0-9A-Za-z.+-]{1,40}$/).optional()
 const Path = z.string().regex(/^\/[^\s]{0,199}$/);
 /** Milliseconds, e.g. on a page or waiting for a game; a day is far longer than any real one. */
 const Ms = z.number().finite().min(0).max(24 * 3600 * 1000);
+/** How long the page was hidden while the game loaded; `ms` already leaves it out. Absent on older events. */
+const HiddenMs = Ms.optional();
 const Percent = z.number().int().min(0).max(100);
 /** Longest level progress note a game may send ("size 3/4 full, finds 1/3"). */
 export const PROGRESS_MAX = 60;
 /** An error message as the browser gave it, trimmed by the page. */
 const ErrorText = z.string().min(1).max(200);
+/** The first frames of an error's stack, cleaned by the page. */
+const Stack = { stack: z.string().min(1).max(MAX_STACK).optional() };
 /** Where a game's load went wrong: fetching its code, starting it, or its own boot (drawing the art). */
 export const LOAD_STAGES = ['download', 'mount', 'boot'] as const;
 /** How the loading screen lifted: the game said it was ready, or it went quiet and the stall timer lifted it. */
@@ -47,12 +52,12 @@ const Event = z.discriminatedUnion('type', [
   z.object({ type: z.literal('pageview'), at: At, path: Path, ref: z.string().max(100).optional(), app: z.literal(true).optional() }),
   /** A page went out of sight: how long it was on screen in all, how far down it was read, and when it finished loading (absent: it never did). */
   z.object({ type: z.literal('page_leave'), at: At, path: Path, ms: Ms, scroll: Percent, loadMs: Ms.optional() }),
-  z.object({ type: z.literal('js_error'), at: At, path: Path, error: ErrorText, source: z.string().max(200).optional() }),
+  z.object({ type: z.literal('js_error'), at: At, path: Path, error: ErrorText, source: z.string().max(200).optional(), ...Stack }),
   /** "Tap to play", `ms` after the play page opened. */
   z.object({ type: z.literal('play_tap'), at: At, game: Game, ms: Ms, ...Version }),
   /** The loading screen lifted, `ms` after the tap. */
-  z.object({ type: z.literal('game_ready'), at: At, game: Game, ms: Ms, stage: z.enum(READY_STAGES), ...Version }),
-  z.object({ type: z.literal('load_fail'), at: At, game: Game, ms: Ms, stage: z.enum(LOAD_STAGES), error: ErrorText, ...Version }),
+  z.object({ type: z.literal('game_ready'), at: At, game: Game, ms: Ms, stage: z.enum(READY_STAGES), hiddenMs: HiddenMs, ...Version }),
+  z.object({ type: z.literal('load_fail'), at: At, game: Game, ms: Ms, stage: z.enum(LOAD_STAGES), error: ErrorText, hiddenMs: HiddenMs, ...Stack, ...Version }),
   /** The page went away while the game was still loading, `pct` of the way. */
   z.object({ type: z.literal('load_abandon'), at: At, game: Game, ms: Ms, pct: Percent, ...Version }),
   z.object({ type: z.literal('game_start'), at: At, game: Game, ...Version }),
@@ -183,6 +188,10 @@ export interface StoredEvent extends Visit {
   readonly stage?: string;
   readonly error?: string;
   readonly source?: string;
+  /** The first frames of the error's stack (load_fail, js_error). */
+  readonly stack?: string;
+  /** game_ready, load_fail: time the page was hidden while loading, already taken out of `ms`. */
+  readonly hiddenMs?: number;
   /** Home page clicks: which part of the card, and the card's place in the list. */
   readonly target?: (typeof HOME_CLICK_TARGETS)[number];
   readonly slot?: number;
