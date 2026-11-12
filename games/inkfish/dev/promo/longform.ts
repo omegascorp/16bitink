@@ -10,6 +10,9 @@ import { createSeamonsters } from './seamonsters/render';
 import { createSwallowedKit } from './swallowed/kit';
 import { createSwallowed } from './swallowed/render';
 import { createSwallowyou } from './swallowyou/render';
+import { createSurvivalArt } from './survival/art/sheet';
+import { createSurvivalKit } from './survival/kit';
+import { createSurvival } from './survival/render';
 
 /**
  * Dev-only page for the long-form videos, 1920x1080. Unlike the shorts they
@@ -21,7 +24,7 @@ import { createSwallowyou } from './swallowyou/render';
  * seamonsters ("sea monsters size comparison… but every one is real") or
  * seamonsters-kit (its new drawings), bitecomp ("bite force comparison… but
  * every number is real") or bitecomp-kit (its heads), swallowed ("swallowed whole
- * size comparison… but every meal is real") or swallowed-kit (its swallows). Plays live; ?t=95 freezes one moment.
+ * size comparison… but every meal is real") or swallowed-kit (its swallows), survival ("100 fish enter a survival tournament… only one can win") or survival-kit (its cast and faces). Plays live; ?t=95 freezes one moment.
  * `pnpm promo -- --only long` (dev/promo/record.mjs) records it frame by frame.
  */
 const canvas = document.getElementById('promo') as HTMLCanvasElement;
@@ -74,6 +77,15 @@ const VIDEOS: Readonly<Record<string, () => Promise<Short>>> = {
   'swallowed-kit': async () => {
     await loadCaptionFont();
     return createSwallowedKit(ctx, params.get('only'));
+  },
+  'survival-art': async () => createSurvivalArt(ctx, params.get('only')),
+  survival: async () => {
+    await loadCaptionFont();
+    return createSurvival(ctx);
+  },
+  'survival-kit': async () => {
+    await loadCaptionFont();
+    return createSurvivalKit(ctx, params.get('only'));
   },
 };
 
