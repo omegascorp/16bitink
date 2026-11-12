@@ -1,0 +1,25 @@
+{
+  "name": "@16bitink/inktanks",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "dev": "vite dev --port 5179",
+    "snap": "node dev/snap.mjs",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "sim": "node dev/sim.mjs",
+    "fps": "node dev/fps.mjs"
+  },
+  "dependencies": {
+    "phaser": "^4.2.1"
+  },
+  "devDependencies": {
+    "playwright-core": "1.56.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2",
+    "@vitest/coverage-v8": "^5.0.3",
+    "vitest": "^5.0.3"
+  }
+}

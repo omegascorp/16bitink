@@ -1,0 +1,167 @@
+import { damageTaken, structureDamage } from '../damage';
+import { segmentHits } from '../geom';
+import { intelOf } from '../intel';
+import { wreckPart } from '../loot';
+import type { GunFamily } from '../parts';
+import { turnTowards } from '../vec';
+import type { Match } from './match';
+import { breakStructure } from './movement';
+import type { Shot, Tank, TankInput } from './types';
+
+/** Seconds between the two rockets of a pair. */
+const BURST_GAP = 0.16;
+/** Splash hurts this share of a direct hit. */
+const SPLASH_SHARE = 0.5;
+/** A boss body takes this share while any of its turrets stands. */
+export const BOSS_SHIELD = 0.25;
+const SUBSTEP = 12;
+
+export function aimAndFire(m: Match, t: Tank, input: TankInput, dt: number): void {
+  if (input.aim !== null) t.turret = turnTowards(t.turret, input.aim, t.stats.gun.turretTurn * dt);
+  t.reload = Math.max(0, t.reload - dt);
+  if (t.burst > 0) {
+    t.burstT -= dt;
+    if (t.burstT <= 0) {
+      spawnShot(m, t, t.burst % 2 ? -1 : 1);
+      t.burst--;
+      t.burstT = BURST_GAP;
+    }
+    return;
+  }
+  if (!input.fire || t.reload > 0 || t.repairT > 0 || t.role === 'truck' || t.role === 'boss') return;
+  t.reload = t.stats.gun.reload;
+  t.firedAt = m.t;
+  spawnShot(m, t, t.stats.gun.shots > 1 ? 1 : 0);
+  t.burst = t.stats.gun.shots - 1;
+  t.burstT = BURST_GAP;
+}
+
+function spawnShot(m: Match, t: Tank, side: number): void {
+  const g = t.stats.gun;
+  const a = t.turret + m.rng.range(-g.spread, g.spread);
+  const muzzle = t.stats.radius * 0.95 + (t.role === 'bossTurret' ? 10 : 0);
+  const sx = t.x + Math.cos(t.turret) * muzzle - Math.sin(t.turret) * side * 5;
+  const sy = t.y + Math.sin(t.turret) * muzzle + Math.cos(t.turret) * side * 5;
+  const shot: Shot = {
+    id: m.nextId++, owner: t.id, team: t.team, x: sx, y: sy,
+    vx: Math.cos(a) * g.shotSpeed, vy: Math.sin(a) * g.shotSpeed,
+    travelled: 0, range: g.range, damage: g.damage, gun: g.family, splash: g.splash, breaksBrick: g.breaksBrick, kind: g.shot, alive: true,
+  };
+  m.shots.push(shot);
+  t.shotsFired++;
+  m.emit({ kind: 'fire', tank: t.id, x: sx, y: sy, angle: a, shot: g.shot });
+}
+
+export function stepShots(m: Match, dt: number): void {
+  for (const s of m.shots) {
+    if (!s.alive) continue;
+    const speed = Math.hypot(s.vx, s.vy);
+    const n = Math.max(1, Math.ceil((speed * dt) / SUBSTEP));
+    for (let k = 0; k < n && s.alive; k++) moveShot(m, s, dt / n, speed);
+  }
+  m.shots = m.shots.filter((s) => s.alive);
+}
+
+function moveShot(m: Match, s: Shot, dt: number, speed: number): void {
+  const ax = s.x;
+  const ay = s.y;
+  s.x += s.vx * dt;
+  s.y += s.vy * dt;
+  s.travelled += speed * dt;
+  // Tanks first: a shot fired point-blank past a wall corner still hits the tank.
+  for (const t of m.tanks) {
+    if (!t.alive || t.dropT > 0 || t.team === s.team) continue;
+    // Shots fly over a fortress's deck edge to reach its turrets.
+    const r = t.role === 'boss' ? t.stats.radius * 0.55 : t.stats.radius + (t.role === 'bossTurret' ? 8 : 3);
+    if ((t.x - s.x) ** 2 + (t.y - s.y) ** 2 > r * r) continue;
+    hitTank(m, t, s.damage, s.gun, s.owner);
+    const owner = m.tank(s.owner);
+    if (owner) owner.shotsHit++;
+    m.emit({ kind: 'hit', x: s.x, y: s.y, target: t.id, dmg: s.damage, shot: s.kind });
+    explode(m, s, t.id);
+    s.alive = false;
+    return;
+  }
+  const ids = m.grid.query({ x0: Math.min(ax, s.x), y0: Math.min(ay, s.y), x1: Math.max(ax, s.x), y1: Math.max(ay, s.y) });
+  for (const i of ids) {
+    const st = m.structs[i]!;
+    if (st.state === 0 || st.def.cover) continue;
+    if (!segmentHits(st.def.shape, st.def.x, st.def.y, ax, ay, s.x, s.y)) continue;
+    damageStructure(m, i, s.damage, s.breaksBrick);
+    m.emit({ kind: 'hit', x: s.x, y: s.y, target: null, dmg: s.damage, shot: s.kind });
+    explode(m, s, null);
+    s.alive = false;
+    return;
+  }
+  if (s.travelled >= s.range) {
+    s.alive = false;
+    if (s.splash > 0) explode(m, s, null);
+  }
+}
+
+function explode(m: Match, s: Shot, direct: number | null): void {
+  if (s.splash <= 0) return;
+  m.emit({ kind: 'explode', x: s.x, y: s.y, r: s.splash });
+  for (const t of m.tanks) {
+    if (!t.alive || t.dropT > 0 || t.id === direct || t.team === s.team) continue;
+    const reach = s.splash + t.stats.radius;
+    if ((t.x - s.x) ** 2 + (t.y - s.y) ** 2 <= reach * reach) hitTank(m, t, s.damage * SPLASH_SHARE, s.gun, s.owner);
+  }
+  const ids = m.grid.query({ x0: s.x - s.splash, y0: s.y - s.splash, x1: s.x + s.splash, y1: s.y + s.splash });
+  for (const i of [...ids]) damageStructure(m, i, s.damage * SPLASH_SHARE, s.breaksBrick);
+}
+
+export function damageStructure(m: Match, i: number, dmg: number, breaksBrick: boolean): void {
+  const st = m.structs[i]!;
+  if (st.state === 0 || st.def.hp <= 0) return;
+  const d = structureDamage(dmg, st.def.material, breaksBrick);
+  if (d <= 0) return;
+  st.hp -= d;
+  if (st.hp <= 0) {
+    breakStructure(m, i);
+    return;
+  }
+  const next = st.hp / st.def.hp > 0.6 ? 2 : 1;
+  if (next !== st.state) {
+    st.state = next;
+    m.emit({ kind: 'struct', id: st.def.id, state: next });
+  }
+}
+
+function bossShielded(m: Match, t: Tank): boolean {
+  return t.role === 'boss' && m.tanks.some((o) => o.parent === t.id && o.alive);
+}
+
+export function hitTank(m: Match, t: Tank, dmg: number, gun: GunFamily, from: number | null): void {
+  const attacker = from === null ? null : (m.tank(from) ?? null);
+  const shield = bossShielded(m, t) ? BOSS_SHIELD : 1;
+  const d = damageTaken(dmg, gun, t.stats.drive, t.stats.armour) * shield;
+  t.hp -= d;
+  if (attacker) {
+    attacker.dealt += d;
+    t.lastHitBy = attacker.id;
+    t.lastHitAt = m.t;
+    t.lastHitDrive = attacker.stats.drive;
+  }
+  if (t.hp <= 0) killTank(m, t, attacker, gun);
+}
+
+export function killTank(m: Match, t: Tank, killer: Tank | null, by: GunFamily | 'storm'): void {
+  if (!t.alive) return;
+  t.alive = false;
+  t.hp = 0;
+  t.deadAt = m.t;
+  t.placement = m.tanks.filter((o) => o.alive && o.role === 'tank').length + 1;
+  if (killer && killer.id !== t.id) {
+    killer.kills++;
+    if (by !== 'storm') killer.victims.push({ hull: t.stats.hull, drive: t.stats.drive, gun: t.stats.gun.family, by });
+  }
+  m.emit({ kind: 'kill', killer: killer?.id ?? null, victim: t.id, by });
+  if (t.role === 'tank' || t.role === 'bossTurret') {
+    // The wreck: its best part to swap in, and intel on all its parts.
+    if (t.role === 'tank') m.addPickup({ kind: 'part', part: t.ace ? { ...wreckPart(t.loadout), mk: 3, proto: true } : wreckPart(t.loadout) }, t.x, t.y);
+    m.addPickup({ kind: 'intel', bag: intelOf(t.loadout, t.ace), from: t.name, ace: t.ace }, t.x + 18, t.y + 10);
+  }
+  // A boss's turrets die with it.
+  for (const o of m.tanks) if (o.parent === t.id && o.alive) killTank(m, o, null, by);
+}

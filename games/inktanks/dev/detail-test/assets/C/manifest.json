@@ -1,0 +1,40 @@
+{
+ "density": "C",
+ "unit": 2.0,
+ "size": 128,
+ "ring": {
+  "hullLight": [
+   0.0,
+   2.0
+  ],
+  "hullMedium": [
+   0.0,
+   2.0
+  ],
+  "hullHeavy": [
+   0.0,
+   4.0
+  ]
+ },
+ "stripe": [
+  "hullLight",
+  "hullMedium",
+  "hullHeavy"
+ ],
+ "hulls": [
+  "hullLight",
+  "hullMedium",
+  "hullHeavy"
+ ],
+ "drives": [
+  "driveWheels",
+  "driveHalftrack",
+  "driveTracks"
+ ],
+ "turrets": [
+  "turretMG",
+  "turretCannon",
+  "turretRocket",
+  "turretCannon3"
+ ]
+}

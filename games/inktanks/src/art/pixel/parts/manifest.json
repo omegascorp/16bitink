@@ -1,0 +1,600 @@
+{
+ "density": "C",
+ "unit": 2.0,
+ "size": 128,
+ "facing": "north (-y) at rotation 0; pivot = frame centre (a turret pivots on its ring)",
+ "mk1": "approved",
+ "mk1Repainted": [
+  "driveHalftrack",
+  "driveTracks",
+  "driveWheels"
+ ],
+ "families": {
+  "hulls": [
+   "hullLight",
+   "hullMedium",
+   "hullHeavy"
+  ],
+  "drives": [
+   "driveWheels",
+   "driveHalftrack",
+   "driveTracks"
+  ],
+  "turrets": [
+   "turretMG",
+   "turretCannon",
+   "turretRocket"
+  ]
+ },
+ "tiers": [
+  1,
+  2,
+  3
+ ],
+ "keys": [
+  "hullLight-mk1",
+  "hullLight-mk2",
+  "hullLight-mk3",
+  "hullMedium-mk1",
+  "hullMedium-mk2",
+  "hullMedium-mk3",
+  "hullHeavy-mk1",
+  "hullHeavy-mk2",
+  "hullHeavy-mk3",
+  "driveWheels-L-mk1",
+  "driveWheels-M-mk1",
+  "driveWheels-H-mk1",
+  "driveWheels-L-mk2",
+  "driveWheels-M-mk2",
+  "driveWheels-H-mk2",
+  "driveWheels-L-mk3",
+  "driveWheels-M-mk3",
+  "driveWheels-H-mk3",
+  "driveHalftrack-L-mk1",
+  "driveHalftrack-M-mk1",
+  "driveHalftrack-H-mk1",
+  "driveHalftrack-L-mk2",
+  "driveHalftrack-M-mk2",
+  "driveHalftrack-H-mk2",
+  "driveHalftrack-L-mk3",
+  "driveHalftrack-M-mk3",
+  "driveHalftrack-H-mk3",
+  "driveTracks-L-mk1",
+  "driveTracks-M-mk1",
+  "driveTracks-H-mk1",
+  "driveTracks-L-mk2",
+  "driveTracks-M-mk2",
+  "driveTracks-H-mk2",
+  "driveTracks-L-mk3",
+  "driveTracks-M-mk3",
+  "driveTracks-H-mk3",
+  "turretMG-mk1",
+  "turretMG-mk2",
+  "turretMG-mk3",
+  "turretCannon-mk1",
+  "turretCannon-mk2",
+  "turretCannon-mk3",
+  "turretRocket-mk1",
+  "turretRocket-mk2",
+  "turretRocket-mk3"
+ ],
+ "ring": {
+  "hullLight-mk1": [
+   0.0,
+   2.0
+  ],
+  "hullLight-mk2": [
+   0.0,
+   2.0
+  ],
+  "hullLight-mk3": [
+   0.0,
+   2.0
+  ],
+  "hullMedium-mk1": [
+   0.0,
+   2.0
+  ],
+  "hullMedium-mk2": [
+   0.0,
+   2.0
+  ],
+  "hullMedium-mk3": [
+   0.0,
+   2.0
+  ],
+  "hullHeavy-mk1": [
+   0.0,
+   4.0
+  ],
+  "hullHeavy-mk2": [
+   0.0,
+   4.0
+  ],
+  "hullHeavy-mk3": [
+   0.0,
+   4.0
+  ]
+ },
+ "muzzle": {
+  "turretMG-mk1": [
+   [
+    -3.2,
+    -29.2
+   ],
+   [
+    3.2,
+    -29.2
+   ]
+  ],
+  "turretCannon-mk1": [
+   [
+    0.0,
+    -39.5
+   ]
+  ],
+  "turretRocket-mk1": [
+   [
+    -10.0,
+    -12.0
+   ],
+   [
+    -10.0,
+    -8.3
+   ],
+   [
+    -4.4,
+    -12.0
+   ],
+   [
+    -4.4,
+    -8.3
+   ],
+   [
+    4.4,
+    -12.0
+   ],
+   [
+    4.4,
+    -8.3
+   ],
+   [
+    10.0,
+    -12.0
+   ],
+   [
+    10.0,
+    -8.3
+   ]
+  ],
+  "turretMG-mk2": [
+   [
+    -3.2,
+    -30.8
+   ],
+   [
+    3.2,
+    -30.8
+   ]
+  ],
+  "turretCannon-mk2": [
+   [
+    0.0,
+    -42.2
+   ]
+  ],
+  "turretRocket-mk2": [
+   [
+    -15.6,
+    -12.4
+   ],
+   [
+    -15.6,
+    -8.8
+   ],
+   [
+    -10.0,
+    -12.4
+   ],
+   [
+    -10.0,
+    -8.8
+   ],
+   [
+    -4.4,
+    -12.4
+   ],
+   [
+    -4.4,
+    -8.8
+   ],
+   [
+    4.4,
+    -12.4
+   ],
+   [
+    4.4,
+    -8.8
+   ],
+   [
+    10.0,
+    -12.4
+   ],
+   [
+    10.0,
+    -8.8
+   ],
+   [
+    15.6,
+    -12.4
+   ],
+   [
+    15.6,
+    -8.8
+   ]
+  ],
+  "turretMG-mk3": [
+   [
+    -3.2,
+    -32.4
+   ],
+   [
+    3.2,
+    -32.4
+   ]
+  ],
+  "turretCannon-mk3": [
+   [
+    0.0,
+    -47.4
+   ]
+  ],
+  "turretRocket-mk3": [
+   [
+    -15.6,
+    -14.7
+   ],
+   [
+    -15.6,
+    -11.0
+   ],
+   [
+    -15.6,
+    -7.4
+   ],
+   [
+    -10.0,
+    -14.7
+   ],
+   [
+    -10.0,
+    -11.0
+   ],
+   [
+    -10.0,
+    -7.4
+   ],
+   [
+    -4.4,
+    -14.7
+   ],
+   [
+    -4.4,
+    -11.0
+   ],
+   [
+    -4.4,
+    -7.4
+   ],
+   [
+    4.4,
+    -14.7
+   ],
+   [
+    4.4,
+    -11.0
+   ],
+   [
+    4.4,
+    -7.4
+   ],
+   [
+    10.0,
+    -14.7
+   ],
+   [
+    10.0,
+    -11.0
+   ],
+   [
+    10.0,
+    -7.4
+   ],
+   [
+    15.6,
+    -14.7
+   ],
+   [
+    15.6,
+    -11.0
+   ],
+   [
+    15.6,
+    -7.4
+   ]
+  ]
+ },
+ "frames": {
+  "driveWheels-L-mk1": [
+   "driveWheels-L-mk1",
+   "driveWheels-L-mk1-f1",
+   "driveWheels-L-mk1-f2"
+  ],
+  "driveWheels-M-mk1": [
+   "driveWheels-M-mk1",
+   "driveWheels-M-mk1-f1",
+   "driveWheels-M-mk1-f2"
+  ],
+  "driveWheels-H-mk1": [
+   "driveWheels-H-mk1",
+   "driveWheels-H-mk1-f1",
+   "driveWheels-H-mk1-f2"
+  ],
+  "driveWheels-mk1": [
+   "driveWheels-mk1",
+   "driveWheels-mk1-f1",
+   "driveWheels-mk1-f2"
+  ],
+  "driveWheels-L-mk2": [
+   "driveWheels-L-mk2",
+   "driveWheels-L-mk2-f1",
+   "driveWheels-L-mk2-f2"
+  ],
+  "driveWheels-M-mk2": [
+   "driveWheels-M-mk2",
+   "driveWheels-M-mk2-f1",
+   "driveWheels-M-mk2-f2"
+  ],
+  "driveWheels-H-mk2": [
+   "driveWheels-H-mk2",
+   "driveWheels-H-mk2-f1",
+   "driveWheels-H-mk2-f2"
+  ],
+  "driveWheels-mk2": [
+   "driveWheels-mk2",
+   "driveWheels-mk2-f1",
+   "driveWheels-mk2-f2"
+  ],
+  "driveWheels-L-mk3": [
+   "driveWheels-L-mk3",
+   "driveWheels-L-mk3-f1",
+   "driveWheels-L-mk3-f2"
+  ],
+  "driveWheels-M-mk3": [
+   "driveWheels-M-mk3",
+   "driveWheels-M-mk3-f1",
+   "driveWheels-M-mk3-f2"
+  ],
+  "driveWheels-H-mk3": [
+   "driveWheels-H-mk3",
+   "driveWheels-H-mk3-f1",
+   "driveWheels-H-mk3-f2"
+  ],
+  "driveWheels-mk3": [
+   "driveWheels-mk3",
+   "driveWheels-mk3-f1",
+   "driveWheels-mk3-f2"
+  ],
+  "driveHalftrack-L-mk1": [
+   "driveHalftrack-L-mk1",
+   "driveHalftrack-L-mk1-f1",
+   "driveHalftrack-L-mk1-f2"
+  ],
+  "driveHalftrack-M-mk1": [
+   "driveHalftrack-M-mk1",
+   "driveHalftrack-M-mk1-f1",
+   "driveHalftrack-M-mk1-f2"
+  ],
+  "driveHalftrack-H-mk1": [
+   "driveHalftrack-H-mk1",
+   "driveHalftrack-H-mk1-f1",
+   "driveHalftrack-H-mk1-f2"
+  ],
+  "driveHalftrack-mk1": [
+   "driveHalftrack-mk1",
+   "driveHalftrack-mk1-f1",
+   "driveHalftrack-mk1-f2"
+  ],
+  "driveHalftrack-L-mk2": [
+   "driveHalftrack-L-mk2",
+   "driveHalftrack-L-mk2-f1",
+   "driveHalftrack-L-mk2-f2"
+  ],
+  "driveHalftrack-M-mk2": [
+   "driveHalftrack-M-mk2",
+   "driveHalftrack-M-mk2-f1",
+   "driveHalftrack-M-mk2-f2"
+  ],
+  "driveHalftrack-H-mk2": [
+   "driveHalftrack-H-mk2",
+   "driveHalftrack-H-mk2-f1",
+   "driveHalftrack-H-mk2-f2"
+  ],
+  "driveHalftrack-mk2": [
+   "driveHalftrack-mk2",
+   "driveHalftrack-mk2-f1",
+   "driveHalftrack-mk2-f2"
+  ],
+  "driveHalftrack-L-mk3": [
+   "driveHalftrack-L-mk3",
+   "driveHalftrack-L-mk3-f1",
+   "driveHalftrack-L-mk3-f2"
+  ],
+  "driveHalftrack-M-mk3": [
+   "driveHalftrack-M-mk3",
+   "driveHalftrack-M-mk3-f1",
+   "driveHalftrack-M-mk3-f2"
+  ],
+  "driveHalftrack-H-mk3": [
+   "driveHalftrack-H-mk3",
+   "driveHalftrack-H-mk3-f1",
+   "driveHalftrack-H-mk3-f2"
+  ],
+  "driveHalftrack-mk3": [
+   "driveHalftrack-mk3",
+   "driveHalftrack-mk3-f1",
+   "driveHalftrack-mk3-f2"
+  ],
+  "driveTracks-L-mk1": [
+   "driveTracks-L-mk1",
+   "driveTracks-L-mk1-f1",
+   "driveTracks-L-mk1-f2"
+  ],
+  "driveTracks-M-mk1": [
+   "driveTracks-M-mk1",
+   "driveTracks-M-mk1-f1",
+   "driveTracks-M-mk1-f2"
+  ],
+  "driveTracks-H-mk1": [
+   "driveTracks-H-mk1",
+   "driveTracks-H-mk1-f1",
+   "driveTracks-H-mk1-f2"
+  ],
+  "driveTracks-mk1": [
+   "driveTracks-mk1",
+   "driveTracks-mk1-f1",
+   "driveTracks-mk1-f2"
+  ],
+  "driveTracks-L-mk2": [
+   "driveTracks-L-mk2",
+   "driveTracks-L-mk2-f1",
+   "driveTracks-L-mk2-f2"
+  ],
+  "driveTracks-M-mk2": [
+   "driveTracks-M-mk2",
+   "driveTracks-M-mk2-f1",
+   "driveTracks-M-mk2-f2"
+  ],
+  "driveTracks-H-mk2": [
+   "driveTracks-H-mk2",
+   "driveTracks-H-mk2-f1",
+   "driveTracks-H-mk2-f2"
+  ],
+  "driveTracks-mk2": [
+   "driveTracks-mk2",
+   "driveTracks-mk2-f1",
+   "driveTracks-mk2-f2"
+  ],
+  "driveTracks-L-mk3": [
+   "driveTracks-L-mk3",
+   "driveTracks-L-mk3-f1",
+   "driveTracks-L-mk3-f2"
+  ],
+  "driveTracks-M-mk3": [
+   "driveTracks-M-mk3",
+   "driveTracks-M-mk3-f1",
+   "driveTracks-M-mk3-f2"
+  ],
+  "driveTracks-H-mk3": [
+   "driveTracks-H-mk3",
+   "driveTracks-H-mk3-f1",
+   "driveTracks-H-mk3-f2"
+  ],
+  "driveTracks-mk3": [
+   "driveTracks-mk3",
+   "driveTracks-mk3-f1",
+   "driveTracks-mk3-f2"
+  ]
+ },
+ "hullSize": {
+  "hullLight": "L",
+  "hullMedium": "M",
+  "hullHeavy": "H"
+ },
+ "drives": {
+  "driveWheels": {
+   "L": {
+    "mk1": "driveWheels-L-mk1",
+    "mk2": "driveWheels-L-mk2",
+    "mk3": "driveWheels-L-mk3"
+   },
+   "M": {
+    "mk1": "driveWheels-M-mk1",
+    "mk2": "driveWheels-M-mk2",
+    "mk3": "driveWheels-M-mk3"
+   },
+   "H": {
+    "mk1": "driveWheels-H-mk1",
+    "mk2": "driveWheels-H-mk2",
+    "mk3": "driveWheels-H-mk3"
+   }
+  },
+  "driveHalftrack": {
+   "L": {
+    "mk1": "driveHalftrack-L-mk1",
+    "mk2": "driveHalftrack-L-mk2",
+    "mk3": "driveHalftrack-L-mk3"
+   },
+   "M": {
+    "mk1": "driveHalftrack-M-mk1",
+    "mk2": "driveHalftrack-M-mk2",
+    "mk3": "driveHalftrack-M-mk3"
+   },
+   "H": {
+    "mk1": "driveHalftrack-H-mk1",
+    "mk2": "driveHalftrack-H-mk2",
+    "mk3": "driveHalftrack-H-mk3"
+   }
+  },
+  "driveTracks": {
+   "L": {
+    "mk1": "driveTracks-L-mk1",
+    "mk2": "driveTracks-L-mk2",
+    "mk3": "driveTracks-L-mk3"
+   },
+   "M": {
+    "mk1": "driveTracks-M-mk1",
+    "mk2": "driveTracks-M-mk2",
+    "mk3": "driveTracks-M-mk3"
+   },
+   "H": {
+    "mk1": "driveTracks-H-mk1",
+    "mk2": "driveTracks-H-mk2",
+    "mk3": "driveTracks-H-mk3"
+   }
+  }
+ },
+ "aliases": {
+  "driveWheels-mk1": "driveWheels-L-mk1",
+  "driveWheels-mk2": "driveWheels-L-mk2",
+  "driveWheels-mk3": "driveWheels-L-mk3",
+  "driveHalftrack-mk1": "driveHalftrack-L-mk1",
+  "driveHalftrack-mk2": "driveHalftrack-L-mk2",
+  "driveHalftrack-mk3": "driveHalftrack-L-mk3",
+  "driveTracks-mk1": "driveTracks-L-mk1",
+  "driveTracks-mk2": "driveTracks-L-mk2",
+  "driveTracks-mk3": "driveTracks-L-mk3"
+ },
+ "stripe": [
+  "hullLight-mk1",
+  "hullLight-mk2",
+  "hullLight-mk3",
+  "hullMedium-mk1",
+  "hullMedium-mk2",
+  "hullMedium-mk3",
+  "hullHeavy-mk1",
+  "hullHeavy-mk2",
+  "hullHeavy-mk3"
+ ],
+ "icons": {
+  "hullLight": "icons/hullLight.png",
+  "hullMedium": "icons/hullMedium.png",
+  "hullHeavy": "icons/hullHeavy.png",
+  "driveWheels": "icons/driveWheels.png",
+  "driveHalftrack": "icons/driveHalftrack.png",
+  "driveTracks": "icons/driveTracks.png",
+  "turretMG": "icons/turretMG.png",
+  "turretCannon": "icons/turretCannon.png",
+  "turretRocket": "icons/turretRocket.png"
+ }
+}

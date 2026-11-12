@@ -1,0 +1,210 @@
+{
+ "partSize": 64,
+ "ring": {
+  "hullLight": [
+   0,
+   1
+  ],
+  "hullMedium": [
+   0,
+   1
+  ],
+  "hullHeavy": [
+   0,
+   2
+  ]
+ },
+ "deck": {
+  "hullLight": 6.5,
+  "hullMedium": 7.0,
+  "hullHeavy": 8.0
+ },
+ "stripe": [
+  "hullLight",
+  "hullMedium",
+  "hullHeavy"
+ ],
+ "parts": [
+  "hullLight",
+  "hullMedium",
+  "hullHeavy",
+  "driveWheels",
+  "driveHalftrack",
+  "driveTracks",
+  "turretMG",
+  "turretCannon",
+  "turretRocket",
+  "turretCannon3",
+  "crate",
+  "shotBullet",
+  "shotShell",
+  "shotRocket"
+ ],
+ "drives": [
+  "driveWheels",
+  "driveHalftrack",
+  "driveTracks"
+ ],
+ "props": {
+  "wall-2": {
+   "x": -30,
+   "y": -16,
+   "w": 60,
+   "h": 18,
+   "sort": 2
+  },
+  "wall-1": {
+   "x": -30,
+   "y": -17,
+   "w": 60,
+   "h": 23,
+   "sort": 2
+  },
+  "wall-0": {
+   "x": -30,
+   "y": -17,
+   "w": 60,
+   "h": 27,
+   "sort": 2
+  },
+  "oakTrunk": {
+   "x": -4,
+   "y": -17,
+   "w": 8,
+   "h": 20,
+   "sort": 1
+  },
+  "oakCanopy": {
+   "x": -14,
+   "y": -38,
+   "w": 28,
+   "h": 38,
+   "sort": 999
+  },
+  "pineTrunk": {
+   "x": -1,
+   "y": -9,
+   "w": 2,
+   "h": 10,
+   "sort": 1
+  },
+  "pineCanopy": {
+   "x": -9,
+   "y": -35,
+   "w": 17,
+   "h": 36,
+   "sort": 999
+  },
+  "rockA": {
+   "x": -8,
+   "y": -9,
+   "w": 16,
+   "h": 14,
+   "sort": 3
+  },
+  "rockB": {
+   "x": -5,
+   "y": -6,
+   "w": 10,
+   "h": 9,
+   "sort": 2
+  },
+  "rockC": {
+   "x": -7,
+   "y": -9,
+   "w": 17,
+   "h": 15,
+   "sort": 4
+  },
+  "houseBack": {
+   "x": -40,
+   "y": -49,
+   "w": 80,
+   "h": 72,
+   "sort": -24.0
+  },
+  "houseFront": {
+   "x": -38,
+   "y": 3,
+   "w": 76,
+   "h": 31,
+   "sort": 28.0
+  },
+  "houseRoof": {
+   "x": -40,
+   "y": -50,
+   "w": 46,
+   "h": 56,
+   "sort": 999
+  },
+  "corner": {
+   "x": -22,
+   "y": -26,
+   "w": 38,
+   "h": 40,
+   "sort": 9
+  }
+ },
+ "shadows": {
+  "wall-2": {
+   "x": -29,
+   "y": -10
+  },
+  "wall-1": {
+   "x": -29,
+   "y": -10
+  },
+  "wall-0": {
+   "x": -29,
+   "y": -10
+  },
+  "oak": {
+   "x": -3,
+   "y": -26
+  },
+  "pine": {
+   "x": -5,
+   "y": -21
+  },
+  "rockA": {
+   "x": -7,
+   "y": -7
+  },
+  "rockB": {
+   "x": -4,
+   "y": -5
+  },
+  "rockC": {
+   "x": -6,
+   "y": -7
+  },
+  "house": {
+   "x": -39,
+   "y": -41
+  },
+  "corner": {
+   "x": -21,
+   "y": -21
+  }
+ },
+ "wall": {
+  "l": 60.0,
+  "t": 4.0,
+  "h": 14.4
+ },
+ "house": {
+  "w": 76.0,
+  "d": 52.0,
+  "t": 3.2,
+  "h": 22.0,
+  "door": [
+   26.0,
+   62.0
+  ]
+ },
+ "sun": [
+  -0.5576627146334462,
+  0.4182470359750846,
+  0.7169949188144308
+ ]
+}

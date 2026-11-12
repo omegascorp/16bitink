@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>InkTanks art test</title>
+  <link rel="icon" href="data:,">
+  <style>
+    html, body { margin: 0; height: 100%; background: #1b1a16; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+    #game { position: fixed; inset: 0; }
+    #game canvas { image-rendering: pixelated; display: block; }
+    #label { position: fixed; left: 10px; top: 8px; font: 600 13px/1.35 ui-monospace, Menlo, monospace; color: #f4ecd8; background: rgba(20, 18, 14, 0.62); padding: 5px 9px; border-radius: 4px; pointer-events: none; white-space: pre; }
+    #buttons { position: fixed; right: 10px; top: 8px; display: none; gap: 6px; }
+    #buttons.on { display: flex; }
+    #buttons button { font: 700 15px ui-monospace, Menlo, monospace; color: #f4ecd8; background: rgba(20, 18, 14, 0.7); border: 1px solid rgba(244, 236, 216, 0.4); border-radius: 6px; min-width: 40px; height: 36px; }
+    .stick-base, .stick-knob { position: fixed; display: none; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+    .stick-base { width: 128px; height: 128px; border: 2px solid rgba(244, 236, 216, 0.7); background: rgba(20, 18, 14, 0.25); }
+    .stick-knob { width: 44px; height: 44px; background: rgba(244, 236, 216, 0.85); }
+    .stick-base.aim { border-color: rgba(255, 190, 120, 0.8); }
+    .stick-knob.aim { background: rgba(255, 190, 120, 0.9); }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+  <div id="label"></div>
+  <div id="buttons"><button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button><button data-key="4">4</button><button data-key="r">R</button></div>
+  <script type="module" src="./art-test/main.ts"></script>
+</body>
+</html>

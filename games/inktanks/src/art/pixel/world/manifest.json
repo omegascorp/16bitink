@@ -1,0 +1,4927 @@
+{
+ "density": "C",
+ "unit": 2.0,
+ "projection": "structures: screen = (gx, gy - z), origin = anchor; vehicles: straight down, facing north, pivot = frame centre",
+ "sun": {
+  "shadow": [
+   0.78,
+   -0.58
+  ]
+ },
+ "ground": {
+  "water": {
+   "file": "ground/water.png",
+   "edge": "ground/water-edge.png",
+   "size": 512,
+   "order": 0
+  },
+  "mud": {
+   "file": "ground/mud.png",
+   "edge": "ground/mud-edge.png",
+   "size": 512,
+   "order": 1
+  },
+  "sand": {
+   "file": "ground/sand.png",
+   "edge": "ground/sand-edge.png",
+   "size": 512,
+   "order": 2
+  },
+  "dirt": {
+   "file": "ground/dirt.png",
+   "edge": "ground/dirt-edge.png",
+   "size": 512,
+   "order": 3
+  },
+  "concrete": {
+   "file": "ground/concrete.png",
+   "edge": "ground/concrete-edge.png",
+   "size": 128,
+   "order": 4
+  },
+  "grassDry": {
+   "file": "ground/grassDry.png",
+   "edge": "ground/grassDry-edge.png",
+   "size": 512,
+   "order": 5
+  },
+  "grass": {
+   "file": "ground/grass.png",
+   "edge": "ground/grass-edge.png",
+   "size": 512,
+   "order": 6
+  }
+ },
+ "decals": {
+  "tuft": [
+   {
+    "key": "tuft1",
+    "file": "decals/tuft1.png",
+    "size": [
+     12,
+     9
+    ]
+   },
+   {
+    "key": "tuft2",
+    "file": "decals/tuft2.png",
+    "size": [
+     12,
+     10
+    ]
+   },
+   {
+    "key": "tuft3",
+    "file": "decals/tuft3.png",
+    "size": [
+     12,
+     10
+    ]
+   },
+   {
+    "key": "tuft4",
+    "file": "decals/tuft4.png",
+    "size": [
+     15,
+     14
+    ]
+   },
+   {
+    "key": "tuft5",
+    "file": "decals/tuft5.png",
+    "size": [
+     12,
+     13
+    ]
+   },
+   {
+    "key": "tuft6",
+    "file": "decals/tuft6.png",
+    "size": [
+     16,
+     13
+    ]
+   },
+   {
+    "key": "tuft7",
+    "file": "decals/tuft7.png",
+    "size": [
+     12,
+     13
+    ]
+   },
+   {
+    "key": "tuft8",
+    "file": "decals/tuft8.png",
+    "size": [
+     13,
+     13
+    ]
+   },
+   {
+    "key": "tuft9",
+    "file": "decals/tuft9.png",
+    "size": [
+     22,
+     20
+    ]
+   },
+   {
+    "key": "tuft10",
+    "file": "decals/tuft10.png",
+    "size": [
+     16,
+     15
+    ]
+   },
+   {
+    "key": "tuft11",
+    "file": "decals/tuft11.png",
+    "size": [
+     18,
+     14
+    ]
+   },
+   {
+    "key": "tuft12",
+    "file": "decals/tuft12.png",
+    "size": [
+     20,
+     21
+    ]
+   },
+   {
+    "key": "tuft13",
+    "file": "decals/tuft13.png",
+    "size": [
+     21,
+     22
+    ]
+   },
+   {
+    "key": "tuft14",
+    "file": "decals/tuft14.png",
+    "size": [
+     20,
+     20
+    ]
+   },
+   {
+    "key": "tuft15",
+    "file": "decals/tuft15.png",
+    "size": [
+     24,
+     23
+    ]
+   },
+   {
+    "key": "tuft16",
+    "file": "decals/tuft16.png",
+    "size": [
+     12,
+     12
+    ]
+   }
+  ],
+  "tuftDry": [
+   {
+    "key": "tuftDry1",
+    "file": "decals/tuftDry1.png",
+    "size": [
+     17,
+     13
+    ]
+   },
+   {
+    "key": "tuftDry2",
+    "file": "decals/tuftDry2.png",
+    "size": [
+     15,
+     15
+    ]
+   },
+   {
+    "key": "tuftDry3",
+    "file": "decals/tuftDry3.png",
+    "size": [
+     12,
+     13
+    ]
+   },
+   {
+    "key": "tuftDry4",
+    "file": "decals/tuftDry4.png",
+    "size": [
+     14,
+     14
+    ]
+   },
+   {
+    "key": "tuftDry5",
+    "file": "decals/tuftDry5.png",
+    "size": [
+     16,
+     14
+    ]
+   },
+   {
+    "key": "tuftDry6",
+    "file": "decals/tuftDry6.png",
+    "size": [
+     18,
+     16
+    ]
+   },
+   {
+    "key": "tuftDry7",
+    "file": "decals/tuftDry7.png",
+    "size": [
+     10,
+     12
+    ]
+   },
+   {
+    "key": "tuftDry8",
+    "file": "decals/tuftDry8.png",
+    "size": [
+     13,
+     15
+    ]
+   },
+   {
+    "key": "tuftDry9",
+    "file": "decals/tuftDry9.png",
+    "size": [
+     13,
+     10
+    ]
+   },
+   {
+    "key": "tuftDry10",
+    "file": "decals/tuftDry10.png",
+    "size": [
+     20,
+     18
+    ]
+   },
+   {
+    "key": "tuftDry11",
+    "file": "decals/tuftDry11.png",
+    "size": [
+     19,
+     19
+    ]
+   },
+   {
+    "key": "tuftDry12",
+    "file": "decals/tuftDry12.png",
+    "size": [
+     21,
+     19
+    ]
+   },
+   {
+    "key": "tuftDry13",
+    "file": "decals/tuftDry13.png",
+    "size": [
+     15,
+     13
+    ]
+   },
+   {
+    "key": "tuftDry14",
+    "file": "decals/tuftDry14.png",
+    "size": [
+     17,
+     17
+    ]
+   },
+   {
+    "key": "tuftDry15",
+    "file": "decals/tuftDry15.png",
+    "size": [
+     15,
+     12
+    ]
+   },
+   {
+    "key": "tuftDry16",
+    "file": "decals/tuftDry16.png",
+    "size": [
+     17,
+     15
+    ]
+   }
+  ],
+  "tuftBig": [
+   {
+    "key": "tuftBig1",
+    "file": "decals/tuftBig1.png",
+    "size": [
+     36,
+     36
+    ]
+   },
+   {
+    "key": "tuftBig2",
+    "file": "decals/tuftBig2.png",
+    "size": [
+     35,
+     34
+    ]
+   },
+   {
+    "key": "tuftBig3",
+    "file": "decals/tuftBig3.png",
+    "size": [
+     31,
+     29
+    ]
+   },
+   {
+    "key": "tuftBig4",
+    "file": "decals/tuftBig4.png",
+    "size": [
+     38,
+     37
+    ]
+   },
+   {
+    "key": "tuftBig5",
+    "file": "decals/tuftBig5.png",
+    "size": [
+     33,
+     32
+    ]
+   },
+   {
+    "key": "tuftBig6",
+    "file": "decals/tuftBig6.png",
+    "size": [
+     38,
+     39
+    ]
+   },
+   {
+    "key": "tuftBig7",
+    "file": "decals/tuftBig7.png",
+    "size": [
+     31,
+     28
+    ]
+   },
+   {
+    "key": "tuftBig8",
+    "file": "decals/tuftBig8.png",
+    "size": [
+     38,
+     37
+    ]
+   },
+   {
+    "key": "tuftBig9",
+    "file": "decals/tuftBig9.png",
+    "size": [
+     36,
+     36
+    ]
+   },
+   {
+    "key": "tuftBig10",
+    "file": "decals/tuftBig10.png",
+    "size": [
+     35,
+     32
+    ]
+   }
+  ],
+  "flowers": [
+   {
+    "key": "flowers1",
+    "file": "decals/flowers1.png",
+    "size": [
+     34,
+     34
+    ]
+   },
+   {
+    "key": "flowers2",
+    "file": "decals/flowers2.png",
+    "size": [
+     32,
+     30
+    ]
+   },
+   {
+    "key": "flowers3",
+    "file": "decals/flowers3.png",
+    "size": [
+     35,
+     34
+    ]
+   },
+   {
+    "key": "flowers4",
+    "file": "decals/flowers4.png",
+    "size": [
+     33,
+     32
+    ]
+   },
+   {
+    "key": "flowers5",
+    "file": "decals/flowers5.png",
+    "size": [
+     33,
+     35
+    ]
+   },
+   {
+    "key": "flowers6",
+    "file": "decals/flowers6.png",
+    "size": [
+     34,
+     31
+    ]
+   },
+   {
+    "key": "flowers7",
+    "file": "decals/flowers7.png",
+    "size": [
+     33,
+     33
+    ]
+   },
+   {
+    "key": "flowers8",
+    "file": "decals/flowers8.png",
+    "size": [
+     34,
+     30
+    ]
+   },
+   {
+    "key": "flowers9",
+    "file": "decals/flowers9.png",
+    "size": [
+     33,
+     32
+    ]
+   },
+   {
+    "key": "flowers10",
+    "file": "decals/flowers10.png",
+    "size": [
+     34,
+     32
+    ]
+   }
+  ],
+  "puddle": [
+   {
+    "key": "puddle1",
+    "file": "decals/puddle1.png",
+    "size": [
+     55,
+     54
+    ]
+   },
+   {
+    "key": "puddle2",
+    "file": "decals/puddle2.png",
+    "size": [
+     58,
+     46
+    ]
+   },
+   {
+    "key": "puddle3",
+    "file": "decals/puddle3.png",
+    "size": [
+     49,
+     50
+    ]
+   },
+   {
+    "key": "puddle4",
+    "file": "decals/puddle4.png",
+    "size": [
+     52,
+     51
+    ]
+   }
+  ],
+  "crater": [
+   {
+    "key": "crater1",
+    "file": "decals/crater1.png",
+    "size": [
+     92,
+     92
+    ]
+   },
+   {
+    "key": "crater2",
+    "file": "decals/crater2.png",
+    "size": [
+     110,
+     107
+    ]
+   },
+   {
+    "key": "crater3",
+    "file": "decals/crater3.png",
+    "size": [
+     87,
+     88
+    ]
+   }
+  ],
+  "scorch": [
+   {
+    "key": "scorch1",
+    "file": "decals/scorch1.png",
+    "size": [
+     111,
+     113
+    ]
+   },
+   {
+    "key": "scorch2",
+    "file": "decals/scorch2.png",
+    "size": [
+     104,
+     105
+    ]
+   },
+   {
+    "key": "scorch3",
+    "file": "decals/scorch3.png",
+    "size": [
+     109,
+     103
+    ]
+   }
+  ],
+  "ruts": [
+   {
+    "key": "ruts1",
+    "file": "decals/ruts1.png",
+    "size": [
+     106,
+     128
+    ]
+   },
+   {
+    "key": "ruts2",
+    "file": "decals/ruts2.png",
+    "size": [
+     84,
+     128
+    ]
+   }
+  ]
+ },
+ "structures": {
+  "farmhouse": {
+   "layer": "structure",
+   "anchor": [
+    82,
+    162
+   ],
+   "size": [
+    226,
+    225
+   ],
+   "states": [
+    2,
+    1,
+    0
+   ],
+   "hp": 600,
+   "height": 78.8,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "2": [
+     [
+      [
+       -77.3,
+       -38.0
+      ],
+      [
+       -75.0,
+       -44.3
+      ],
+      [
+       75.0,
+       -44.3
+      ],
+      [
+       77.3,
+       -38.0
+      ],
+      [
+       77.3,
+       38.0
+      ],
+      [
+       75.0,
+       44.3
+      ],
+      [
+       -75.0,
+       44.3
+      ],
+      [
+       -77.3,
+       38.0
+      ]
+     ]
+    ],
+    "1": [
+     [
+      [
+       -77.3,
+       -38.0
+      ],
+      [
+       -75.0,
+       -44.3
+      ],
+      [
+       75.0,
+       -44.3
+      ],
+      [
+       77.3,
+       -38.0
+      ],
+      [
+       77.3,
+       38.0
+      ],
+      [
+       75.0,
+       44.3
+      ],
+      [
+       -75.0,
+       44.3
+      ],
+      [
+       -77.3,
+       38.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -77.3,
+       -38.0
+      ],
+      [
+       -75.0,
+       -44.3
+      ],
+      [
+       75.0,
+       -44.3
+      ],
+      [
+       77.3,
+       -38.0
+      ],
+      [
+       77.3,
+       38.0
+      ],
+      [
+       75.0,
+       44.3
+      ],
+      [
+       -75.0,
+       44.3
+      ],
+      [
+       -77.3,
+       38.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {
+    "2": [
+     4,
+     76,
+     156,
+     90
+    ],
+    "1": [
+     4,
+     76,
+     156,
+     90
+    ],
+    "0": [
+     4,
+     76,
+     82,
+     90
+    ]
+   },
+   "pieces": {
+    "farmhouse-2": {
+     "file": "structures/farmhouse-2.png",
+     "sortY": 44.3
+    },
+    "farmhouse-2-roof": {
+     "file": "structures/farmhouse-2-roof.png",
+     "sortY": 999
+    },
+    "farmhouse-1": {
+     "file": "structures/farmhouse-1.png",
+     "sortY": 44.3
+    },
+    "farmhouse-1-roof": {
+     "file": "structures/farmhouse-1-roof.png",
+     "sortY": 999
+    },
+    "farmhouse-0": {
+     "file": "structures/farmhouse-0.png",
+     "sortY": 44.3
+    },
+    "farmhouse-0-roof": {
+     "file": "structures/farmhouse-0-roof.png",
+     "sortY": 999
+    }
+   },
+   "shadows": {
+    "2": "structures/farmhouse-2-shadow.png",
+    "1": "structures/farmhouse-1-shadow.png",
+    "0": "structures/farmhouse-0-shadow.png"
+   }
+  },
+  "brickWallH": {
+   "layer": "structure",
+   "anchor": [
+    36,
+    40
+   ],
+   "size": [
+    86,
+    54
+   ],
+   "states": [
+    2,
+    1,
+    0
+   ],
+   "hp": 220,
+   "height": 17.8,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "2": [
+     [
+      [
+       -32.0,
+       -2.5
+      ],
+      [
+       32.0,
+       -2.5
+      ],
+      [
+       32.0,
+       2.5
+      ],
+      [
+       -32.0,
+       2.5
+      ]
+     ]
+    ],
+    "1": [
+     [
+      [
+       -32.0,
+       -2.5
+      ],
+      [
+       32.0,
+       -2.5
+      ],
+      [
+       32.0,
+       2.5
+      ],
+      [
+       -32.0,
+       2.5
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -32.0,
+       -2.5
+      ],
+      [
+       -12.0,
+       -2.5
+      ],
+      [
+       -12.0,
+       2.5
+      ],
+      [
+       -32.0,
+       2.5
+      ]
+     ],
+     [
+      [
+       13.0,
+       -2.5
+      ],
+      [
+       32.0,
+       -2.5
+      ],
+      [
+       32.0,
+       2.5
+      ],
+      [
+       13.0,
+       2.5
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "brickWallH-2": {
+     "file": "structures/brickWallH-2.png",
+     "sortY": 2.5
+    },
+    "brickWallH-1": {
+     "file": "structures/brickWallH-1.png",
+     "sortY": 2.5
+    },
+    "brickWallH-0": {
+     "file": "structures/brickWallH-0.png",
+     "sortY": 2.5
+    }
+   },
+   "shadows": {
+    "2": "structures/brickWallH-2-shadow.png",
+    "1": "structures/brickWallH-1-shadow.png",
+    "0": "structures/brickWallH-0-shadow.png"
+   }
+  },
+  "fenceH": {
+   "layer": "structure",
+   "anchor": [
+    38,
+    33
+   ],
+   "size": [
+    87,
+    47
+   ],
+   "states": [
+    1,
+    0
+   ],
+   "hp": 40,
+   "height": 15.0,
+   "flattenable": true,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -32.0,
+       -1.5
+      ],
+      [
+       32.0,
+       -1.5
+      ],
+      [
+       32.0,
+       1.5
+      ],
+      [
+       -32.0,
+       1.5
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -32.0,
+       -1.5
+      ],
+      [
+       32.0,
+       -1.5
+      ],
+      [
+       32.0,
+       1.5
+      ],
+      [
+       -32.0,
+       1.5
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "fenceH-1": {
+     "file": "structures/fenceH-1.png",
+     "sortY": 1.5
+    },
+    "fenceH-0": {
+     "file": "structures/fenceH-0.png",
+     "sortY": 1.5
+    }
+   },
+   "shadows": {
+    "1": "structures/fenceH-1-shadow.png",
+    "0": "structures/fenceH-0-shadow.png"
+   }
+  },
+  "rockB": {
+   "layer": "structure",
+   "anchor": [
+    24,
+    32
+   ],
+   "size": [
+    54,
+    45
+   ],
+   "states": [
+    1
+   ],
+   "hp": 0,
+   "height": 10.9,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -17.4,
+       -1.4
+      ],
+      [
+       -13.9,
+       -5.9
+      ],
+      [
+       -9.8,
+       -10.8
+      ],
+      [
+       -1.9,
+       -13.1
+      ],
+      [
+       5.8,
+       -10.7
+      ],
+      [
+       11.9,
+       -8.1
+      ],
+      [
+       15.2,
+       -3.0
+      ],
+      [
+       16.6,
+       3.2
+      ],
+      [
+       14.3,
+       7.5
+      ],
+      [
+       4.6,
+       7.7
+      ],
+      [
+       -1.8,
+       7.8
+      ],
+      [
+       -9.5,
+       7.2
+      ],
+      [
+       -17.3,
+       4.9
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "rockB-1": {
+     "file": "structures/rockB-1.png",
+     "sortY": 7.8
+    }
+   },
+   "shadows": {
+    "1": "structures/rockB-1-shadow.png"
+   }
+  },
+  "barn": {
+   "layer": "structure",
+   "anchor": [
+    85,
+    147
+   ],
+   "size": [
+    222,
+    216
+   ],
+   "states": [
+    2,
+    1,
+    0
+   ],
+   "hp": 700,
+   "height": 66.8,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "2": [
+     [
+      [
+       -78.0,
+       -55.5
+      ],
+      [
+       78.0,
+       -55.5
+      ],
+      [
+       78.0,
+       -52.5
+      ],
+      [
+       -78.0,
+       -52.5
+      ]
+     ],
+     [
+      [
+       -79.5,
+       -51.0
+      ],
+      [
+       -76.5,
+       -51.0
+      ],
+      [
+       -76.5,
+       51.0
+      ],
+      [
+       -79.5,
+       51.0
+      ]
+     ],
+     [
+      [
+       76.5,
+       -51.0
+      ],
+      [
+       79.5,
+       -51.0
+      ],
+      [
+       79.5,
+       51.0
+      ],
+      [
+       76.5,
+       51.0
+      ]
+     ],
+     [
+      [
+       -78.0,
+       52.5
+      ],
+      [
+       -34.0,
+       52.5
+      ],
+      [
+       -34.0,
+       55.5
+      ],
+      [
+       -78.0,
+       55.5
+      ]
+     ],
+     [
+      [
+       34.0,
+       52.5
+      ],
+      [
+       78.0,
+       52.5
+      ],
+      [
+       78.0,
+       55.5
+      ],
+      [
+       34.0,
+       55.5
+      ]
+     ]
+    ],
+    "1": [
+     [
+      [
+       -78.0,
+       -55.5
+      ],
+      [
+       -54.0,
+       -55.5
+      ],
+      [
+       -54.0,
+       -52.5
+      ],
+      [
+       -78.0,
+       -52.5
+      ]
+     ],
+     [
+      [
+       -50.0,
+       -55.5
+      ],
+      [
+       38.0,
+       -55.5
+      ],
+      [
+       38.0,
+       -52.5
+      ],
+      [
+       -50.0,
+       -52.5
+      ]
+     ],
+     [
+      [
+       42.0,
+       -55.5
+      ],
+      [
+       78.0,
+       -55.5
+      ],
+      [
+       78.0,
+       -52.5
+      ],
+      [
+       42.0,
+       -52.5
+      ]
+     ],
+     [
+      [
+       -79.5,
+       -51.0
+      ],
+      [
+       -76.5,
+       -51.0
+      ],
+      [
+       -76.5,
+       -27.0
+      ],
+      [
+       -79.5,
+       -27.0
+      ]
+     ],
+     [
+      [
+       -79.5,
+       -23.0
+      ],
+      [
+       -76.5,
+       -23.0
+      ],
+      [
+       -76.5,
+       51.0
+      ],
+      [
+       -79.5,
+       51.0
+      ]
+     ],
+     [
+      [
+       76.5,
+       -51.0
+      ],
+      [
+       79.5,
+       -51.0
+      ],
+      [
+       79.5,
+       -27.0
+      ],
+      [
+       76.5,
+       -27.0
+      ]
+     ],
+     [
+      [
+       76.5,
+       -23.0
+      ],
+      [
+       79.5,
+       -23.0
+      ],
+      [
+       79.5,
+       51.0
+      ],
+      [
+       76.5,
+       51.0
+      ]
+     ],
+     [
+      [
+       -78.0,
+       52.5
+      ],
+      [
+       -54.0,
+       52.5
+      ],
+      [
+       -54.0,
+       55.5
+      ],
+      [
+       -78.0,
+       55.5
+      ]
+     ],
+     [
+      [
+       -50.0,
+       52.5
+      ],
+      [
+       -34.0,
+       52.5
+      ],
+      [
+       -34.0,
+       55.5
+      ],
+      [
+       -50.0,
+       55.5
+      ]
+     ],
+     [
+      [
+       34.0,
+       52.5
+      ],
+      [
+       38.0,
+       52.5
+      ],
+      [
+       38.0,
+       55.5
+      ],
+      [
+       34.0,
+       55.5
+      ]
+     ],
+     [
+      [
+       42.0,
+       52.5
+      ],
+      [
+       78.0,
+       52.5
+      ],
+      [
+       78.0,
+       55.5
+      ],
+      [
+       42.0,
+       55.5
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -74.0,
+       -55.5
+      ],
+      [
+       -58.0,
+       -55.5
+      ],
+      [
+       -58.0,
+       -52.5
+      ],
+      [
+       -74.0,
+       -52.5
+      ]
+     ],
+     [
+      [
+       -54.0,
+       -55.5
+      ],
+      [
+       -38.0,
+       -55.5
+      ],
+      [
+       -38.0,
+       -52.5
+      ],
+      [
+       -54.0,
+       -52.5
+      ]
+     ],
+     [
+      [
+       -34.0,
+       -55.5
+      ],
+      [
+       -18.0,
+       -55.5
+      ],
+      [
+       -18.0,
+       -52.5
+      ],
+      [
+       -34.0,
+       -52.5
+      ]
+     ],
+     [
+      [
+       -14.0,
+       -55.5
+      ],
+      [
+       2.0,
+       -55.5
+      ],
+      [
+       2.0,
+       -52.5
+      ],
+      [
+       -14.0,
+       -52.5
+      ]
+     ],
+     [
+      [
+       6.0,
+       -55.5
+      ],
+      [
+       22.0,
+       -55.5
+      ],
+      [
+       22.0,
+       -52.5
+      ],
+      [
+       6.0,
+       -52.5
+      ]
+     ],
+     [
+      [
+       26.0,
+       -55.5
+      ],
+      [
+       42.0,
+       -55.5
+      ],
+      [
+       42.0,
+       -52.5
+      ],
+      [
+       26.0,
+       -52.5
+      ]
+     ],
+     [
+      [
+       46.0,
+       -55.5
+      ],
+      [
+       62.0,
+       -55.5
+      ],
+      [
+       62.0,
+       -52.5
+      ],
+      [
+       46.0,
+       -52.5
+      ]
+     ],
+     [
+      [
+       66.0,
+       -55.5
+      ],
+      [
+       78.0,
+       -55.5
+      ],
+      [
+       78.0,
+       -52.5
+      ],
+      [
+       66.0,
+       -52.5
+      ]
+     ],
+     [
+      [
+       -79.5,
+       -47.0
+      ],
+      [
+       -76.5,
+       -47.0
+      ],
+      [
+       -76.5,
+       -31.0
+      ],
+      [
+       -79.5,
+       -31.0
+      ]
+     ],
+     [
+      [
+       -79.5,
+       -27.0
+      ],
+      [
+       -76.5,
+       -27.0
+      ],
+      [
+       -76.5,
+       -11.0
+      ],
+      [
+       -79.5,
+       -11.0
+      ]
+     ],
+     [
+      [
+       -79.5,
+       -7.0
+      ],
+      [
+       -76.5,
+       -7.0
+      ],
+      [
+       -76.5,
+       9.0
+      ],
+      [
+       -79.5,
+       9.0
+      ]
+     ],
+     [
+      [
+       -79.5,
+       13.0
+      ],
+      [
+       -76.5,
+       13.0
+      ],
+      [
+       -76.5,
+       29.0
+      ],
+      [
+       -79.5,
+       29.0
+      ]
+     ],
+     [
+      [
+       -79.5,
+       33.0
+      ],
+      [
+       -76.5,
+       33.0
+      ],
+      [
+       -76.5,
+       51.0
+      ],
+      [
+       -79.5,
+       51.0
+      ]
+     ],
+     [
+      [
+       76.5,
+       -47.0
+      ],
+      [
+       79.5,
+       -47.0
+      ],
+      [
+       79.5,
+       -31.0
+      ],
+      [
+       76.5,
+       -31.0
+      ]
+     ],
+     [
+      [
+       76.5,
+       -27.0
+      ],
+      [
+       79.5,
+       -27.0
+      ],
+      [
+       79.5,
+       -11.0
+      ],
+      [
+       76.5,
+       -11.0
+      ]
+     ],
+     [
+      [
+       76.5,
+       -7.0
+      ],
+      [
+       79.5,
+       -7.0
+      ],
+      [
+       79.5,
+       9.0
+      ],
+      [
+       76.5,
+       9.0
+      ]
+     ],
+     [
+      [
+       76.5,
+       13.0
+      ],
+      [
+       79.5,
+       13.0
+      ],
+      [
+       79.5,
+       29.0
+      ],
+      [
+       76.5,
+       29.0
+      ]
+     ],
+     [
+      [
+       76.5,
+       33.0
+      ],
+      [
+       79.5,
+       33.0
+      ],
+      [
+       79.5,
+       51.0
+      ],
+      [
+       76.5,
+       51.0
+      ]
+     ],
+     [
+      [
+       -78.0,
+       52.5
+      ],
+      [
+       -34.0,
+       52.5
+      ],
+      [
+       -34.0,
+       55.5
+      ],
+      [
+       -78.0,
+       55.5
+      ]
+     ],
+     [
+      [
+       34.0,
+       52.5
+      ],
+      [
+       78.0,
+       52.5
+      ],
+      [
+       78.0,
+       55.5
+      ],
+      [
+       34.0,
+       55.5
+      ]
+     ]
+    ]
+   },
+   "roofFade": {
+    "2": [
+     4,
+     57,
+     162,
+     114
+    ],
+    "1": [
+     4,
+     57,
+     162,
+     114
+    ],
+    "0": [
+     4,
+     57,
+     60,
+     114
+    ]
+   },
+   "pieces": {
+    "barn-2": {
+     "file": "structures/barn-2.png",
+     "sortY": -53.5
+    },
+    "barn-2-front": {
+     "file": "structures/barn-2-front.png",
+     "sortY": 55.5
+    },
+    "barn-2-roof": {
+     "file": "structures/barn-2-roof.png",
+     "sortY": 999
+    },
+    "barn-1": {
+     "file": "structures/barn-1.png",
+     "sortY": -53.5
+    },
+    "barn-1-front": {
+     "file": "structures/barn-1-front.png",
+     "sortY": 55.5
+    },
+    "barn-1-roof": {
+     "file": "structures/barn-1-roof.png",
+     "sortY": 999
+    },
+    "barn-0": {
+     "file": "structures/barn-0.png",
+     "sortY": -53.5
+    },
+    "barn-0-front": {
+     "file": "structures/barn-0-front.png",
+     "sortY": 55.5
+    },
+    "barn-0-roof": {
+     "file": "structures/barn-0-roof.png",
+     "sortY": 999
+    }
+   },
+   "shadows": {
+    "2": "structures/barn-2-shadow.png",
+    "1": "structures/barn-1-shadow.png",
+    "0": "structures/barn-0-shadow.png"
+   }
+  },
+  "houseStone": {
+   "layer": "structure",
+   "anchor": [
+    59,
+    121
+   ],
+   "size": [
+    165,
+    172
+   ],
+   "states": [
+    2,
+    1,
+    0
+   ],
+   "hp": 450,
+   "height": 59.8,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "2": [
+     [
+      [
+       -54.0,
+       -31.0
+      ],
+      [
+       -52.0,
+       -37.0
+      ],
+      [
+       52.0,
+       -37.0
+      ],
+      [
+       54.0,
+       -31.0
+      ],
+      [
+       54.0,
+       31.0
+      ],
+      [
+       52.0,
+       37.0
+      ],
+      [
+       -52.0,
+       37.0
+      ],
+      [
+       -54.0,
+       31.0
+      ]
+     ]
+    ],
+    "1": [
+     [
+      [
+       -54.0,
+       -31.0
+      ],
+      [
+       -52.0,
+       -37.0
+      ],
+      [
+       52.0,
+       -37.0
+      ],
+      [
+       54.0,
+       -31.0
+      ],
+      [
+       54.0,
+       31.0
+      ],
+      [
+       52.0,
+       37.0
+      ],
+      [
+       -52.0,
+       37.0
+      ],
+      [
+       -54.0,
+       31.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -54.0,
+       -31.0
+      ],
+      [
+       -52.0,
+       -37.0
+      ],
+      [
+       52.0,
+       -37.0
+      ],
+      [
+       54.0,
+       -31.0
+      ],
+      [
+       54.0,
+       31.0
+      ],
+      [
+       52.0,
+       37.0
+      ],
+      [
+       -52.0,
+       37.0
+      ],
+      [
+       -54.0,
+       31.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {
+    "2": [
+     4,
+     52,
+     110,
+     76
+    ],
+    "1": [
+     4,
+     52,
+     110,
+     76
+    ],
+    "0": [
+     4,
+     52,
+     97,
+     76
+    ]
+   },
+   "pieces": {
+    "houseStone-2": {
+     "file": "structures/houseStone-2.png",
+     "sortY": 37.0
+    },
+    "houseStone-2-roof": {
+     "file": "structures/houseStone-2-roof.png",
+     "sortY": 999
+    },
+    "houseStone-1": {
+     "file": "structures/houseStone-1.png",
+     "sortY": 37.0
+    },
+    "houseStone-1-roof": {
+     "file": "structures/houseStone-1-roof.png",
+     "sortY": 999
+    },
+    "houseStone-0": {
+     "file": "structures/houseStone-0.png",
+     "sortY": 37.0
+    },
+    "houseStone-0-roof": {
+     "file": "structures/houseStone-0-roof.png",
+     "sortY": 999
+    }
+   },
+   "shadows": {
+    "2": "structures/houseStone-2-shadow.png",
+    "1": "structures/houseStone-1-shadow.png",
+    "0": "structures/houseStone-0-shadow.png"
+   }
+  },
+  "houseTimber": {
+   "layer": "structure",
+   "anchor": [
+    49,
+    165
+   ],
+   "size": [
+    153,
+    221
+   ],
+   "states": [
+    2,
+    1,
+    0
+   ],
+   "hp": 400,
+   "height": 69.8,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "2": [
+     [
+      [
+       -44.0,
+       -35.0
+      ],
+      [
+       -42.0,
+       -41.0
+      ],
+      [
+       42.0,
+       -41.0
+      ],
+      [
+       44.0,
+       -35.0
+      ],
+      [
+       44.0,
+       35.0
+      ],
+      [
+       42.0,
+       41.0
+      ],
+      [
+       -42.0,
+       41.0
+      ],
+      [
+       -44.0,
+       35.0
+      ]
+     ]
+    ],
+    "1": [
+     [
+      [
+       -44.0,
+       -35.0
+      ],
+      [
+       -42.0,
+       -41.0
+      ],
+      [
+       42.0,
+       -41.0
+      ],
+      [
+       44.0,
+       -35.0
+      ],
+      [
+       44.0,
+       35.0
+      ],
+      [
+       42.0,
+       41.0
+      ],
+      [
+       -42.0,
+       41.0
+      ],
+      [
+       -44.0,
+       35.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -44.0,
+       -35.0
+      ],
+      [
+       -42.0,
+       -41.0
+      ],
+      [
+       42.0,
+       -41.0
+      ],
+      [
+       44.0,
+       -35.0
+      ],
+      [
+       44.0,
+       35.0
+      ],
+      [
+       42.0,
+       41.0
+      ],
+      [
+       -42.0,
+       41.0
+      ],
+      [
+       -44.0,
+       35.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {
+    "2": [
+     4,
+     59,
+     90,
+     112
+    ],
+    "1": [
+     4,
+     61,
+     90,
+     110
+    ],
+    "0": [
+     4,
+     75,
+     40,
+     96
+    ]
+   },
+   "pieces": {
+    "houseTimber-2": {
+     "file": "structures/houseTimber-2.png",
+     "sortY": 41.0
+    },
+    "houseTimber-2-roof": {
+     "file": "structures/houseTimber-2-roof.png",
+     "sortY": 999
+    },
+    "houseTimber-1": {
+     "file": "structures/houseTimber-1.png",
+     "sortY": 41.0
+    },
+    "houseTimber-1-roof": {
+     "file": "structures/houseTimber-1-roof.png",
+     "sortY": 999
+    },
+    "houseTimber-0": {
+     "file": "structures/houseTimber-0.png",
+     "sortY": 41.0
+    },
+    "houseTimber-0-roof": {
+     "file": "structures/houseTimber-0-roof.png",
+     "sortY": 999
+    }
+   },
+   "shadows": {
+    "2": "structures/houseTimber-2-shadow.png",
+    "1": "structures/houseTimber-1-shadow.png",
+    "0": "structures/houseTimber-0-shadow.png"
+   }
+  },
+  "shed": {
+   "layer": "structure",
+   "anchor": [
+    36,
+    80
+   ],
+   "size": [
+    99,
+    114
+   ],
+   "states": [
+    1,
+    0
+   ],
+   "hp": 160,
+   "height": 30.0,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -30.3,
+       -17.4
+      ],
+      [
+       -29.0,
+       -21.3
+      ],
+      [
+       29.0,
+       -21.3
+      ],
+      [
+       30.3,
+       -17.4
+      ],
+      [
+       30.3,
+       17.4
+      ],
+      [
+       29.0,
+       21.3
+      ],
+      [
+       -29.0,
+       21.3
+      ],
+      [
+       -30.3,
+       17.4
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -30.3,
+       -17.4
+      ],
+      [
+       -29.0,
+       -21.3
+      ],
+      [
+       29.0,
+       -21.3
+      ],
+      [
+       30.3,
+       -17.4
+      ],
+      [
+       30.3,
+       17.4
+      ],
+      [
+       29.0,
+       21.3
+      ],
+      [
+       -29.0,
+       21.3
+      ],
+      [
+       -30.3,
+       17.4
+      ]
+     ]
+    ]
+   },
+   "roofFade": {
+    "1": [
+     4,
+     28,
+     68,
+     53
+    ]
+   },
+   "pieces": {
+    "shed-1": {
+     "file": "structures/shed-1.png",
+     "sortY": 21.3
+    },
+    "shed-1-roof": {
+     "file": "structures/shed-1-roof.png",
+     "sortY": 999
+    },
+    "shed-0": {
+     "file": "structures/shed-0.png",
+     "sortY": 21.3
+    }
+   },
+   "shadows": {
+    "1": "structures/shed-1-shadow.png",
+    "0": "structures/shed-0-shadow.png"
+   }
+  },
+  "stoneWallH": {
+   "layer": "structure",
+   "anchor": [
+    36,
+    27
+   ],
+   "size": [
+    80,
+    42
+   ],
+   "states": [
+    2,
+    1,
+    0
+   ],
+   "hp": 260,
+   "height": 10.0,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "2": [
+     [
+      [
+       -32.0,
+       -4.0
+      ],
+      [
+       32.0,
+       -4.0
+      ],
+      [
+       32.0,
+       4.0
+      ],
+      [
+       -32.0,
+       4.0
+      ]
+     ]
+    ],
+    "1": [
+     [
+      [
+       -32.0,
+       -4.0
+      ],
+      [
+       32.0,
+       -4.0
+      ],
+      [
+       32.0,
+       4.0
+      ],
+      [
+       -32.0,
+       4.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -32.0,
+       -4.0
+      ],
+      [
+       -20.0,
+       -4.0
+      ],
+      [
+       -20.0,
+       4.0
+      ],
+      [
+       -32.0,
+       4.0
+      ]
+     ],
+     [
+      [
+       16.0,
+       -4.0
+      ],
+      [
+       32.0,
+       -4.0
+      ],
+      [
+       32.0,
+       4.0
+      ],
+      [
+       16.0,
+       4.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "stoneWallH-2": {
+     "file": "structures/stoneWallH-2.png",
+     "sortY": 4.0
+    },
+    "stoneWallH-1": {
+     "file": "structures/stoneWallH-1.png",
+     "sortY": 4.0
+    },
+    "stoneWallH-0": {
+     "file": "structures/stoneWallH-0.png",
+     "sortY": 4.0
+    }
+   },
+   "shadows": {
+    "2": "structures/stoneWallH-2-shadow.png",
+    "1": "structures/stoneWallH-1-shadow.png",
+    "0": "structures/stoneWallH-0-shadow.png"
+   }
+  },
+  "brickWallV": {
+   "layer": "structure",
+   "anchor": [
+    8,
+    68
+   ],
+   "size": [
+    36,
+    104
+   ],
+   "states": [
+    2,
+    1,
+    0
+   ],
+   "hp": 220,
+   "height": 17.8,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "2": [
+     [
+      [
+       -2.5,
+       -32.0
+      ],
+      [
+       2.5,
+       -32.0
+      ],
+      [
+       2.5,
+       32.0
+      ],
+      [
+       -2.5,
+       32.0
+      ]
+     ]
+    ],
+    "1": [
+     [
+      [
+       -2.5,
+       -32.0
+      ],
+      [
+       2.5,
+       -32.0
+      ],
+      [
+       2.5,
+       32.0
+      ],
+      [
+       -2.5,
+       32.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -2.5,
+       -32.0
+      ],
+      [
+       2.5,
+       -32.0
+      ],
+      [
+       2.5,
+       -12.0
+      ],
+      [
+       -2.5,
+       -12.0
+      ]
+     ],
+     [
+      [
+       -2.5,
+       13.0
+      ],
+      [
+       2.5,
+       13.0
+      ],
+      [
+       2.5,
+       32.0
+      ],
+      [
+       -2.5,
+       32.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "brickWallV-2": {
+     "file": "structures/brickWallV-2.png",
+     "sortY": 32.0
+    },
+    "brickWallV-1": {
+     "file": "structures/brickWallV-1.png",
+     "sortY": 32.0
+    },
+    "brickWallV-0": {
+     "file": "structures/brickWallV-0.png",
+     "sortY": 32.0
+    }
+   },
+   "shadows": {
+    "2": "structures/brickWallV-2-shadow.png",
+    "1": "structures/brickWallV-1-shadow.png",
+    "0": "structures/brickWallV-0-shadow.png"
+   }
+  },
+  "stoneWallV": {
+   "layer": "structure",
+   "anchor": [
+    9,
+    54
+   ],
+   "size": [
+    32,
+    90
+   ],
+   "states": [
+    2,
+    1,
+    0
+   ],
+   "hp": 260,
+   "height": 10.0,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "2": [
+     [
+      [
+       -4.0,
+       -32.0
+      ],
+      [
+       4.0,
+       -32.0
+      ],
+      [
+       4.0,
+       32.0
+      ],
+      [
+       -4.0,
+       32.0
+      ]
+     ]
+    ],
+    "1": [
+     [
+      [
+       -4.0,
+       -32.0
+      ],
+      [
+       4.0,
+       -32.0
+      ],
+      [
+       4.0,
+       32.0
+      ],
+      [
+       -4.0,
+       32.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -4.0,
+       -32.0
+      ],
+      [
+       4.0,
+       -32.0
+      ],
+      [
+       4.0,
+       -20.0
+      ],
+      [
+       -4.0,
+       -20.0
+      ]
+     ],
+     [
+      [
+       -4.0,
+       16.0
+      ],
+      [
+       4.0,
+       16.0
+      ],
+      [
+       4.0,
+       32.0
+      ],
+      [
+       -4.0,
+       32.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "stoneWallV-2": {
+     "file": "structures/stoneWallV-2.png",
+     "sortY": 32.0
+    },
+    "stoneWallV-1": {
+     "file": "structures/stoneWallV-1.png",
+     "sortY": 32.0
+    },
+    "stoneWallV-0": {
+     "file": "structures/stoneWallV-0.png",
+     "sortY": 32.0
+    }
+   },
+   "shadows": {
+    "2": "structures/stoneWallV-2-shadow.png",
+    "1": "structures/stoneWallV-1-shadow.png",
+    "0": "structures/stoneWallV-0-shadow.png"
+   }
+  },
+  "brickPost": {
+   "layer": "structure",
+   "anchor": [
+    9,
+    49
+   ],
+   "size": [
+    40,
+    62
+   ],
+   "states": [
+    2,
+    0
+   ],
+   "hp": 220,
+   "height": 22.0,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "2": [
+     [
+      [
+       -4.0,
+       -4.0
+      ],
+      [
+       4.0,
+       -4.0
+      ],
+      [
+       4.0,
+       4.0
+      ],
+      [
+       -4.0,
+       4.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -4.0,
+       -4.0
+      ],
+      [
+       4.0,
+       -4.0
+      ],
+      [
+       4.0,
+       4.0
+      ],
+      [
+       -4.0,
+       4.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "brickPost-2": {
+     "file": "structures/brickPost-2.png",
+     "sortY": 4.0
+    },
+    "brickPost-0": {
+     "file": "structures/brickPost-0.png",
+     "sortY": 4.0
+    }
+   },
+   "shadows": {
+    "2": "structures/brickPost-2-shadow.png",
+    "0": "structures/brickPost-0-shadow.png"
+   }
+  },
+  "fenceV": {
+   "layer": "structure",
+   "anchor": [
+    6,
+    65
+   ],
+   "size": [
+    31,
+    103
+   ],
+   "states": [
+    1,
+    0
+   ],
+   "hp": 40,
+   "height": 15.0,
+   "flattenable": true,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -1.5,
+       -32.0
+      ],
+      [
+       1.5,
+       -32.0
+      ],
+      [
+       1.5,
+       32.0
+      ],
+      [
+       -1.5,
+       32.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -1.5,
+       -32.0
+      ],
+      [
+       1.5,
+       -32.0
+      ],
+      [
+       1.5,
+       32.0
+      ],
+      [
+       -1.5,
+       32.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "fenceV-1": {
+     "file": "structures/fenceV-1.png",
+     "sortY": 32.0
+    },
+    "fenceV-0": {
+     "file": "structures/fenceV-0.png",
+     "sortY": 32.0
+    }
+   },
+   "shadows": {
+    "1": "structures/fenceV-1-shadow.png",
+    "0": "structures/fenceV-0-shadow.png"
+   }
+  },
+  "oak": {
+   "layer": "structure",
+   "anchor": [
+    35,
+    126
+   ],
+   "size": [
+    146,
+    148
+   ],
+   "states": [
+    1,
+    0
+   ],
+   "hp": 180,
+   "height": 59.0,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -4.5,
+       0.0
+      ],
+      [
+       -3.2,
+       -2.5
+      ],
+      [
+       -0.0,
+       -3.6
+      ],
+      [
+       3.2,
+       -2.5
+      ],
+      [
+       4.5,
+       0.0
+      ],
+      [
+       3.2,
+       2.5
+      ],
+      [
+       0.0,
+       3.6
+      ],
+      [
+       -3.2,
+       2.5
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -4.5,
+       0.0
+      ],
+      [
+       -3.2,
+       -2.5
+      ],
+      [
+       -0.0,
+       -3.6
+      ],
+      [
+       3.2,
+       -2.5
+      ],
+      [
+       4.5,
+       0.0
+      ],
+      [
+       3.2,
+       2.5
+      ],
+      [
+       0.0,
+       3.6
+      ],
+      [
+       -3.2,
+       2.5
+      ]
+     ]
+    ]
+   },
+   "roofFade": {
+    "1": [
+     5,
+     51,
+     60,
+     75
+    ]
+   },
+   "pieces": {
+    "oak-1": {
+     "file": "structures/oak-1.png",
+     "sortY": 3.6
+    },
+    "oak-1-roof": {
+     "file": "structures/oak-1-roof.png",
+     "sortY": 999
+    },
+    "oak-0": {
+     "file": "structures/oak-0.png",
+     "sortY": 3.6
+    }
+   },
+   "shadows": {
+    "1": "structures/oak-1-shadow.png",
+    "0": "structures/oak-0-shadow.png"
+   }
+  },
+  "pine": {
+   "layer": "structure",
+   "anchor": [
+    22,
+    115
+   ],
+   "size": [
+    115,
+    130
+   ],
+   "states": [
+    1,
+    0
+   ],
+   "hp": 120,
+   "height": 62.0,
+   "flattenable": true,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -3.0,
+       0.0
+      ],
+      [
+       -2.1,
+       -1.7
+      ],
+      [
+       -0.0,
+       -2.4
+      ],
+      [
+       2.1,
+       -1.7
+      ],
+      [
+       3.0,
+       0.0
+      ],
+      [
+       2.1,
+       1.7
+      ],
+      [
+       0.0,
+       2.4
+      ],
+      [
+       -2.1,
+       1.7
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -3.0,
+       0.0
+      ],
+      [
+       -2.1,
+       -1.7
+      ],
+      [
+       -0.0,
+       -2.4
+      ],
+      [
+       2.1,
+       -1.7
+      ],
+      [
+       3.0,
+       0.0
+      ],
+      [
+       2.1,
+       1.7
+      ],
+      [
+       0.0,
+       2.4
+      ],
+      [
+       -2.1,
+       1.7
+      ]
+     ]
+    ]
+   },
+   "roofFade": {
+    "1": [
+     5,
+     55,
+     34,
+     66
+    ]
+   },
+   "pieces": {
+    "pine-1": {
+     "file": "structures/pine-1.png",
+     "sortY": 2.4
+    },
+    "pine-1-roof": {
+     "file": "structures/pine-1-roof.png",
+     "sortY": 999
+    },
+    "pine-0": {
+     "file": "structures/pine-0.png",
+     "sortY": 2.4
+    }
+   },
+   "shadows": {
+    "1": "structures/pine-1-shadow.png",
+    "0": "structures/pine-0-shadow.png"
+   }
+  },
+  "bush": {
+   "layer": "structure",
+   "anchor": [
+    24,
+    40
+   ],
+   "size": [
+    61,
+    58
+   ],
+   "states": [
+    1,
+    0
+   ],
+   "hp": 30,
+   "height": 16.5,
+   "flattenable": true,
+   "cover": true,
+   "footprint": {
+    "1": [
+     [
+      [
+       -16.0,
+       -8.0
+      ],
+      [
+       16.0,
+       -8.0
+      ],
+      [
+       16.0,
+       8.0
+      ],
+      [
+       -16.0,
+       8.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -16.0,
+       -8.0
+      ],
+      [
+       16.0,
+       -8.0
+      ],
+      [
+       16.0,
+       8.0
+      ],
+      [
+       -16.0,
+       8.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {
+    "1": [
+     7,
+     17,
+     34,
+     33
+    ]
+   },
+   "pieces": {
+    "bush-1-roof": {
+     "file": "structures/bush-1-roof.png",
+     "sortY": 999
+    },
+    "bush-0": {
+     "file": "structures/bush-0.png",
+     "sortY": 8.0
+    }
+   },
+   "shadows": {
+    "1": "structures/bush-1-shadow.png",
+    "0": "structures/bush-0-shadow.png"
+   }
+  },
+  "crops": {
+   "layer": "structure",
+   "anchor": [
+    53,
+    72
+   ],
+   "size": [
+    124,
+    105
+   ],
+   "states": [
+    1,
+    0
+   ],
+   "hp": 10,
+   "height": 20.6,
+   "flattenable": true,
+   "cover": true,
+   "footprint": {
+    "1": [
+     [
+      [
+       -48.0,
+       -32.0
+      ],
+      [
+       48.0,
+       -32.0
+      ],
+      [
+       48.0,
+       32.0
+      ],
+      [
+       -48.0,
+       32.0
+      ]
+     ]
+    ],
+    "0": []
+   },
+   "roofFade": {
+    "1": [
+     4,
+     21,
+     97,
+     78
+    ]
+   },
+   "pieces": {
+    "crops-1-roof": {
+     "file": "structures/crops-1-roof.png",
+     "sortY": 999
+    },
+    "crops-0": {
+     "file": "structures/crops-0.png",
+     "sortY": 0.0
+    }
+   },
+   "shadows": {
+    "1": "structures/crops-1-shadow.png",
+    "0": "structures/crops-0-shadow.png"
+   }
+  },
+  "rockA": {
+   "layer": "structure",
+   "anchor": [
+    16,
+    19
+   ],
+   "size": [
+    37,
+    32
+   ],
+   "states": [
+    1
+   ],
+   "hp": 0,
+   "height": 6.9,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -10.9,
+       -2.3
+      ],
+      [
+       -9.6,
+       -3.7
+      ],
+      [
+       -5.0,
+       -4.8
+      ],
+      [
+       6.8,
+       -3.4
+      ],
+      [
+       11.0,
+       -2.1
+      ],
+      [
+       10.7,
+       4.6
+      ],
+      [
+       7.0,
+       6.7
+      ],
+      [
+       -0.9,
+       7.8
+      ],
+      [
+       -6.3,
+       8.1
+      ],
+      [
+       -9.1,
+       4.7
+      ],
+      [
+       -10.5,
+       1.7
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "rockA-1": {
+     "file": "structures/rockA-1.png",
+     "sortY": 8.1
+    }
+   },
+   "shadows": {
+    "1": "structures/rockA-1-shadow.png"
+   }
+  },
+  "rockC": {
+   "layer": "structure",
+   "anchor": [
+    31,
+    39
+   ],
+   "size": [
+    70,
+    60
+   ],
+   "states": [
+    1
+   ],
+   "hp": 0,
+   "height": 15.3,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -22.9,
+       -11.3
+      ],
+      [
+       -11.5,
+       -13.0
+      ],
+      [
+       0.5,
+       -12.9
+      ],
+      [
+       15.6,
+       -4.6
+      ],
+      [
+       19.7,
+       2.5
+      ],
+      [
+       8.2,
+       15.5
+      ],
+      [
+       -3.7,
+       16.9
+      ],
+      [
+       -22.0,
+       10.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "rockC-1": {
+     "file": "structures/rockC-1.png",
+     "sortY": 16.9
+    }
+   },
+   "shadows": {
+    "1": "structures/rockC-1-shadow.png"
+   }
+  },
+  "crate": {
+   "layer": "structure",
+   "anchor": [
+    21,
+    41
+   ],
+   "size": [
+    49,
+    60
+   ],
+   "states": [
+    1,
+    0
+   ],
+   "hp": 40,
+   "height": 15.6,
+   "flattenable": true,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -9.0,
+       -9.0
+      ],
+      [
+       9.0,
+       -9.0
+      ],
+      [
+       9.0,
+       9.0
+      ],
+      [
+       -9.0,
+       9.0
+      ]
+     ]
+    ],
+    "0": []
+   },
+   "roofFade": {},
+   "pieces": {
+    "crate-1": {
+     "file": "structures/crate-1.png",
+     "sortY": 9.0
+    },
+    "crate-0": {
+     "file": "structures/crate-0.png",
+     "sortY": 0.0
+    }
+   },
+   "shadows": {
+    "1": "structures/crate-1-shadow.png",
+    "0": "structures/crate-0-shadow.png"
+   }
+  },
+  "supplyDrop": {
+   "layer": "structure",
+   "anchor": [
+    16,
+    59
+   ],
+   "size": [
+    88,
+    76
+   ],
+   "states": [
+    1
+   ],
+   "hp": 0,
+   "height": 22.0,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -11.0,
+       -11.0
+      ],
+      [
+       11.0,
+       -11.0
+      ],
+      [
+       11.0,
+       11.0
+      ],
+      [
+       -11.0,
+       11.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "supplyDrop-1": {
+     "file": "structures/supplyDrop-1.png",
+     "sortY": 11.0
+    }
+   },
+   "shadows": {
+    "1": "structures/supplyDrop-1-shadow.png"
+   }
+  },
+  "fuelBarrels": {
+   "layer": "structure",
+   "anchor": [
+    31,
+    47
+   ],
+   "size": [
+    76,
+    64
+   ],
+   "states": [
+    1,
+    0
+   ],
+   "hp": 120,
+   "height": 17.8,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -24.0,
+       -12.0
+      ],
+      [
+       24.0,
+       -12.0
+      ],
+      [
+       24.0,
+       10.0
+      ],
+      [
+       -24.0,
+       10.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -24.0,
+       -12.0
+      ],
+      [
+       24.0,
+       -12.0
+      ],
+      [
+       24.0,
+       10.0
+      ],
+      [
+       -24.0,
+       10.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "fuelBarrels-1": {
+     "file": "structures/fuelBarrels-1.png",
+     "sortY": 10.0
+    },
+    "fuelBarrels-0": {
+     "file": "structures/fuelBarrels-0.png",
+     "sortY": 10.0
+    }
+   },
+   "shadows": {
+    "1": "structures/fuelBarrels-1-shadow.png",
+    "0": "structures/fuelBarrels-0-shadow.png"
+   }
+  },
+  "radarMast": {
+   "layer": "structure",
+   "anchor": [
+    35,
+    220
+   ],
+   "size": [
+    260,
+    246
+   ],
+   "states": [
+    2,
+    1,
+    0
+   ],
+   "hp": 300,
+   "height": 120.2,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "2": [
+     [
+      [
+       -30.0,
+       8.0
+      ],
+      [
+       -12.0,
+       -12.0
+      ],
+      [
+       12.0,
+       -12.0
+      ],
+      [
+       12.0,
+       12.0
+      ],
+      [
+       -14.0,
+       21.0
+      ],
+      [
+       -30.0,
+       21.0
+      ]
+     ]
+    ],
+    "1": [
+     [
+      [
+       -30.0,
+       8.0
+      ],
+      [
+       -12.0,
+       -12.0
+      ],
+      [
+       12.0,
+       -12.0
+      ],
+      [
+       12.0,
+       12.0
+      ],
+      [
+       -14.0,
+       21.0
+      ],
+      [
+       -30.0,
+       21.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -30.0,
+       8.0
+      ],
+      [
+       -12.0,
+       -12.0
+      ],
+      [
+       12.0,
+       -12.0
+      ],
+      [
+       12.0,
+       12.0
+      ],
+      [
+       -14.0,
+       21.0
+      ],
+      [
+       -30.0,
+       21.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "radarMast-2": {
+     "file": "structures/radarMast-2.png",
+     "sortY": 21.0
+    },
+    "radarMast-1": {
+     "file": "structures/radarMast-1.png",
+     "sortY": 21.0
+    },
+    "radarMast-0": {
+     "file": "structures/radarMast-0.png",
+     "sortY": 21.0
+    }
+   },
+   "shadows": {
+    "2": "structures/radarMast-2-shadow.png",
+    "1": "structures/radarMast-1-shadow.png",
+    "0": "structures/radarMast-0-shadow.png"
+   }
+  },
+  "bridgeDeck": {
+   "layer": "ground",
+   "anchor": [
+    104,
+    30
+   ],
+   "size": [
+    208,
+    79
+   ],
+   "states": [
+    1
+   ],
+   "hp": 0,
+   "height": 0.0,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": []
+   },
+   "roofFade": {},
+   "pieces": {
+    "bridgeDeck-1": {
+     "file": "structures/bridgeDeck-1.png",
+     "sortY": 0.0
+    }
+   },
+   "shadows": {
+    "1": "structures/bridgeDeck-1-shadow.png"
+   }
+  },
+  "bridgeRailN": {
+   "layer": "structure",
+   "anchor": [
+    106,
+    56
+   ],
+   "size": [
+    223,
+    37
+   ],
+   "states": [
+    1,
+    0
+   ],
+   "hp": 120,
+   "height": 14.1,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -100.0,
+       -26.0
+      ],
+      [
+       100.0,
+       -26.0
+      ],
+      [
+       100.0,
+       -23.0
+      ],
+      [
+       -100.0,
+       -23.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -100.0,
+       -26.0
+      ],
+      [
+       100.0,
+       -26.0
+      ],
+      [
+       100.0,
+       -23.0
+      ],
+      [
+       -100.0,
+       -23.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "bridgeRailN-1": {
+     "file": "structures/bridgeRailN-1.png",
+     "sortY": -23.0
+    },
+    "bridgeRailN-0": {
+     "file": "structures/bridgeRailN-0.png",
+     "sortY": -23.0
+    }
+   },
+   "shadows": {
+    "1": "structures/bridgeRailN-1-shadow.png",
+    "0": "structures/bridgeRailN-0-shadow.png"
+   }
+  },
+  "bridgeRailS": {
+   "layer": "structure",
+   "anchor": [
+    106,
+    7
+   ],
+   "size": [
+    223,
+    45
+   ],
+   "states": [
+    1,
+    0
+   ],
+   "hp": 120,
+   "height": 14.1,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -100.0,
+       23.0
+      ],
+      [
+       100.0,
+       23.0
+      ],
+      [
+       100.0,
+       26.0
+      ],
+      [
+       -100.0,
+       26.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -100.0,
+       23.0
+      ],
+      [
+       100.0,
+       23.0
+      ],
+      [
+       100.0,
+       26.0
+      ],
+      [
+       -100.0,
+       26.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "bridgeRailS-1": {
+     "file": "structures/bridgeRailS-1.png",
+     "sortY": 26.0
+    },
+    "bridgeRailS-0": {
+     "file": "structures/bridgeRailS-0.png",
+     "sortY": 26.0
+    }
+   },
+   "shadows": {
+    "1": "structures/bridgeRailS-1-shadow.png",
+    "0": "structures/bridgeRailS-0-shadow.png"
+   }
+  },
+  "railH": {
+   "layer": "ground",
+   "anchor": [
+    37,
+    21
+   ],
+   "size": [
+    78,
+    41
+   ],
+   "states": [
+    1
+   ],
+   "hp": 0,
+   "height": 3.0,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": []
+   },
+   "roofFade": {},
+   "pieces": {
+    "railH-1": {
+     "file": "structures/railH-1.png",
+     "sortY": 0.0
+    }
+   },
+   "shadows": {
+    "1": "structures/railH-1-shadow.png"
+   }
+  },
+  "railV": {
+   "layer": "ground",
+   "anchor": [
+    18,
+    42
+   ],
+   "size": [
+    41,
+    80
+   ],
+   "states": [
+    1
+   ],
+   "hp": 0,
+   "height": 3.0,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": []
+   },
+   "roofFade": {},
+   "pieces": {
+    "railV-1": {
+     "file": "structures/railV-1.png",
+     "sortY": 0.0
+    }
+   },
+   "shadows": {
+    "1": "structures/railV-1-shadow.png"
+   }
+  },
+  "wagon": {
+   "layer": "structure",
+   "anchor": [
+    47,
+    72
+   ],
+   "size": [
+    120,
+    100
+   ],
+   "states": [
+    1,
+    0
+   ],
+   "hp": 260,
+   "height": 33.0,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -42.0,
+       -12.0
+      ],
+      [
+       42.0,
+       -12.0
+      ],
+      [
+       42.0,
+       12.0
+      ],
+      [
+       -42.0,
+       12.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -42.0,
+       -12.0
+      ],
+      [
+       42.0,
+       -12.0
+      ],
+      [
+       42.0,
+       12.0
+      ],
+      [
+       -42.0,
+       12.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "wagon-1": {
+     "file": "structures/wagon-1.png",
+     "sortY": 12.0
+    },
+    "wagon-0": {
+     "file": "structures/wagon-0.png",
+     "sortY": 12.0
+    }
+   },
+   "shadows": {
+    "1": "structures/wagon-1-shadow.png",
+    "0": "structures/wagon-0-shadow.png"
+   }
+  },
+  "hangar": {
+   "layer": "structure",
+   "anchor": [
+    89,
+    181
+   ],
+   "size": [
+    224,
+    269
+   ],
+   "states": [
+    2,
+    1,
+    0
+   ],
+   "hp": 800,
+   "height": 58.5,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "2": [
+     [
+      [
+       -83.0,
+       -71.2
+      ],
+      [
+       83.0,
+       -71.2
+      ],
+      [
+       83.0,
+       -68.8
+      ],
+      [
+       -83.0,
+       -68.8
+      ]
+     ],
+     [
+      [
+       -84.0,
+       -70.0
+      ],
+      [
+       -80.0,
+       -70.0
+      ],
+      [
+       -80.0,
+       70.0
+      ],
+      [
+       -84.0,
+       70.0
+      ]
+     ],
+     [
+      [
+       80.0,
+       -70.0
+      ],
+      [
+       84.0,
+       -70.0
+      ],
+      [
+       84.0,
+       70.0
+      ],
+      [
+       80.0,
+       70.0
+      ]
+     ],
+     [
+      [
+       -83.0,
+       68.8
+      ],
+      [
+       -53.0,
+       68.8
+      ],
+      [
+       -53.0,
+       71.2
+      ],
+      [
+       -83.0,
+       71.2
+      ]
+     ],
+     [
+      [
+       57.0,
+       68.8
+      ],
+      [
+       83.0,
+       68.8
+      ],
+      [
+       83.0,
+       71.2
+      ],
+      [
+       57.0,
+       71.2
+      ]
+     ]
+    ],
+    "1": [
+     [
+      [
+       -83.0,
+       -71.2
+      ],
+      [
+       83.0,
+       -71.2
+      ],
+      [
+       83.0,
+       -68.8
+      ],
+      [
+       -83.0,
+       -68.8
+      ]
+     ],
+     [
+      [
+       -84.0,
+       -70.0
+      ],
+      [
+       -80.0,
+       -70.0
+      ],
+      [
+       -80.0,
+       70.0
+      ],
+      [
+       -84.0,
+       70.0
+      ]
+     ],
+     [
+      [
+       80.0,
+       -70.0
+      ],
+      [
+       84.0,
+       -70.0
+      ],
+      [
+       84.0,
+       70.0
+      ],
+      [
+       80.0,
+       70.0
+      ]
+     ],
+     [
+      [
+       -83.0,
+       68.8
+      ],
+      [
+       -53.0,
+       68.8
+      ],
+      [
+       -53.0,
+       71.2
+      ],
+      [
+       -83.0,
+       71.2
+      ]
+     ],
+     [
+      [
+       57.0,
+       68.8
+      ],
+      [
+       83.0,
+       68.8
+      ],
+      [
+       83.0,
+       71.2
+      ],
+      [
+       57.0,
+       71.2
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -83.0,
+       -71.2
+      ],
+      [
+       83.0,
+       -71.2
+      ],
+      [
+       83.0,
+       -68.8
+      ],
+      [
+       -83.0,
+       -68.8
+      ]
+     ],
+     [
+      [
+       -84.0,
+       -70.0
+      ],
+      [
+       -80.0,
+       -70.0
+      ],
+      [
+       -80.0,
+       70.0
+      ],
+      [
+       -84.0,
+       70.0
+      ]
+     ],
+     [
+      [
+       80.0,
+       -70.0
+      ],
+      [
+       84.0,
+       -70.0
+      ],
+      [
+       84.0,
+       70.0
+      ],
+      [
+       80.0,
+       70.0
+      ]
+     ],
+     [
+      [
+       -83.0,
+       68.8
+      ],
+      [
+       -53.0,
+       68.8
+      ],
+      [
+       -53.0,
+       71.2
+      ],
+      [
+       -83.0,
+       71.2
+      ]
+     ],
+     [
+      [
+       57.0,
+       68.8
+      ],
+      [
+       83.0,
+       68.8
+      ],
+      [
+       83.0,
+       71.2
+      ],
+      [
+       57.0,
+       71.2
+      ]
+     ]
+    ]
+   },
+   "roofFade": {
+    "2": [
+     4,
+     51,
+     169,
+     201
+    ],
+    "1": [
+     4,
+     51,
+     170,
+     201
+    ],
+    "0": [
+     4,
+     53,
+     170,
+     199
+    ]
+   },
+   "pieces": {
+    "hangar-2": {
+     "file": "structures/hangar-2.png",
+     "sortY": -69.2
+    },
+    "hangar-2-front": {
+     "file": "structures/hangar-2-front.png",
+     "sortY": 71.2
+    },
+    "hangar-2-roof": {
+     "file": "structures/hangar-2-roof.png",
+     "sortY": 999
+    },
+    "hangar-1": {
+     "file": "structures/hangar-1.png",
+     "sortY": -69.2
+    },
+    "hangar-1-front": {
+     "file": "structures/hangar-1-front.png",
+     "sortY": 71.2
+    },
+    "hangar-1-roof": {
+     "file": "structures/hangar-1-roof.png",
+     "sortY": 999
+    },
+    "hangar-0": {
+     "file": "structures/hangar-0.png",
+     "sortY": -69.2
+    },
+    "hangar-0-front": {
+     "file": "structures/hangar-0-front.png",
+     "sortY": 71.2
+    },
+    "hangar-0-roof": {
+     "file": "structures/hangar-0-roof.png",
+     "sortY": 999
+    }
+   },
+   "shadows": {
+    "2": "structures/hangar-2-shadow.png",
+    "1": "structures/hangar-1-shadow.png",
+    "0": "structures/hangar-0-shadow.png"
+   }
+  },
+  "fortWallH": {
+   "layer": "structure",
+   "anchor": [
+    36,
+    71
+   ],
+   "size": [
+    102,
+    93
+   ],
+   "states": [
+    2,
+    1,
+    0
+   ],
+   "hp": 500,
+   "height": 38.0,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "2": [
+     [
+      [
+       -32.0,
+       -7.0
+      ],
+      [
+       31.0,
+       -7.0
+      ],
+      [
+       31.0,
+       7.0
+      ],
+      [
+       -32.0,
+       7.0
+      ]
+     ]
+    ],
+    "1": [
+     [
+      [
+       -32.0,
+       -7.0
+      ],
+      [
+       31.0,
+       -7.0
+      ],
+      [
+       31.0,
+       7.0
+      ],
+      [
+       -32.0,
+       7.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -32.0,
+       -7.0
+      ],
+      [
+       -14.0,
+       -7.0
+      ],
+      [
+       -14.0,
+       7.0
+      ],
+      [
+       -32.0,
+       7.0
+      ]
+     ],
+     [
+      [
+       13.0,
+       -7.0
+      ],
+      [
+       31.0,
+       -7.0
+      ],
+      [
+       31.0,
+       7.0
+      ],
+      [
+       13.0,
+       7.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "fortWallH-2": {
+     "file": "structures/fortWallH-2.png",
+     "sortY": 7.0
+    },
+    "fortWallH-1": {
+     "file": "structures/fortWallH-1.png",
+     "sortY": 7.0
+    },
+    "fortWallH-0": {
+     "file": "structures/fortWallH-0.png",
+     "sortY": 7.0
+    }
+   },
+   "shadows": {
+    "2": "structures/fortWallH-2-shadow.png",
+    "1": "structures/fortWallH-1-shadow.png",
+    "0": "structures/fortWallH-0-shadow.png"
+   }
+  },
+  "fortWallV": {
+   "layer": "structure",
+   "anchor": [
+    12,
+    104
+   ],
+   "size": [
+    64,
+    139
+   ],
+   "states": [
+    2,
+    1,
+    0
+   ],
+   "hp": 500,
+   "height": 38.0,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "2": [
+     [
+      [
+       -7.0,
+       -32.0
+      ],
+      [
+       7.0,
+       -32.0
+      ],
+      [
+       7.0,
+       31.0
+      ],
+      [
+       -7.0,
+       31.0
+      ]
+     ]
+    ],
+    "1": [
+     [
+      [
+       -7.0,
+       -32.0
+      ],
+      [
+       7.0,
+       -32.0
+      ],
+      [
+       7.0,
+       31.0
+      ],
+      [
+       -7.0,
+       31.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -7.0,
+       -32.0
+      ],
+      [
+       7.0,
+       -32.0
+      ],
+      [
+       7.0,
+       -14.0
+      ],
+      [
+       -7.0,
+       -14.0
+      ]
+     ],
+     [
+      [
+       -7.0,
+       13.0
+      ],
+      [
+       7.0,
+       13.0
+      ],
+      [
+       7.0,
+       31.0
+      ],
+      [
+       -7.0,
+       31.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "fortWallV-2": {
+     "file": "structures/fortWallV-2.png",
+     "sortY": 31.0
+    },
+    "fortWallV-1": {
+     "file": "structures/fortWallV-1.png",
+     "sortY": 31.0
+    },
+    "fortWallV-0": {
+     "file": "structures/fortWallV-0.png",
+     "sortY": 31.0
+    }
+   },
+   "shadows": {
+    "2": "structures/fortWallV-2-shadow.png",
+    "1": "structures/fortWallV-1-shadow.png",
+    "0": "structures/fortWallV-0-shadow.png"
+   }
+  },
+  "fortTower": {
+   "layer": "structure",
+   "anchor": [
+    26,
+    115
+   ],
+   "size": [
+    105,
+    144
+   ],
+   "states": [
+    1,
+    0
+   ],
+   "hp": 700,
+   "height": 52.0,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -22.0,
+       0.0
+      ],
+      [
+       -19.1,
+       -8.8
+      ],
+      [
+       -11.0,
+       -15.2
+      ],
+      [
+       -0.0,
+       -17.6
+      ],
+      [
+       11.0,
+       -15.2
+      ],
+      [
+       19.1,
+       -8.8
+      ],
+      [
+       22.0,
+       0.0
+      ],
+      [
+       19.1,
+       8.8
+      ],
+      [
+       11.0,
+       15.2
+      ],
+      [
+       0.0,
+       17.6
+      ],
+      [
+       -11.0,
+       15.2
+      ],
+      [
+       -19.1,
+       8.8
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -22.0,
+       0.0
+      ],
+      [
+       -19.1,
+       -8.8
+      ],
+      [
+       -11.0,
+       -15.2
+      ],
+      [
+       -0.0,
+       -17.6
+      ],
+      [
+       11.0,
+       -15.2
+      ],
+      [
+       19.1,
+       -8.8
+      ],
+      [
+       22.0,
+       0.0
+      ],
+      [
+       19.1,
+       8.8
+      ],
+      [
+       11.0,
+       15.2
+      ],
+      [
+       0.0,
+       17.6
+      ],
+      [
+       -11.0,
+       15.2
+      ],
+      [
+       -19.1,
+       8.8
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "fortTower-1": {
+     "file": "structures/fortTower-1.png",
+     "sortY": 17.6
+    },
+    "fortTower-0": {
+     "file": "structures/fortTower-0.png",
+     "sortY": 17.6
+    }
+   },
+   "shadows": {
+    "1": "structures/fortTower-1-shadow.png",
+    "0": "structures/fortTower-0-shadow.png"
+   }
+  },
+  "fortGate": {
+   "layer": "structure",
+   "anchor": [
+    62,
+    95
+   ],
+   "size": [
+    165,
+    132
+   ],
+   "states": [
+    1,
+    0
+   ],
+   "hp": 900,
+   "height": 52.0,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -58.0,
+       -10.0
+      ],
+      [
+       -32.0,
+       -10.0
+      ],
+      [
+       -32.0,
+       10.0
+      ],
+      [
+       -58.0,
+       10.0
+      ]
+     ],
+     [
+      [
+       32.0,
+       -10.0
+      ],
+      [
+       58.0,
+       -10.0
+      ],
+      [
+       58.0,
+       10.0
+      ],
+      [
+       32.0,
+       10.0
+      ]
+     ],
+     [
+      [
+       -32.0,
+       -2.0
+      ],
+      [
+       32.0,
+       -2.0
+      ],
+      [
+       32.0,
+       2.0
+      ],
+      [
+       -32.0,
+       2.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -58.0,
+       -10.0
+      ],
+      [
+       -32.0,
+       -10.0
+      ],
+      [
+       -32.0,
+       10.0
+      ],
+      [
+       -58.0,
+       10.0
+      ]
+     ],
+     [
+      [
+       32.0,
+       -10.0
+      ],
+      [
+       58.0,
+       -10.0
+      ],
+      [
+       58.0,
+       10.0
+      ],
+      [
+       32.0,
+       10.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "fortGate-1": {
+     "file": "structures/fortGate-1.png",
+     "sortY": 10.0
+    },
+    "fortGate-0": {
+     "file": "structures/fortGate-0.png",
+     "sortY": 10.0
+    }
+   },
+   "shadows": {
+    "1": "structures/fortGate-1-shadow.png",
+    "0": "structures/fortGate-0-shadow.png"
+   }
+  }
+ },
+ "vehicles": {
+  "truck": {
+   "size": 128,
+   "frames": [
+    "truck-1",
+    "truck-1-f2"
+   ],
+   "wreck": "truck-0",
+   "facing": "north",
+   "files": {
+    "truck-1": "vehicles/truck-1.png",
+    "truck-1-f2": "vehicles/truck-1-f2.png",
+    "truck-0": "vehicles/truck-0.png"
+   }
+  },
+  "fortress": {
+   "size": 288,
+   "body": "fortress-body",
+   "treads": [
+    "fortress-treads",
+    "fortress-treads-f2"
+   ],
+   "mounts": {
+    "cannon": {
+     "at": [
+      0,
+      14
+     ],
+     "turret": "fortressCannon"
+    },
+    "mgLeft": {
+     "at": [
+      -40,
+      -56
+     ],
+     "turret": "fortressMG"
+    },
+    "mgRight": {
+     "at": [
+      40,
+      -56
+     ],
+     "turret": "fortressMG"
+    },
+    "rockets": {
+     "at": [
+      0,
+      74
+     ],
+     "turret": "fortressRockets"
+    }
+   },
+   "turrets": {
+    "fortressCannon": {
+     "size": 144,
+     "muzzle": [
+      [
+       -6,
+       -66
+      ],
+      [
+       6,
+       -66
+      ]
+     ]
+    },
+    "fortressMG": {
+     "size": 64,
+     "muzzle": [
+      [
+       -3,
+       -28
+      ],
+      [
+       3,
+       -28
+      ]
+     ]
+    },
+    "fortressRockets": {
+     "size": 64,
+     "muzzle": [
+      [
+       -14,
+       -19
+      ],
+      [
+       -8,
+       -19
+      ],
+      [
+       8,
+       -19
+      ],
+      [
+       14,
+       -19
+      ]
+     ]
+    }
+   },
+   "facing": "north",
+   "files": {
+    "fortress-body": "vehicles/fortress-body.png",
+    "fortress-treads": "vehicles/fortress-treads.png",
+    "fortress-treads-f2": "vehicles/fortress-treads-f2.png",
+    "fortressCannon-1": "vehicles/fortressCannon-1.png",
+    "fortressCannon-0": "vehicles/fortressCannon-0.png",
+    "fortressMG-1": "vehicles/fortressMG-1.png",
+    "fortressMG-0": "vehicles/fortressMG-0.png",
+    "fortressRockets-1": "vehicles/fortressRockets-1.png",
+    "fortressRockets-0": "vehicles/fortressRockets-0.png"
+   }
+  }
+ }
+}

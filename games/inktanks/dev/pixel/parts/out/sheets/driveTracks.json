@@ -1,0 +1,74 @@
+{
+ "driveTracks-H-mk2|L": {
+  "x": -17,
+  "y": -10
+ },
+ "driveTracks-H-mk2|R": {
+  "x": -47,
+  "y": -10
+ },
+ "driveTracks-H-mk3|L": {
+  "x": 36,
+  "y": -10
+ },
+ "driveTracks-H-mk3|R": {
+  "x": 6,
+  "y": -10
+ },
+ "driveTracks-H-mk1|L": {
+  "x": 88,
+  "y": -12
+ },
+ "driveTracks-H-mk1|R": {
+  "x": 58,
+  "y": -12
+ },
+ "driveTracks-M-mk2|L": {
+  "x": 133,
+  "y": -18
+ },
+ "driveTracks-M-mk2|R": {
+  "x": 113,
+  "y": -18
+ },
+ "driveTracks-M-mk3|L": {
+  "x": 184,
+  "y": -18
+ },
+ "driveTracks-M-mk3|R": {
+  "x": -68,
+  "y": 78
+ },
+ "driveTracks-M-mk1|L": {
+  "x": 2,
+  "y": 76
+ },
+ "driveTracks-M-mk1|R": {
+  "x": -18,
+  "y": 76
+ },
+ "driveTracks-L-mk2|L": {
+  "x": 46,
+  "y": 72
+ },
+ "driveTracks-L-mk2|R": {
+  "x": 34,
+  "y": 72
+ },
+ "driveTracks-L-mk3|L": {
+  "x": 95,
+  "y": 72
+ },
+ "driveTracks-L-mk3|R": {
+  "x": 83,
+  "y": 72
+ },
+ "driveTracks-L-mk1|L": {
+  "x": 143,
+  "y": 70
+ },
+ "driveTracks-L-mk1|R": {
+  "x": 131,
+  "y": 70
+ }
+}
