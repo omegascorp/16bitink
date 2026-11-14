@@ -161,7 +161,11 @@ export function botInput(m: Match, b: Brain, t: Tank, dt: number): TankInput {
       const home = b.hint?.stay && b.hint.goal ? b.hint.goal : null;
       const away = home ? Math.hypot(home.x - t.x, home.y - t.y) : 0;
       if (home && away > (b.hint?.goalRadius ?? 100) * 1.6) angle = navAngle(m, t, home);
-      else if (d > want + 50 || !b.los) angle = home ? (b.los ? null : angleTo(t, home)) : navAngle(m, t, target);
+      else if (b.allyBlocked && d <= want + 120) {
+        // A friend is in the way: sidestep for a clear line, don't charge (friendly fire, owner Nov 14).
+        angle = wrapAngle(angleTo(t, target) + (b.strafe * Math.PI) / 2);
+        mag = 0.8;
+      } else if (d > want + 50 || !b.los) angle = home ? (b.los ? null : angleTo(t, home)) : navAngle(m, t, target);
       else if (d < want - 60) angle = wrapAngle(angleTo(target, t) + b.strafe * 0.5);
       else {
         angle = wrapAngle(angleTo(t, target) + (b.strafe * Math.PI) / 2);

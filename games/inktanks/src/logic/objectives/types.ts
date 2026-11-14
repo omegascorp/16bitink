@@ -28,6 +28,8 @@ export interface Mark {
   readonly state?: 'ours' | 'theirs' | 'done' | 'neutral';
   /** 0–1: capture or dwell progress. */
   readonly progress?: number;
+  /** An artillery mark's whole warning, s: progress 0 is the drop, 1 the landing. */
+  readonly warn?: number;
 }
 
 export interface ObjectiveStatus {

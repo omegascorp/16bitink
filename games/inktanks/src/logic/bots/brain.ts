@@ -9,7 +9,7 @@ import type { Pt } from '../vec';
 import { raiseAlarm, RAISES_ALARM } from './alarm';
 import { alwaysAlert, AWARE, sense, type Aware } from './awareness';
 import { GUARD_LEASH, ROLE_SIGHT, SHOOT_BACK, type Difficulty } from './difficulty';
-import { losClear, odds, shotBlocker, VISION } from './perception';
+import { allyInLine, losClear, odds, shotBlocker, VISION } from './perception';
 import { thinkPlayer } from './playerBot';
 
 /**
@@ -39,6 +39,8 @@ export interface Brain {
   goalPickup: number | null;
   shootAt: { x: number; y: number; id: string } | null;
   los: boolean;
+  /** No wall in the way, but a friend is: step aside for a clear shot rather than close in. */
+  allyBlocked: boolean;
   thinkT: number;
   aimNoise: number;
   strafe: 1 | -1;
@@ -86,7 +88,7 @@ export function createBrain(t: Tank, e: ResolvedEnemy | null, diff: Difficulty, 
   return {
     tankId: t.id, role, diff, rng, post: { x: t.x, y: t.y }, leash: e?.leash ?? GUARD_LEASH,
     sight: e?.sight ?? (role === 'player' ? VISION : ROLE_SIGHT[role]), route, routeI: 1, routeDir: 1,
-    state: 'idle', target: null, goal: null, goalPickup: null, shootAt: null, los: false,
+    state: 'idle', target: null, goal: null, goalPickup: null, shootAt: null, los: false, allyBlocked: false,
     thinkT: rng.range(0, diff.reaction), aimNoise: 0, strafe: rng.chance(0.5) ? 1 : -1, strafeT: 0,
     lastPos: { x: t.x, y: t.y }, stuckT: 0, detourT: 0, detourAngle: 0, holdFire: false, seenCount: 0, alert: null, wantSwap: false, useKit: false, hint: null, snap: null,
     aware: alwaysAlert({ role }, t) ? 'alert' : 'calm', awareSince: 0, awareSpot: null, alertUntil: 0, lastSeen: null, coverShot: null, telegraph: null,
@@ -155,7 +157,9 @@ export function think(m: Match, b: Brain, t: Tank): void {
   const target = shootsBack && m.t - t.lastHitAt > SHOOT_BACK ? null : pickTarget(m, b, t, seen);
   b.target = target?.id ?? null;
   b.snap = target ? { x: target.x, y: target.y, vx: Math.cos(target.heading) * target.speed, vy: Math.sin(target.heading) * target.speed, t: m.t } : null;
-  b.los = target ? losClear(m, t.x, t.y, target.x, target.y) : b.shootAt ? losClear(m, t.x, t.y, b.shootAt.x, b.shootAt.y, b.shootAt.id) : false;
+  const wallClear = target ? losClear(m, t.x, t.y, target.x, target.y) : false;
+  b.allyBlocked = target !== null && wallClear && allyInLine(m, t, target.x, target.y);
+  b.los = target ? wallClear && !b.allyBlocked : b.shootAt ? losClear(m, t.x, t.y, b.shootAt.x, b.shootAt.y, b.shootAt.id) : false;
   b.coverShot = target && b.los ? null : coverToShoot(m, b, t);
   // Only an alert bot raises the alarm: a calm or suspicious one hasn't made you out yet.
   if (RAISES_ALARM.has(b.role) && b.aware === 'alert') {

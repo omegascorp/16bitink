@@ -119,3 +119,34 @@ export function shotBlocker(m: Match, ax: number, ay: number, bx: number, by: nu
 export function losClear(m: Match, ax: number, ay: number, bx: number, by: number, ignore: string | null = null): boolean {
   return shotBlocker(m, ax, ay, bx, by, ignore) === null;
 }
+
+/** A fortress and its turrets are one body: their shots never hit each other. */
+export function sameBody(a: Tank, b: Tank): boolean {
+  return a.parent === b.id || b.parent === a.id || (a.parent !== null && a.parent === b.parent);
+}
+
+/**
+ * Friendly fire (owner, Nov 14): an enemy's shot stops at the first tank it meets, its own side's
+ * included; the player's side shoots through its own truck and crews. Never the shooter or its body.
+ */
+export function shotHits(shooter: Tank | null, shooterTeam: number, t: Tank): boolean {
+  if (!t.alive || (shooter && (t.id === shooter.id || sameBody(shooter, t)))) return false;
+  return t.team !== shooterTeam || shooterTeam !== 0;
+}
+
+/** One of my own side in my line of fire to (x, y): a bot holds fire rather than shoot through a friend. */
+export function allyInLine(m: Match, me: Tank, x: number, y: number): boolean {
+  if (me.team === 0) return false;
+  const dx = x - me.x;
+  const dy = y - me.y;
+  const len2 = dx * dx + dy * dy;
+  if (len2 < 1) return false;
+  for (const o of m.tanks) {
+    if (o === me || !o.alive || o.team !== me.team || sameBody(me, o)) continue;
+    const k = ((o.x - me.x) * dx + (o.y - me.y) * dy) / len2;
+    if (k <= 0 || k >= 1) continue;
+    const r = o.stats.radius + 6;
+    if ((o.x - (me.x + dx * k)) ** 2 + (o.y - (me.y + dy * k)) ** 2 < r * r) return true;
+  }
+  return false;
+}

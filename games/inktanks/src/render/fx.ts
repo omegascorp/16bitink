@@ -4,6 +4,7 @@ import type { MatchEvent } from '../logic/match/types';
 import { slotOf } from '../logic/parts';
 import { partsArt } from './partsArt';
 import { bpTexture, pickupKey, preloadPickups, type PickupArt } from './pickupArt';
+import { BombLayer, preloadBombs } from './bombView';
 import { worldKey } from './worldArt';
 
 /**
@@ -34,6 +35,7 @@ const PICKUP_SCALE: Readonly<Record<PickupArt, number>> = { intel: 0.7, kit: 0.7
 /** The pickups' art; the crate comes with the world structures (preloadStructures). */
 export function preloadFx(scene: Phaser.Scene): void {
   preloadPickups(scene);
+  preloadBombs(scene);
   for (const [p, url] of Object.entries(gadgetIcons)) scene.load.image(`ui:${p.slice(p.lastIndexOf('/') + 1, -4)}`, url);
 }
 
@@ -50,6 +52,9 @@ export class WorldFx {
   /** Telegraphed big shots: the aim line held until `until` (match time). */
   private aimLines: { tank: number; angle: number; len: number; until: number }[] = [];
   private readonly aims: Phaser.GameObjects.Graphics;
+  private readonly bombs: BombLayer;
+  /** Match time at the last update, for events (bombers pass over marks on time). */
+  private now = 0;
 
   constructor(private readonly scene: Phaser.Scene) {
     this.marks = scene.add.graphics().setDepth(DEPTH.pickups);
@@ -57,19 +62,22 @@ export class WorldFx {
     this.aims = scene.add.graphics().setDepth(DEPTH.aims);
     this.fx = scene.add.graphics().setDepth(DEPTH.fx);
     this.rings = scene.add.graphics().setDepth(DEPTH.marks);
+    this.bombs = new BombLayer(scene);
   }
 
   onEvent(e: MatchEvent): void {
     if (e.kind === 'fire') this.puffs.push({ x: e.x, y: e.y, r: e.shot === 'tracer' ? 5 : 10, t: 0, life: 0.08, colour: 0xffe2a0 });
     else if (e.kind === 'hit') this.puffs.push({ x: e.x, y: e.y, r: e.shot === 'tracer' ? 4 : 12, t: 0, life: 0.18, colour: 0xffb060 });
-    else if (e.kind === 'explode') this.puffs.push({ x: e.x, y: e.y, r: e.r + 10, t: 0, life: 0.35, colour: 0xff8040 });
+    else if (e.kind === 'explode' || e.kind === 'mark') this.bombs.onEvent(e, this.now);
     else if (e.kind === 'kill') this.puffs.push({ x: 0, y: 0, r: 0, t: 0, life: 0, colour: 0 });
     else if (e.kind === 'aim') this.aimLines.push({ tank: e.tank, angle: e.angle, len: e.len, until: e.until });
     else if (e.kind === 'gadget' && e.gadget === 'smoke') this.puffs.push({ x: e.x, y: e.y, r: 40, t: 0, life: 0.25, colour: 0xf4ecd8 });
   }
 
   update(m: Match, dt: number, view: Phaser.Geom.Rectangle): void {
+    this.now = m.t;
     this.drawPickups(m, view);
+    this.bombs.update(m);
     const g = this.shots.clear();
     for (const s of m.shots) {
       if (s.x < view.x - 50 || s.x > view.right + 50 || s.y < view.y - 50 || s.y > view.bottom + 50) continue;
@@ -94,9 +102,15 @@ export class WorldFx {
     for (const k of m.objective.marks()) {
       const p = k.progress ?? 0;
       if (k.kind === 'artillery') {
-        // A red target ring that fills as the shell comes down.
-        rg.fillStyle(0xc83a2a, 0.15 + 0.3 * p).fillCircle(k.x, k.y, k.r * Math.max(0.15, p));
-        rg.lineStyle(2, 0xff7a5a, 0.9).strokeCircle(k.x, k.y, k.r);
+        // The danger zone: a red ring with four ticks, pulsing faster as the bomb comes down (the bomb is BombLayer's).
+        const a = 0.8 + 0.2 * Math.sin(m.t * (8 + 14 * p));
+        rg.fillStyle(0xc83a2a, 0.08 + 0.12 * p).fillCircle(k.x, k.y, k.r);
+        rg.lineStyle(3, 0xff6a4a, a).strokeCircle(k.x, k.y, k.r);
+        for (let i = 0; i < 4; i++) {
+          const c = Math.cos((i * Math.PI) / 2);
+          const s = Math.sin((i * Math.PI) / 2);
+          rg.lineBetween(k.x + c * (k.r - 12), k.y + s * (k.r - 12), k.x + c * (k.r + 6), k.y + s * (k.r + 6));
+        }
         continue;
       }
       const colour = k.state === 'ours' || k.state === 'done' ? 0x8cc85a : k.state === 'theirs' ? 0xd85a3a : k.kind === 'exit' || k.kind === 'pickup' ? 0x8cc85a : 0xf4ecd8;

@@ -1,10 +1,11 @@
 import { makeAlert } from '../bots/awareness';
-import { LOW_PASS } from '../bots/perception';
+import { LOW_PASS, shotHits } from '../bots/perception';
 import { damageTaken, structureDamage } from '../damage';
 import { segmentHits } from '../geom';
 import { intelOf } from '../intel';
 import { wreckPart } from '../loot';
 import type { Family, GunFamily } from '../parts';
+import { nearestPassable, passable } from '../nav/grid';
 import { turnTowards } from '../vec';
 import type { Match } from './match';
 import { breakStructure } from './movement';
@@ -102,14 +103,16 @@ function moveShot(m: Match, s: Shot, dt: number, speed: number): void {
   s.y += s.vy * dt;
   s.travelled += speed * dt;
   // Tanks first: a shot fired point-blank past a wall corner still hits the tank.
+  const shooter = m.tank(s.owner) ?? null;
   for (const t of m.tanks) {
-    if (!t.alive || t.team === s.team) continue;
+    if (!shotHits(shooter, s.team, t)) continue;
     // Shots fly over a fortress's deck edge to reach its turrets.
     const r = t.role === 'boss' ? t.stats.radius * 0.55 : t.stats.radius + (t.role === 'bossTurret' ? 8 : 3);
     if ((t.x - s.x) ** 2 + (t.y - s.y) ** 2 > r * r) continue;
     hitTank(m, t, s.damage, s.gun, s.owner);
+    if (t.team === s.team) m.emit({ kind: 'friendly', x: t.x, y: t.y, target: t.id });
     const owner = m.tank(s.owner);
-    if (owner) owner.shotsHit++;
+    if (owner && t.team !== s.team) owner.shotsHit++;
     m.emit({ kind: 'hit', x: s.x, y: s.y, target: t.id, dmg: s.damage, shot: s.kind });
     explode(m, s, t.id);
     s.alive = false;
@@ -137,8 +140,9 @@ function moveShot(m: Match, s: Shot, dt: number, speed: number): void {
 function explode(m: Match, s: Shot, direct: number | null): void {
   if (s.splash <= 0) return;
   m.emit({ kind: 'explode', x: s.x, y: s.y, r: s.splash });
+  const shooter = m.tank(s.owner) ?? null;
   for (const t of m.tanks) {
-    if (!t.alive || t.id === direct || t.team === s.team) continue;
+    if (t.id === direct || !shotHits(shooter, s.team, t)) continue;
     const reach = s.splash + t.stats.radius;
     if ((t.x - s.x) ** 2 + (t.y - s.y) ** 2 <= reach * reach) hitTank(m, t, s.damage * SPLASH_SHARE, s.gun, s.owner);
   }
@@ -179,19 +183,25 @@ export function hitTank(m: Match, t: Tank, dmg: number, gun: GunFamily, from: nu
   const ambush = brain !== undefined && brain.role !== 'player' && brain.aware !== 'alert' && attacker !== null && attacker.team !== t.team && attacker.team === 0;
   const d = (raw ? dmg : damageTaken(dmg, gun, t.stats.drive, t.stats.armour)) * shield * (ambush ? AMBUSH : 1);
   t.hp -= d;
-  if (brain && brain.role !== 'player' && attacker) makeAlert(m, brain, attacker);
+  const foe = attacker !== null && attacker.team !== t.team;
+  if (brain && brain.role !== 'player' && foe) makeAlert(m, brain, attacker);
   if (ambush) {
     attacker.ambushHits++;
     m.tactics.ambushHits++;
     m.emit({ kind: 'ambush', x: t.x, y: t.y, target: t.id, dmg: d });
   }
-  if (attacker) {
+  if (attacker && foe) {
     attacker.dealt += d;
     t.lastHitBy = attacker.id;
     t.lastHitAt = m.t;
     t.lastHitDrive = attacker.stats.drive;
   }
   if (t.hp <= 0) killTank(m, t, attacker, gun);
+}
+
+/** (x, y) if a tank can drive there, else the nearest drivable cell's centre. */
+function reachable(m: Match, x: number, y: number): { x: number; y: number } | null {
+  return passable(m.nav, x, y) ? { x, y } : nearestPassable(m.nav, x, y);
 }
 
 export function killTank(m: Match, t: Tank, killer: Tank | null, by: GunFamily | 'artillery'): void {
@@ -213,7 +223,9 @@ export function killTank(m: Match, t: Tank, killer: Tank | null, by: GunFamily |
     fams.forEach((f, i) => {
       const a = (i / fams.length) * Math.PI * 2 + t.id * 0.9 + 0.6;
       const r = 26 + ((t.id + i) % 3) * 6;
-      m.addPickup({ kind: 'intel', bag: { [f]: bag[f] }, from: t.name, ace: t.ace }, t.x + Math.cos(a) * r, t.y + Math.sin(a) * r);
+      // A wreck by water or a wall would drop a sheet nobody can reach: snap it to the nearest drivable cell.
+      const at = reachable(m, t.x + Math.cos(a) * r, t.y + Math.sin(a) * r) ?? { x: t.x, y: t.y };
+      m.addPickup({ kind: 'intel', bag: { [f]: bag[f] }, from: t.name, ace: t.ace }, at.x, at.y);
     });
   }
   // A boss's turrets die with it.

@@ -5,16 +5,16 @@ import { at, each, LOOT_LATE, patch, row, TANK } from './kit';
  * Level 9, Through the Pass (Breakout): reach the fort gate in 2:30, 4 × 3
  * screens. The pass doubles back on itself: three lanes split by long
  * stone walls, east, then west, then east to the gate. Boar guards and
- * turrets hold the bends, a hunter comes up behind, and their artillery
- * marks a spot just ahead of you every few seconds. Keep moving.
+ * turrets hold the bends, a hunter comes up behind, and their bombers
+ * drop on a spot just ahead of you every few seconds. Keep moving.
  */
 const WALL1 = row('wallStone', 40, 540, 58, 60);
 const WALL2 = row('wallStone', 400, 1080, 58, 60);
 
 export const LEVEL_09: LevelDef = {
   id: 'ch1-09', number: 9, name: 'Through the Pass', type: 'breakout',
-  briefing: 'The fort gate lies at the end of the pass, and the pass doubles back on itself. Get there in two and a half minutes. Their guns mark where you are heading: keep moving.',
-  teaches: 'Artillery marks, pace',
+  briefing: 'The fort gate lies at the end of the pass, and the pass doubles back on itself. Get there in two and a half minutes. Their bombers drop where you are heading: watch for the red rings and keep moving.',
+  teaches: 'Air raids, pace',
   map: {
     cols: 4, rows: 3, base: 'grassDry',
     terrain: [patch('dirt', 0, 230, 3840, 80), patch('dirt', 0, 770, 3840, 80), patch('dirt', 0, 1310, 3840, 80), patch('mud', 1800, 600, 200, 400)],

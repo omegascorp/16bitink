@@ -87,6 +87,6 @@ export function breakout(m: Match, def: Extract<ObjectiveDef, { kind: 'breakout'
     },
     status: () => ({ text: out ? 'Out!' : `Reach the exit: ${Math.round((m.player ? dist(m.player, exit) : 0) / 10)} m`, target: exit, done: out, failed: null }),
     playerHint: () => ({ goal: exit, goalRadius: 20, urgent: true, run: true }),
-    marks: () => [{ kind: 'exit', x: exit.x, y: exit.y, r }, ...shells.map((s): Mark => ({ kind: 'artillery', x: s.x, y: s.y, r: art!.radius, progress: 1 - (s.at - m.t) / art!.warn }))],
+    marks: () => [{ kind: 'exit', x: exit.x, y: exit.y, r }, ...shells.map((s): Mark => ({ kind: 'artillery', x: s.x, y: s.y, r: art!.radius, progress: 1 - (s.at - m.t) / art!.warn, warn: art!.warn }))],
   };
 }

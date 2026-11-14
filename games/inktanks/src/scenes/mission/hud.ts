@@ -28,6 +28,8 @@ export type Project = (x: number, y: number) => { x: number; y: number };
 const ARROW_MARGIN = 36;
 /** How long a tip stays, and below what HP share the 'use a kit' tip shows (once a mission). */
 const TIP_S = 4.5;
+/** Seconds between "Friendly fire!" pops over one tank. */
+const FRIENDLY_POP_GAP = 1.5;
 const LOW_HP = 0.4;
 const $ = <T extends HTMLElement>(root: HTMLElement, sel: string): T => root.querySelector(sel) as T;
 
@@ -56,6 +58,7 @@ export class Hud {
   private popList: { el: HTMLElement; x: number; y: number; at: number }[] = [];
   private gadgetShown = '';
   private gadgetTipped = false;
+  private readonly friendlyAt = new Map<number, number>();
   private cardFor: number | null = null;
   private loadoutRef: Tank['loadout'] | null = null;
 
@@ -103,6 +106,11 @@ export class Hud {
     else if (e.kind === 'pickup' && e.what === 'kit' && m.tank(e.tank)?.isPlayer) this.showTip(m, `Repair kit! ${this.useKey()} to fix your tank`);
     else if (e.kind === 'pickup' && e.what === 'gadget' && m.tank(e.tank)?.isPlayer) this.line(`+1 ${GADGET_NAME[m.player?.gadget ?? 'mines']}`);
     else if (e.kind === 'ambush') this.pop(m, e.x, e.y, 'Ambush ×2');
+    else if (e.kind === 'friendly' && m.t - (this.friendlyAt.get(e.target) ?? -9) > FRIENDLY_POP_GAP) {
+      // One pop per tank every so often: a machinegun burst through a friend is one "Friendly fire!", not twenty.
+      this.friendlyAt.set(e.target, m.t);
+      this.pop(m, e.x, e.y, 'Friendly fire!');
+    }
     else if (e.kind === 'mine') this.pop(m, e.x, e.y, 'Mine!');
   }
 

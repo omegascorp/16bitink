@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { AWARE, sense } from '../src/logic/bots/awareness';
 import { think } from '../src/logic/bots/brain';
 import { TELEGRAPH } from '../src/logic/bots/control';
-import { canSee, hidden, LOW_PASS, shotBlocker, SPOT_NEAR } from '../src/logic/bots/perception';
+import { allyInLine, canSee, hidden, LOW_PASS, shotBlocker, shotHits, SPOT_NEAR } from '../src/logic/bots/perception';
 import { damageTaken } from '../src/logic/damage';
 import type { EnemyDef, StructPlace } from '../src/logic/level/types';
-import { AMBUSH, hitTank } from '../src/logic/match/combat';
+import { aimAndFire, AMBUSH, hitTank } from '../src/logic/match/combat';
 import { Match } from '../src/logic/match/match';
 import { IDLE, type MatchEvent, type Tank } from '../src/logic/match/types';
 import { STARTER_LOADOUT } from '../src/logic/parts';
@@ -250,5 +250,43 @@ describe('telegraph', () => {
     const ev = steps(mg, 3);
     expect(ev.some((e) => e.kind === 'fire' && e.tank === t2!.id)).toBe(true);
     expect(ev.some((e) => e.kind === 'aim')).toBe(false);
+  });
+});
+
+describe('friendly fire', () => {
+  it("an enemy's shot stops at a friend in its way and hurts it", () => {
+    const m = make([GUARD(1000, 540, { role: 'turret', hpMult: 20 }), GUARD(860, 540, { role: 'turret', hpMult: 20 })]);
+    const [a, b] = foes(m);
+    put(m.player!, 400, 540);
+    const hp0 = b!.hp;
+    for (let i = 0; i < 30; i++) aimAndFire(m, a!, { ...IDLE, aim: Math.PI, fire: true }, 1 / 60);
+    const ev = steps(m, 0.4);
+    expect(b!.hp).toBeLessThan(hp0);
+    expect(ev.some((e) => e.kind === 'friendly' && e.target === b!.id)).toBe(true);
+  });
+
+  it('a bot holds fire with a friend in its line; clear of it, it fires', () => {
+    const m = make([GUARD(1000, 540), GUARD(860, 540)]);
+    const [a, b] = foes(m);
+    const p = m.player!;
+    put(p, 600, 540);
+    expect(allyInLine(m, a!, p.x, p.y)).toBe(true);
+    put(b!, 860, 700);
+    expect(allyInLine(m, a!, p.x, p.y)).toBe(false);
+    expect(allyInLine(m, p, a!.x, a!.y)).toBe(false);
+  });
+
+  it("the player's shots pass through its own side; a fortress never hits itself", () => {
+    const m = make([GUARD(1000, 540), GUARD(860, 540)]);
+    const [a, b] = foes(m);
+    const p = m.player!;
+    const truck = { ...p, id: 9001, isPlayer: false, role: 'truck' } as Tank;
+    expect(shotHits(p, 0, truck)).toBe(false);
+    expect(shotHits(p, 0, a!)).toBe(true);
+    expect(shotHits(a!, a!.team, b!)).toBe(true);
+    expect(shotHits(a!, a!.team, a!)).toBe(false);
+    const turret = { ...b!, parent: a!.id } as Tank;
+    expect(shotHits(turret, a!.team, a!)).toBe(false);
+    expect(shotHits(a!, a!.team, turret)).toBe(false);
   });
 });

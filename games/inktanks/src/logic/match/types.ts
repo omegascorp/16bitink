@@ -147,6 +147,8 @@ export type MatchEvent =
   | { readonly kind: 'crate'; readonly x: number; readonly y: number }
   | { readonly kind: 'alarm'; readonly x: number; readonly y: number; readonly by: number }
   | { readonly kind: 'escape'; readonly tank: number }
+  /** An enemy's shot hit one of its own side. */
+  | { readonly kind: 'friendly'; readonly x: number; readonly y: number; readonly target: number }
   | { readonly kind: 'mark'; readonly x: number; readonly y: number; readonly r: number; readonly at: number }
   | { readonly kind: 'objective'; readonly text: string }
   | { readonly kind: 'spawn'; readonly tank: number }
