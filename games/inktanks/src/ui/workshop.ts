@@ -97,8 +97,8 @@ function html(p: Progress, tab: Slot, note: string, backLabel: string): string {
 }
 
 /** A cost button: bright when payable, dimmed with "need N more" when short, locked with the rank when gated. */
-function costBtn(label: string, cost: number, have: number, attrs: string, lockedBy: string | null, extra = ''): string {
-  const bp = bpAmount(cost);
+function costBtn(f: Family, label: string, cost: number, have: number, attrs: string, lockedBy: string | null, extra = ''): string {
+  const bp = bpAmount(cost, false, f);
   if (lockedBy) return `<button class="btn small dim" ${attrs} data-blocked="1"><span>${label} ${bp}</span><span class="why2"><i class="lock"></i>needs ${esc(lockedBy)}</span></button>`;
   if (have < cost) return `<button class="btn small dim" ${attrs}><span>${label} ${extra}${bp}</span><span class="why2">need ${cost - have} more</span></button>`;
   return `<button class="btn small gold" ${attrs}><span>${label} ${extra}${bp}</span></button>`;
@@ -112,28 +112,28 @@ function famCard(p: Progress, f: Family): string {
   const acts: string[] = [];
   let goal = UNLOCK_COST;
   if (!unlocked) {
-    acts.push(costBtn('Unlock', UNLOCK_COST, have, `data-act="unlock" data-f="${f}"`, null));
+    acts.push(costBtn(f, 'Unlock', UNLOCK_COST, have, `data-act="unlock" data-f="${f}"`, null));
   } else {
     if (!fitted) acts.push(`<button class="btn small go" data-act="fit" data-f="${f}">Fit</button>`);
     if (mk < 3) {
       const next = (mk + 1) as 2 | 3;
       const rankOk = perksOf(p.xp).maxMk >= next;
       goal = MK_COST[next];
-      acts.push(costBtn(`Mk ${'I'.repeat(next)}`, MK_COST[next], have, `data-act="mk" data-f="${f}"`, rankOk ? null : rankName(MK_RANK[next])));
+      acts.push(costBtn(f, `Mk ${'I'.repeat(next)}`, MK_COST[next], have, `data-act="mk" data-f="${f}"`, rankOk ? null : rankName(MK_RANK[next])));
     }
     for (const line of LINES_BY_SLOT[slotOf(f)] as readonly ResearchLine[]) {
       const steps = researchSteps(p.research, f, line);
       const cost = researchCost(p, f, line);
       const pips = `<span class="pips">${Array.from({ length: RESEARCH_MAX }, (_, i) => `<u${i < steps ? ' class="on"' : ''}></u>`).join('')}</span>`;
       if (cost === null) acts.push(`<button class="btn small dim" disabled><span>${LINE_NAMES[line]} maxed ${pips}</span></button>`);
-      else acts.push(costBtn(`${LINE_NAMES[line]} +${PCT}%`, cost, have, `data-act="research" data-f="${f}" data-line="${line}"`, null, ''));
+      else acts.push(costBtn(f, `${LINE_NAMES[line]} +${PCT}%`, cost, have, `data-act="research" data-f="${f}" data-line="${line}"`, null, ''));
     }
   }
   const share = Math.min(1, have / goal);
   return `<div class="fam${fitted ? ' fitted' : ''}${unlocked ? '' : ' locked'}">
     ${partIcon({ family: f, mk: unlocked ? mk : 1 })}
     <div class="famhead">${esc(famName(f))}${unlocked ? ` <span class="gold t12">Mk ${'I'.repeat(mk)}</span>` : ' <span class="t12 dimt">locked</span>'}${fitted ? ' <span class="t12 green">fitted</span>' : ''}</div>
-    <div class="bpline"><span class="t12">${esc(famName(f))} blueprints:</span><span class="big">${bpAmount(have)}</span></div>
+    <div class="bpline"><span class="t12">${esc(famName(f))} blueprints:</span><span class="big">${bpAmount(have, false, f)}</span></div>
     <div class="bar wide"><i style="width:${Math.round(share * 100)}%"></i></div>
     <div class="acts">${acts.join('')}</div>
   </div>`;

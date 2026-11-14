@@ -8,9 +8,11 @@ import { swapIn } from '../src/logic/match/pickups';
 import { IDLE } from '../src/logic/match/types';
 import { applyOutcome, outcome } from '../src/logic/mission/outcome';
 import type { BonusDef } from '../src/logic/level/types';
+import { intelOf, sumIntel } from '../src/logic/intel';
 import { part, STARTER_LOADOUT } from '../src/logic/parts';
 import { newProgress } from '../src/logic/workshop';
 import { XP } from '../src/logic/rank';
+import { tankStats } from '../src/logic/stats';
 
 const make = (level: number, seed = 5, bot = true) => new Match({ level: ch1Level(level), seed, player: { loadout: STARTER_LOADOUT }, playerBot: bot });
 const run = (m: Match) => {
@@ -82,6 +84,17 @@ describe('a match', () => {
     expect(m.pickups.some((x) => x.kind === 'intel' && x.from === foe.name)).toBe(true);
   });
 
+  it('a wreck leaves one blueprint pickup per part family, with the same total', () => {
+    const m = make(1, 6, false);
+    const foe = m.tanks.find((t) => !t.isPlayer)!;
+    killTank(m, foe, null, 'cannon');
+    const drops = m.pickups.filter((x) => x.kind === 'intel' && x.from === foe.name);
+    for (const d of drops) if (d.kind === 'intel') expect(Object.keys(d.bag)).toHaveLength(1);
+    const total = drops.reduce((s, d) => s + (d.kind === 'intel' ? sumIntel(d.bag) : 0), 0);
+    expect(drops.length).toBeGreaterThan(1);
+    expect(total).toBe(sumIntel(intelOf(foe.loadout, foe.ace)));
+  });
+
   it('holds swap to swap, and only the player collects intel', () => {
     const m = make(1, 6, false);
     const p = m.player!;
@@ -147,3 +160,28 @@ describe('medals and bonuses', () => {
     expect(lost.progress.intel.cannon).toBe(2);
   });
 });
+
+describe('fire rate', () => {
+  /** Shots the player fires in 3 s of holding fire, at a step size. */
+  const shotsIn3s = (dt: number, reloadSteps: number): number => {
+    const m = new Match({ level: ch1Level(1), seed: 1, player: { loadout: STARTER_LOADOUT, research: { machinegun: { reload: reloadSteps } } }, playerBot: false });
+    const p = m.player!;
+    const before = p.shotsFired;
+    for (let i = 0; i < Math.round(3 / dt); i++) m.step(dt, { move: null, aim: 0, fire: true, swap: false, repair: false });
+    return p.shotsFired - before;
+  };
+
+  it('matches the gun at the game and sim step sizes', () => {
+    const want = 3 / tankStatsOf(0);
+    for (const dt of [1 / 60, 1 / 30]) expect(Math.abs(shotsIn3s(dt, 0) - want)).toBeLessThanOrEqual(1);
+  });
+
+  it('fires faster with every Reload research step', () => {
+    const shots = [0, 1, 2, 3].map((n) => shotsIn3s(1 / 60, n));
+    for (let i = 1; i < shots.length; i++) expect(shots[i]!).toBeGreaterThan(shots[i - 1]!);
+  });
+});
+
+function tankStatsOf(reloadSteps: number): number {
+  return tankStats(STARTER_LOADOUT, { machinegun: { reload: reloadSteps } }).gun.reload;
+}

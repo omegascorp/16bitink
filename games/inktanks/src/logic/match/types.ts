@@ -1,5 +1,5 @@
 import type { CrateContent } from '../loot';
-import type { DriveFamily, GunFamily, HullFamily, Loadout, Part, ShotKind } from '../parts';
+import type { DriveFamily, Family, GunFamily, HullFamily, Loadout, Part, ShotKind } from '../parts';
 import type { Research, TankStats } from '../stats';
 import type { StructureDef } from '../land';
 import type { IntelBag } from '../workshop';
@@ -122,7 +122,7 @@ export type MatchEvent =
   | { readonly kind: 'kill'; readonly killer: number | null; readonly victim: number; readonly by: GunFamily | 'artillery' }
   | { readonly kind: 'struct'; readonly id: string; readonly state: 2 | 1 | 0 }
   | { readonly kind: 'swap'; readonly tank: number; readonly part: Part; readonly dropped: Part }
-  | { readonly kind: 'pickup'; readonly tank: number; readonly what: 'kit' | 'intel' | 'proto'; readonly amount: number }
+  | { readonly kind: 'pickup'; readonly tank: number; readonly what: 'kit' | 'intel' | 'proto'; readonly amount: number; /** For blueprints: the part family (a pickup holds one). */ readonly family?: Family }
   | { readonly kind: 'crate'; readonly x: number; readonly y: number }
   | { readonly kind: 'alarm'; readonly x: number; readonly y: number; readonly by: number }
   | { readonly kind: 'escape'; readonly tank: number }

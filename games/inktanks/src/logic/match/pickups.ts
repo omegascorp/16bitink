@@ -1,4 +1,4 @@
-import { slotOf, withPart, type HullFamily } from '../parts';
+import { slotOf, withPart, type Family, type HullFamily } from '../parts';
 import { tankStats } from '../stats';
 import { mergeIntel, sumIntel } from '../intel';
 import type { Match } from './match';
@@ -76,7 +76,7 @@ export function touchPickups(m: Match, t: Tank, input: TankInput, dt: number, wa
         if (t.team === 0) {
           p.taken = true;
           m.intel = mergeIntel(m.intel, p.bag);
-          m.emit({ kind: 'pickup', tank: t.id, what: 'intel', amount: sumIntel(p.bag) });
+          m.emit({ kind: 'pickup', tank: t.id, what: 'intel', amount: sumIntel(p.bag), family: (Object.keys(p.bag) as Family[])[0] });
         }
         break;
       case 'proto':

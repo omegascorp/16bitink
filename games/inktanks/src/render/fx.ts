@@ -3,7 +3,7 @@ import type { Match } from '../logic/match/match';
 import type { MatchEvent } from '../logic/match/types';
 import { slotOf } from '../logic/parts';
 import { partsArt } from './partsArt';
-import { pickupKey, preloadPickups, type PickupArt } from './pickupArt';
+import { bpTexture, pickupKey, preloadPickups, type PickupArt } from './pickupArt';
 import { worldKey } from './worldArt';
 
 /**
@@ -123,7 +123,8 @@ export class WorldFx {
         const ring = p.kind === 'kit' ? 0x8cc85a : p.kind === 'intel' ? 0x5a8ce0 : 0xf0c040;
         g.lineStyle(2, ring, 0.55 + 0.35 * Math.sin(m.t * 4)).strokeCircle(p.x, p.y, p.kind === 'proto' ? 34 : 24);
         if (!this.items.has(p.id) && this.scene.textures.exists(pickupKey(p.kind))) {
-          this.items.set(p.id, this.scene.add.image(p.x, p.y, pickupKey(p.kind)).setScale(PICKUP_SCALE[p.kind]).setDepth(DEPTH.pickups + 1));
+          const key = p.kind === 'intel' ? bpTexture(this.scene, Object.keys(p.bag)[0]) : pickupKey(p.kind);
+          this.items.set(p.id, this.scene.add.image(p.x, p.y, key).setScale(PICKUP_SCALE[p.kind]).setDepth(DEPTH.pickups + 1));
         }
       }
     }

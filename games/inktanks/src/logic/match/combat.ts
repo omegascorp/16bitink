@@ -2,7 +2,7 @@ import { damageTaken, structureDamage } from '../damage';
 import { segmentHits } from '../geom';
 import { intelOf } from '../intel';
 import { wreckPart } from '../loot';
-import type { GunFamily } from '../parts';
+import type { Family, GunFamily } from '../parts';
 import { turnTowards } from '../vec';
 import type { Match } from './match';
 import { breakStructure } from './movement';
@@ -18,7 +18,10 @@ const SUBSTEP = 12;
 
 export function aimAndFire(m: Match, t: Tank, input: TankInput, dt: number): void {
   if (input.aim !== null) t.turret = turnTowards(t.turret, input.aim, t.stats.gun.turretTurn * dt);
-  t.reload = Math.max(0, t.reload - dt);
+  // The cooldown keeps its leftover past zero (carried into the next shot), so fire rate is exact
+  // at any step size: without the carry a 0.1 s gun at 1/60 s steps rounded up to whole steps, and
+  // Reload research under a step's worth did nothing.
+  t.reload -= dt;
   if (t.burst > 0) {
     t.burstT -= dt;
     if (t.burstT <= 0) {
@@ -28,8 +31,13 @@ export function aimAndFire(m: Match, t: Tank, input: TankInput, dt: number): voi
     }
     return;
   }
-  if (!input.fire || t.reload > 0 || t.repairT > 0 || t.role === 'truck' || t.role === 'boss' || t.role === 'crew') return;
-  t.reload = t.stats.gun.reload;
+  const canFire = input.fire && t.repairT <= 0 && t.role !== 'truck' && t.role !== 'boss' && t.role !== 'crew';
+  if (!canFire || t.reload > 0) {
+    // Idle: no banking shots while not firing.
+    if (t.reload < 0) t.reload = 0;
+    return;
+  }
+  t.reload += t.stats.gun.reload;
   t.firedAt = m.t;
   spawnShot(m, t, t.stats.gun.shots > 1 ? 1 : 0);
   t.burst = t.stats.gun.shots - 1;
@@ -159,7 +167,14 @@ export function killTank(m: Match, t: Tank, killer: Tank | null, by: GunFamily |
   if (t.role === 'tank' || t.role === 'bossTurret') {
     // The wreck: its best part to swap in, and intel on all its parts.
     if (t.role === 'tank') m.addPickup({ kind: 'part', part: t.ace ? { ...wreckPart(t.loadout), mk: 3, proto: true } : wreckPart(t.loadout) }, t.x, t.y);
-    m.addPickup({ kind: 'intel', bag: intelOf(t.loadout, t.ace), from: t.name, ace: t.ace }, t.x + 18, t.y + 10);
+    // One blueprint sheet per part family, scattered around the wreck (spread from the tank's id, so it is the same every run).
+    const bag = intelOf(t.loadout, t.ace);
+    const fams = Object.keys(bag) as Family[];
+    fams.forEach((f, i) => {
+      const a = (i / fams.length) * Math.PI * 2 + t.id * 0.9 + 0.6;
+      const r = 26 + ((t.id + i) % 3) * 6;
+      m.addPickup({ kind: 'intel', bag: { [f]: bag[f] }, from: t.name, ace: t.ace }, t.x + Math.cos(a) * r, t.y + Math.sin(a) * r);
+    });
   }
   // A boss's turrets die with it.
   for (const o of m.tanks) if (o.parent === t.id && o.alive) killTank(m, o, null, by);

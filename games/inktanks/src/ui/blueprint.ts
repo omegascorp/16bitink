@@ -1,6 +1,7 @@
 import { affordableUpgrades } from '../logic/blueprints';
 import type { Progress } from '../logic/workshop';
-import { pickupUrl } from '../render/pickupArt';
+import type { Family } from '../logic/parts';
+import { bpUrl, pickupUrl } from '../render/pickupArt';
 
 /**
  * The blueprint icon (the blue sheet the enemies drop) as HTML, and the
@@ -8,13 +9,13 @@ import { pickupUrl } from '../render/pickupArt';
  * upgrades you can afford. Every amount and cost the player sees uses these,
  * never a bare number. (Code calls them intel; the player calls them blueprints.)
  */
-export function bpIcon(): string {
-  const url = pickupUrl('intel');
+export function bpIcon(family?: Family): string {
+  const url = family ? bpUrl(family) : pickupUrl('intel');
   return url ? `<img class="bp" src="${url}" alt="blueprints">` : '<i class="bp txt">BP</i>';
 }
 
-/** "[icon] 5", or "+5 [icon]" with `plus`. */
-export const bpAmount = (n: number, plus = false): string => `<span class="bpn">${plus ? `+${n} ` : ''}${bpIcon()}${plus ? '' : ` ${n}`}</span>`;
+/** "[icon] 5" with that family's own icon when given (generic for totals), or "+5 [icon]" with `plus`. */
+export const bpAmount = (n: number, plus = false, family?: Family): string => `<span class="bpn">${plus ? `+${n} ` : ''}${bpIcon(family)}${plus ? '' : ` ${n}`}</span>`;
 
 /** The Workshop button; with a badge when upgrades are affordable, and a pulse when `pulse`. */
 export function workshopButton(p: Progress, extra = ''): string {

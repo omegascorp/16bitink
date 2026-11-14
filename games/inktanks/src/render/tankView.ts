@@ -25,7 +25,7 @@ const ROLL_STEP = 6;
 
 export function preloadParts(scene: Phaser.Scene): void {
   for (const [key, url] of partsArt().urls) if (!scene.textures.exists(key)) scene.load.image(key, url);
-  for (const [key, url] of WORLD_URLS) if (key.startsWith('world:vehicles/') && !scene.textures.exists(key)) scene.load.image(key, url);
+  for (const [key, url] of WORLD_URLS) if ((key.startsWith('world:vehicles/') || key.startsWith('world:crew/')) && !scene.textures.exists(key)) scene.load.image(key, url);
 }
 
 /** The keys a tank's current parts draw with. */
@@ -60,7 +60,7 @@ export class TankView {
 
   /** Draws the tank; a dropping tank falls in from above, large and faint. */
   update(t: Tank, parent?: Tank): void {
-    if (t.role === 'truck' || t.role === 'boss' || t.role === 'bossTurret') {
+    if (t.role === 'truck' || t.role === 'boss' || t.role === 'bossTurret' || t.role === 'crew') {
       this.updateVehicle(t, parent);
       return;
     }
@@ -70,15 +70,14 @@ export class TankView {
     }
     const k = this.keys!;
     const vis = t.alive;
-    // A freed crew is a placeholder (a small tank) until its art lands.
     const body = true;
-    const gun = t.role !== 'crew';
+    const gun = true;
     for (const i of [this.shadow, this.drive, this.hull]) i.setVisible(vis && body);
     for (const i of [this.tShadow, this.turret]) i.setVisible(vis && gun);
     const showBar = !!this.bar && vis && t.hp < t.stats.maxHp;
     if (this.bar) for (const b of this.bar) b.setVisible(showBar);
     if (!vis) return;
-    const scale = t.role === 'crew' ? 0.45 : 1;
+    const scale = 1;
     const x = Math.round(t.x);
     const y = Math.round(t.y);
     const frame = k.drive[Math.floor(t.rolled / ROLL_STEP) % k.drive.length]!;
@@ -120,7 +119,7 @@ export class TankView {
     if (!vis) return;
     const x = Math.round(t.x);
     const y = Math.round(t.y);
-    const step = Math.floor(t.rolled / ROLL_STEP);
+    const step = Math.floor(t.rolled / (t.role === 'crew' ? 4 : ROLL_STEP));
     if (t.role === 'bossTurret') {
       const name = TURRET_OF[t.loadout.gun.family] ?? 'fortressCannon';
       const key = worldKey(`vehicles/${name}-${t.alive ? 1 : 0}`);
@@ -130,6 +129,15 @@ export class TankView {
       this.bank.apply(this.turret, key, t.turret);
       this.tShadow.setVisible(t.alive).setPosition(x + SHADOW.x * 5, y + SHADOW.y * 5).setScale(sc).setDepth(depth - 0.01);
       this.turret.setVisible(true).setPosition(x, y).setScale(sc).setDepth(depth);
+      return;
+    }
+    if (t.role === 'crew') {
+      // An otter on foot: a 4-frame walk, turned to its heading like a tank.
+      const key = worldKey(`crew/crew-${step % 4}`);
+      this.bank.apply(this.shadow, key, t.heading);
+      this.shadow.setVisible(true).setPosition(x + 3, y - 2).setScale(1.6).setDepth(DEPTH.shadow);
+      this.bank.apply(this.hull, key, t.heading);
+      this.hull.setVisible(true).setPosition(x, y).setScale(1.6).setDepth(footDepth(y + 10) + DEPTH.hull);
       return;
     }
     const boss = t.role === 'boss';

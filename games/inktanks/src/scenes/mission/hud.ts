@@ -36,7 +36,6 @@ export class Hud {
   private kitsShown = '';
   private touch = false;
   private tipDone = false;
-  private seenBag: Readonly<Partial<Record<Family, number>>> = {};
   private readonly timer: HTMLElement;
   private readonly arrow: HTMLElement;
   private readonly goal: HTMLElement;
@@ -84,16 +83,13 @@ export class Hud {
     else if (e.kind === 'escape') {
       const t = m.tank(e.tank);
       if (t) this.line(t.role === 'crew' ? `${t.name} is home` : `<b class="red">${who(t)} got away</b>`);
-    } else if (e.kind === 'pickup' && e.what === 'intel' && m.tank(e.tank)?.isPlayer) this.blueprints(m, e.amount);
+    } else if (e.kind === 'pickup' && e.what === 'intel' && m.tank(e.tank)?.isPlayer) this.blueprints(m, e.amount, e.family);
     else if (e.kind === 'pickup' && e.what === 'kit' && m.tank(e.tank)?.isPlayer) this.showTip(m, `Repair kit! ${this.useKey()} to fix your tank`);
   }
 
-  /** "+5 [icon] blueprints (Cannon, Wheels)": the families that grew since the last pickup; the first time ever, a tip. */
-  private blueprints(m: Match, amount: number): void {
-    const gained = (Object.keys(m.intel) as Family[]).filter((f) => (m.intel[f] ?? 0) > (this.seenBag[f] ?? 0));
-    this.seenBag = { ...m.intel };
-    const names = gained.map(familyName).join(', ');
-    this.line(`<span class="bpn">+${amount} ${bpIcon()} blueprints${names ? ` (${names})` : ''}</span>`);
+  /** "+2 [cannon icon] Cannon blueprints"; the first time ever, a tip. */
+  private blueprints(m: Match, amount: number, family?: Family): void {
+    this.line(`<span class="bpn">+${amount} ${bpIcon(family)} ${family ? `${familyName(family)} ` : ''}blueprints</span>`);
     if (!this.firstBlueprints.seen && !this.tipDone) {
       this.tipDone = true;
       this.firstBlueprints.mark();
