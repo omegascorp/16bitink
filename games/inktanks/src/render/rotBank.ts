@@ -26,6 +26,7 @@ export class RotBank {
   /** Bytes of textures this bank made (RGBA, as uploaded to the GPU). */
   bytes = 0;
   sheets = 0;
+  private readonly warned = new Set<string>();
   buildMs = 0;
 
   constructor(private readonly scene: Phaser.Scene, public mode: RotMode) {}
@@ -77,6 +78,15 @@ export class RotBank {
 
   /** Shows `key` on `img` turned to the world angle (0 = east; the art faces north). */
   apply(img: Phaser.GameObjects.Image, key: string, angle: number): void {
+    // Art that isn't loaded hides its sprite instead of showing Phaser's black "missing" box; dev builds say which key.
+    if (!this.scene.textures.exists(key)) {
+      img.setVisible(false);
+      if (import.meta.env.DEV && !this.warned.has(key)) {
+        this.warned.add(key);
+        console.warn(`[inktanks] missing texture "${key}"`);
+      }
+      return;
+    }
     const a = angle + Math.PI / 2;
     if (this.mode === 'free') {
       if (img.texture.key !== key) img.setTexture(key);
