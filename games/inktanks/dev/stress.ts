@@ -1,5 +1,6 @@
-import { CH1_LAND } from '../src/content/ch1/land';
-import { ch1Mission } from '../src/content/ch1/missions';
+import { KINDS } from '../src/content/ch1/kinds';
+import { LEVEL_08 } from '../src/content/ch1/levels/level08';
+import { loadLevel } from '../src/logic/level/load';
 import { Match } from '../src/logic/match/match';
 import type { Tank } from '../src/logic/match/types';
 import { MissionScene } from '../src/scenes/mission/MissionScene';
@@ -7,8 +8,8 @@ import { partsArt } from '../src/render/partsArt';
 import { makeGame, qnum, query, setReady } from './boot';
 
 /**
- * The stress test: 30 bot tanks fighting in one screen of the full chapter 1
- * land (7 × 7 screens, ground streamed in chunks), with an FPS counter.
+ * The stress test: 30 bot tanks fighting in one screen of level 8's rail
+ * yard (3 × 3 screens, ground streamed in chunks), with an FPS counter.
  * R (or the button) toggles RotSprite (32 steps, only parts in use) and GPU
  * free rotation. Dead tanks come back at once, so there are always 30.
  *   ?rot=rot32|free   ?tanks=30   ?seed=S
@@ -16,10 +17,11 @@ import { makeGame, qnum, query, setReady } from './boot';
  */
 const TANKS = qnum('tanks', 30);
 const CLUSTER = 330;
-const def = { ...ch1Mission(10), main: { kind: 'royale' as const, top: 1 }, storm: 'off' as const, bots: TANKS, supplyDrops: 0, length: 3600 };
-const match = new Match({ land: CH1_LAND, mission: def, seed: qnum('seed', 4), player: null });
-Object.assign(match, { calmUntil: 0 });
-const centre = { x: 4.6 * 960, y: 2.5 * 540 };
+// Level 8's rail yard with TANKS hunters in two teams that fight each other (stress only: levels never set teams).
+const level = loadLevel({ ...LEVEL_08, enemies: Array.from({ length: TANKS }, (_, i) => ({ role: 'hunter' as const, clan: i % 2 ? 'boars' as const : 'weasels' as const, tank: ['machinegun1/light1/wheels1', 'cannon1/medium1/halftracks1', 'rockets1/heavy1/tracks1'][i % 3]!, at: { x: 1440, y: 810 } })), objective: { kind: 'assault' } }, KINDS);
+const match = new Match({ level, seed: qnum('seed', 4), player: null });
+match.tanks.forEach((t, i) => Object.assign(t, { team: 1 + (i % 2) }));
+const centre = { x: 1440, y: 810 };
 
 function place(t: Tank, i: number): void {
   for (let k = 0; k < 20; k++) {
@@ -40,7 +42,6 @@ function place(t: Tank, i: number): void {
 const bots = match.tanks.filter((t) => t.role === 'tank');
 bots.forEach((t, i) => {
   place(t, i);
-  t.dropT = 0;
 });
 const cam = { ...bots[0]!, x: centre.x, y: centre.y } as Tank;
 
@@ -56,8 +57,7 @@ function revive(): void {
     if (t.alive) return;
     t.alive = true;
     t.hp = t.stats.maxHp;
-    t.dropT = 0;
-    place(t, i);
+      place(t, i);
   });
 }
 

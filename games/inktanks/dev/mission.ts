@@ -1,65 +1,83 @@
-import { CH1_LAND } from '../src/content/ch1/land';
-import { CH1_MISSIONS, ch1Mission } from '../src/content/ch1/missions';
-import { openCircle, openLand } from '../src/logic/land';
+import { CH1_LEVELS, ch1Level } from '../src/content/ch1/levels';
+import { mergeIntel, sumIntel } from '../src/logic/intel';
+import { buildLand } from '../src/logic/land';
+import { parseTank } from '../src/logic/level/load';
 import { Match } from '../src/logic/match/match';
 import { matchReport } from '../src/logic/match/report';
 import { outcome } from '../src/logic/mission/outcome';
-import { STARTER_LOADOUT } from '../src/logic/parts';
+import type { IntelBag } from '../src/logic/workshop';
 import { Controls } from '../src/scenes/mission/controls';
-import { runDropMap } from '../src/scenes/mission/dropMap';
 import { Hud } from '../src/scenes/mission/hud';
 import { paintLandMap } from '../src/scenes/mission/landMap';
 import { MissionScene } from '../src/scenes/mission/MissionScene';
 import { showResults } from '../src/scenes/mission/results';
 import { makeGame, qnum, query, setReady } from './boot';
+import type Phaser from 'phaser';
 
 /**
- * A playable mission on the placeholder chapter 1 land.
- *   ?level=N      the mission (1–10)
+ * A playable chapter 1 level, starting at its start point.
+ *   ?level=N      the level (1–10)
  *   ?seed=S       the match seed
+ *   ?tank=gun/hull/drive   your tank, e.g. cannon1/medium1/halftracks1 (default: the starter)
+ *   ?kits=N       repair kits
  *   ?rot=rot32    RotSprite instead of free rotation
- *   ?bot=1        a bot drives your tank (watch a mission)
- *   ?auto=1       skip the tap: land at the centre (screenshots)
- *   ?t=N          fast-forward the match N seconds before showing it
+ *   ?bot=1        a bot drives your tank (watch a level)
+ *   ?t=N          fast-forward N seconds before showing it
  *   ?demo=N       report ready (for dev/snap.mjs) N seconds after it starts
- *   ?map=1        report ready on the drop map, waiting for the tap
+ * A fail shows the panel with Retry, which restarts on the spot; intel
+ * picked up is kept across retries (shown on the panel).
  */
-const level = Math.min(CH1_MISSIONS.length, Math.max(1, qnum('level', 1)));
-const def = ch1Mission(level);
-const land = openLand(CH1_LAND, level);
-const map = paintLandMap(land, Math.min(0.25, 900 / (land.bounds.x1 - land.bounds.x0 + 240)));
+const level = ch1Level(Math.min(CH1_LEVELS.length, Math.max(1, qnum('level', 1))));
+const def = level.def;
+const land = buildLand(level.land);
+const map = paintLandMap(land, Math.min(0.25, 200 / land.width));
 const overlay = document.getElementById('overlay')!;
-const auto = query.get('auto') === '1' ? (() => { const c = openCircle(land); return { x: c.x, y: c.y }; })() : null;
+const tank = parseTank(query.get('tank') ?? 'machinegun1/light1/wheels1');
+let kept: IntelBag = {};
+let game: Phaser.Game | null = null;
+let tries = 0;
+let scene: MissionScene | null = null;
+// One set of controls for the page; each retry's HUD rebinds its buttons.
+const controls = new Controls(document.getElementById('game')!, (x, y) => scene!.toWorld(x, y));
 
-async function start(): Promise<void> {
-  if (query.get('map') === '1') setTimeout(setReady, 2600);
-  const drop = await runDropMap(overlay, land, map, `Level ${level}: ${def.name}`, auto);
-  const match = new Match({ land: CH1_LAND, mission: def, seed: qnum('seed', Date.now() % 100000), player: { loadout: STARTER_LOADOUT, drop }, playerBot: query.get('bot') === '1' });
+function start(): void {
+  overlay.innerHTML = '';
+  tries++;
+  const match = new Match({ level, seed: qnum('seed', Date.now() % 100000) + tries, player: { loadout: tank, kits: qnum('kits', 1) }, playerBot: query.get('bot') === '1' });
   for (let t = qnum('t', 0); t > 0 && !match.over; t -= 1 / 30) match.step(1 / 30);
   match.drainEvents();
-  const hud = new Hud(document.getElementById('hud')!, map);
-  let scene: MissionScene | null = null;
-  const controls = new Controls(document.getElementById('game')!, (x, y) => scene!.toWorld(x, y));
+  const hudRoot = document.getElementById('hud')!;
+  hudRoot.style.display = '';
+  const hud = new Hud(hudRoot, map);
   controls.bindButtons(hud.swapBtn, hud.repairBtn);
-  scene = new MissionScene(match, {
+  const sc = new MissionScene(match, {
     input: (p) => controls.read(p),
     onEvents: (events) => {
       for (const e of events) hud.event(match, e);
     },
-    onFrame: () => match.player && hud.update(match, match.player, controls.touchUsed),
+    onFrame: () => match.player && hud.update(match, match.player, controls.touchUsed, (x, y) => sc.toScreen(x, y)),
     onOver: () => {
       const r = matchReport(match);
+      kept = mergeIntel(kept, r.intel);
       setTimeout(() => {
         hud.hide();
-        showResults(overlay, def, r, outcome(def, r, undefined), () => location.reload(), level < CH1_MISSIONS.length ? `?level=${level + 1}` : null);
+        const shown = { ...r, intel: kept, intelCount: sumIntel(kept) };
+        showResults(overlay, def, match.objective.title, shown, outcome(def, r, undefined), retry, def.number < CH1_LEVELS.length ? `?level=${def.number + 1}` : null);
         if (query.has('demo')) setReady();
       }, 1200);
     },
   }, query.get('rot') === 'rot32' ? 'rot32' : 'free');
-  makeGame(document.getElementById('game')!, scene);
+  scene = sc;
+  game = makeGame(document.getElementById('game')!, sc);
   const demo = qnum('demo', 0);
   setTimeout(setReady, 1500 + demo * 1000);
-  Object.assign(window, { match, scene });
+  Object.assign(window, { match, scene: sc });
 }
 
-void start();
+function retry(): void {
+  game?.destroy(true);
+  game = null;
+  start();
+}
+
+start();

@@ -5,7 +5,8 @@ import type { StructureDef } from '../land';
 import type { IntelBag } from '../workshop';
 
 export type Clan = 'boars' | 'weasels' | 'crows' | 'ink';
-export type TankRole = 'tank' | 'truck' | 'boss' | 'bossTurret';
+/** The body: a tank, a truck (no gun), the boss and its turrets, or a freed crew on foot. */
+export type TankRole = 'tank' | 'truck' | 'boss' | 'bossTurret' | 'crew';
 
 /** What drives a tank this step: the player's controls or a bot's. */
 export interface TankInput {
@@ -44,8 +45,8 @@ export interface Tank {
   speed: number;
   hp: number;
   alive: boolean;
-  /** Seconds left falling in the drop; nothing touches a dropping tank. */
-  dropT: number;
+  /** Left the map by its exit (a convoy truck, a runner) or reached home (a crew). */
+  escaped: boolean;
   reload: number;
   /** Rocket pairs: shots still to fire, and the gap before the next. */
   burst: number;
@@ -58,7 +59,6 @@ export interface Tank {
   lastHitBy: number | null;
   lastHitAt: number;
   lastHitDrive: DriveFamily | null;
-  stormDamage: number;
   usedKit: boolean;
   hullsUsed: HullFamily[];
   picks: Part[];
@@ -73,7 +73,6 @@ export interface Tank {
   /** Kills by this tank's victims' parts (for bonus objectives). */
   victims: { hull: HullFamily; drive: DriveFamily; gun: GunFamily; by: GunFamily }[];
   deadAt: number;
-  placement: number;
   /** Sim counters. */
   shotsFired: number;
   shotsHit: number;
@@ -100,7 +99,7 @@ export interface Shot {
 
 export type PickupKind =
   | { readonly kind: 'crate'; readonly content: CrateContent }
-  | { readonly kind: 'part'; readonly part: Part; readonly supply?: boolean }
+  | { readonly kind: 'part'; readonly part: Part }
   | { readonly kind: 'kit' }
   | { readonly kind: 'intel'; readonly bag: IntelBag; readonly from: string; readonly ace: boolean }
   | { readonly kind: 'proto' };
@@ -118,14 +117,15 @@ export type MatchEvent =
   | { readonly kind: 'fire'; readonly tank: number; readonly x: number; readonly y: number; readonly angle: number; readonly shot: ShotKind }
   | { readonly kind: 'hit'; readonly x: number; readonly y: number; readonly target: number | null; readonly dmg: number; readonly shot: ShotKind }
   | { readonly kind: 'explode'; readonly x: number; readonly y: number; readonly r: number }
-  | { readonly kind: 'kill'; readonly killer: number | null; readonly victim: number; readonly by: GunFamily | 'storm' }
+  | { readonly kind: 'kill'; readonly killer: number | null; readonly victim: number; readonly by: GunFamily | 'artillery' }
   | { readonly kind: 'struct'; readonly id: string; readonly state: 2 | 1 | 0 }
   | { readonly kind: 'swap'; readonly tank: number; readonly part: Part; readonly dropped: Part }
   | { readonly kind: 'pickup'; readonly tank: number; readonly what: 'kit' | 'intel' | 'proto'; readonly amount: number }
   | { readonly kind: 'crate'; readonly x: number; readonly y: number }
-  | { readonly kind: 'supplyWarn'; readonly x: number; readonly y: number; readonly at: number }
-  | { readonly kind: 'supply'; readonly x: number; readonly y: number }
-  | { readonly kind: 'storm'; readonly phase: number }
+  | { readonly kind: 'alarm'; readonly x: number; readonly y: number; readonly by: number }
+  | { readonly kind: 'escape'; readonly tank: number }
+  | { readonly kind: 'mark'; readonly x: number; readonly y: number; readonly r: number; readonly at: number }
+  | { readonly kind: 'objective'; readonly text: string }
   | { readonly kind: 'spawn'; readonly tank: number }
   | { readonly kind: 'over'; readonly passed: boolean; readonly reason: string };
 

@@ -5,12 +5,12 @@ import { slotOf } from '../logic/parts';
 import { partsArt } from './partsArt';
 
 /**
- * Shots, pickups, hits and the storm, drawn each frame. Code only draws
+ * Shots, pickups, hits and the objective's rings (zones, flags, exits, artillery marks), drawn each frame. Code only draws
  * what the art rules allow it to (particles, rings, flashes); crates use
  * the art test's crate until the world art's lands.
  */
 const crateUrl = Object.values(import.meta.glob<string>('../../dev/art-test/assets/parts/crate.png', { eager: true, query: '?url', import: 'default' }))[0];
-const DEPTH = { pickups: 900, shots: 7000, fx: 7500, storm: 8000 } as const;
+const DEPTH = { pickups: 900, shots: 7000, fx: 7500, marks: 8000 } as const;
 
 interface Puff {
   x: number;
@@ -29,17 +29,16 @@ export class WorldFx {
   private readonly shots: Phaser.GameObjects.Graphics;
   private readonly marks: Phaser.GameObjects.Graphics;
   private readonly fx: Phaser.GameObjects.Graphics;
-  private readonly storm: Phaser.GameObjects.Graphics;
+  private readonly rings: Phaser.GameObjects.Graphics;
   private readonly crates = new Map<number, Phaser.GameObjects.Image>();
   private readonly parts = new Map<number, Phaser.GameObjects.Image>();
   private puffs: Puff[] = [];
-  private warnings: { x: number; y: number; at: number }[] = [];
 
   constructor(private readonly scene: Phaser.Scene) {
     this.marks = scene.add.graphics().setDepth(DEPTH.pickups);
     this.shots = scene.add.graphics().setDepth(DEPTH.shots);
     this.fx = scene.add.graphics().setDepth(DEPTH.fx);
-    this.storm = scene.add.graphics().setDepth(DEPTH.storm);
+    this.rings = scene.add.graphics().setDepth(DEPTH.marks);
   }
 
   onEvent(e: MatchEvent): void {
@@ -47,7 +46,6 @@ export class WorldFx {
     else if (e.kind === 'hit') this.puffs.push({ x: e.x, y: e.y, r: e.shot === 'tracer' ? 4 : 12, t: 0, life: 0.18, colour: 0xffb060 });
     else if (e.kind === 'explode') this.puffs.push({ x: e.x, y: e.y, r: e.r + 10, t: 0, life: 0.35, colour: 0xff8040 });
     else if (e.kind === 'kill') this.puffs.push({ x: 0, y: 0, r: 0, t: 0, life: 0, colour: 0 });
-    else if (e.kind === 'supplyWarn') this.warnings.push({ x: e.x, y: e.y, at: e.at });
   }
 
   update(m: Match, dt: number, view: Phaser.Geom.Rectangle): void {
@@ -71,24 +69,19 @@ export class WorldFx {
       const k = p.t / p.life;
       f.fillStyle(p.colour, 0.8 * (1 - k)).fillCircle(p.x, p.y, p.r * (0.6 + k * 0.6));
     }
-    this.warnings = this.warnings.filter((w) => m.t < w.at + 1);
-    for (const w of this.warnings) {
-      const left = w.at - m.t;
-      // Red smoke and a falling marker, a 10-second warning.
-      f.fillStyle(0xc83a2a, 0.25 + 0.15 * Math.sin(m.t * 6)).fillCircle(w.x, w.y, 26 + 6 * Math.sin(m.t * 3));
-      f.lineStyle(2, 0xf4ecd8, 0.9).strokeCircle(w.x, w.y - Math.max(0, left) * 40, 14);
+    const rg = this.rings.clear();
+    for (const k of m.objective.marks()) {
+      const p = k.progress ?? 0;
+      if (k.kind === 'artillery') {
+        // A red target ring that fills as the shell comes down.
+        rg.fillStyle(0xc83a2a, 0.15 + 0.3 * p).fillCircle(k.x, k.y, k.r * Math.max(0.15, p));
+        rg.lineStyle(2, 0xff7a5a, 0.9).strokeCircle(k.x, k.y, k.r);
+        continue;
+      }
+      const colour = k.state === 'ours' || k.state === 'done' ? 0x8cc85a : k.state === 'theirs' ? 0xd85a3a : k.kind === 'exit' || k.kind === 'pickup' ? 0x8cc85a : 0xf4ecd8;
+      rg.lineStyle(3, colour, 0.75).strokeCircle(k.x, k.y, k.r);
+      if (p > 0 && p < 1) rg.lineStyle(5, 0xf0c040, 0.9).beginPath().arc(k.x, k.y, k.r + 6, -Math.PI / 2, -Math.PI / 2 + p * Math.PI * 2).strokePath();
     }
-    const st = m.stormNow;
-    const sg = this.storm.clear();
-    if (m.cfg.mission.storm === 'on') {
-      sg.lineStyle(3000, 0x5a3a6a, 0.32).strokeCircle(st.circle.x, st.circle.y, st.circle.r + 1500);
-      sg.lineStyle(3, 0xc0a0e0, 0.9).strokeCircle(st.circle.x, st.circle.y, st.circle.r);
-      sg.lineStyle(2, 0xf4ecd8, 0.5).strokeCircle(st.next.x, st.next.y, st.next.r);
-    }
-    const hz = m.objective.zone;
-    if (hz) sg.lineStyle(3, 0xf4ecd8, 0.7).strokeCircle(hz.x, hz.y, hz.r);
-    const pick = m.objective.pickupAt;
-    if (pick) sg.lineStyle(3, 0x8cc85a, 0.8).strokeCircle(pick.x, pick.y, 80);
   }
 
   private drawPickups(m: Match, view: Phaser.Geom.Rectangle): void {
@@ -107,7 +100,7 @@ export class WorldFx {
           const key = slot === 'gun' ? art.turret(p.part) : slot === 'hull' ? art.hull(p.part) : art.frames(art.drive(p.part, 'medium'))[0]!;
           this.parts.set(p.id, this.scene.add.image(p.x, p.y, key).setScale(0.55).setDepth(DEPTH.pickups + 1));
         }
-        g.lineStyle(2, p.supply ? 0xe04030 : p.part.mk === 3 ? 0xf0c040 : p.part.mk === 2 ? 0xc0c8d0 : 0xa08060, 0.8 + 0.2 * Math.sin(m.t * 5)).strokeCircle(p.x, p.y, 26);
+        g.lineStyle(2, p.part.mk === 3 ? 0xf0c040 : p.part.mk === 2 ? 0xc0c8d0 : 0xa08060, 0.8 + 0.2 * Math.sin(m.t * 5)).strokeCircle(p.x, p.y, 26);
       } else if (p.kind === 'kit') {
         g.fillStyle(0xf4ecd8, 1).fillRect(p.x - 10, p.y - 10, 20, 20).fillStyle(0xc83a2a, 1).fillRect(p.x - 7, p.y - 2, 14, 4).fillRect(p.x - 2, p.y - 7, 4, 14);
       } else if (p.kind === 'intel') {

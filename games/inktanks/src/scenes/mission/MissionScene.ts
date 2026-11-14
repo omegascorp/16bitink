@@ -9,7 +9,7 @@ import { preloadParts, tankKeys, TankView } from '../../render/tankView';
 
 /**
  * The mission scene: draws a Match and steps it at a fixed 60 Hz. The HUD,
- * controls and drop map live in the DOM (see dev/mission.ts); this scene
+ * controls and win/fail panel live in the DOM (see dev/mission.ts); this scene
  * only knows the match, the player's input and the camera.
  */
 export interface MissionHooks {
@@ -79,6 +79,14 @@ export class MissionScene extends Phaser.Scene {
     const y = ((clientY - r.top) / r.height) * this.scale.height;
     const p = this.cameras.main.getWorldPoint(x, y);
     return { x: p.x, y: p.y };
+  }
+
+  /** A world point in CSS px on the page (for the HUD's edge arrow). */
+  toScreen(x: number, y: number): { x: number; y: number } {
+    const r = this.game.canvas.getBoundingClientRect();
+    const cam = this.cameras.main;
+    const v = cam.worldView;
+    return { x: r.left + ((x - v.x) / v.width) * r.width, y: r.top + ((y - v.y) / v.height) * r.height };
   }
 
   update(_time: number, deltaMs: number): void {

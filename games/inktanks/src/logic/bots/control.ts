@@ -1,5 +1,5 @@
 import type { Match } from '../match/match';
-import type { Tank, TankInput } from '../match/types';
+import { IDLE, type Tank, type TankInput } from '../match/types';
 import { clearLine } from '../nav/grid';
 import { flowDir } from '../nav/flow';
 import { angleTo, wrapAngle, type Pt } from '../vec';
@@ -23,7 +23,7 @@ function separate(m: Match, t: Tank, angle: number, ignore: number | null): numb
   let vx = Math.cos(angle);
   let vy = Math.sin(angle);
   for (const o of m.tanks) {
-    if (o === t || !o.alive || o.dropT > 0 || o.id === ignore || o.role === 'bossTurret') continue;
+    if (o === t || !o.alive || o.id === ignore || o.role === 'bossTurret' || o.role === 'crew') continue;
     const dx = t.x - o.x;
     const dy = t.y - o.y;
     const d = Math.hypot(dx, dy);
@@ -74,19 +74,17 @@ export function botInput(m: Match, b: Brain, t: Tank, dt: number): TankInput {
   const g = t.stats.gun;
   let aim: number | null = null;
   let fire = false;
-  // Shooting starts fights: in the calm opening only a bot that chose to fight (or is fleeing one) fires.
-  const shoots = b.state === 'fight' || b.state === 'flee' || b.state === 'goal' || m.t >= m.calmUntil;
-  if (target?.alive && shoots) {
+  if (target?.alive) {
     const p = lead(m, b, t, target, g.shotSpeed);
     aim = angleTo(t, p) + b.aimNoise;
     const d = Math.hypot(target.x - t.x, target.y - t.y);
-    fire = b.los && d <= g.range + target.stats.radius && Math.abs(wrapAngle(t.turret - aim)) < (g.family === 'machinegun' ? 0.2 : 0.09);
+    fire = !b.holdFire && b.los && d <= g.range + target.stats.radius && Math.abs(wrapAngle(t.turret - aim)) < (g.family === 'machinegun' ? 0.2 : 0.09);
   } else if (b.shootAt) {
     aim = angleTo(t, b.shootAt) + b.aimNoise * 0.5;
     const d = Math.hypot(b.shootAt.x - t.x, b.shootAt.y - t.y);
     fire = b.los && d <= g.range && Math.abs(wrapAngle(t.turret - aim)) < 0.1;
   }
-  if (t.role === 'bossTurret') return { move: null, aim, fire, swap: false, repair: false };
+  if (t.role === 'bossTurret' || b.role === 'turret') return { move: null, aim, fire, swap: false, repair: false };
   let angle: number | null = null;
   let mag = 1;
   switch (b.state) {
@@ -94,7 +92,9 @@ export function botInput(m: Match, b: Brain, t: Tank, dt: number): TankInput {
       if (!target) break;
       const d = Math.hypot(target.x - t.x, target.y - t.y);
       const outranges = g.range > target.stats.gun.range + 40 && target.role === 'tank';
-      const want = outranges && b.diff.kite > 0.5 ? g.range * 0.85 : Math.max(120, g.range * 0.6);
+      // Kite when it outranges the target, or (the player's stand-in) when outnumbered.
+      const kites = (outranges && b.diff.kite > 0.5) || (b.role === 'player' && b.seenCount > 1);
+      const want = kites ? g.range * 0.85 : Math.max(120, g.range * 0.6);
       b.strafeT -= dt;
       if (b.strafeT <= 0) {
         b.strafeT = b.rng.range(1.2, 2.8);
@@ -112,20 +112,35 @@ export function botInput(m: Match, b: Brain, t: Tank, dt: number): TankInput {
       break;
     }
     case 'flee': {
-      const threat = target ?? null;
-      const c = m.stormNow.next;
-      const away = threat ? angleTo(threat, t) : angleTo(t, c);
-      const home = angleTo(t, c);
+      // Back off from the threat, leaning towards home (a guard's post, the player's start).
+      const away = target ? angleTo(target, t) : angleTo(b.post, t);
+      const home = Math.hypot(b.post.x - t.x, b.post.y - t.y) > 60 ? navAngle(m, t, b.post) : away;
       angle = Math.atan2(Math.sin(away) * 2 + Math.sin(home), Math.cos(away) * 2 + Math.cos(home));
       break;
     }
-    case 'sit':
+    case 'idle':
       mag = 0;
       break;
+    case 'route': {
+      const r = b.route;
+      const next = r?.[b.routeI];
+      if (!r || !next) break;
+      if (Math.hypot(next.x - t.x, next.y - t.y) < 40) {
+        const end = b.routeDir === 1 ? b.routeI >= r.length - 1 : b.routeI <= 0;
+        if (end && b.role !== 'patrol') {
+          m.escape(t);
+          return IDLE;
+        }
+        if (end) b.routeDir = b.routeDir === 1 ? -1 : 1;
+        b.routeI += b.routeDir;
+      }
+      angle = navAngle(m, t, r[b.routeI]!);
+      break;
+    }
     default: {
       if (!b.goal) break;
       const d = Math.hypot(b.goal.x - t.x, b.goal.y - t.y);
-      const stopAt = b.state === 'loot' ? 6 : b.state === 'goal' ? (b.hint?.goalRadius ?? 40) : 30;
+      const stopAt = b.state === 'loot' ? 6 : b.state === 'goal' ? (b.role === 'guard' ? 40 : (b.hint?.goalRadius ?? 40)) : 30;
       if (d < stopAt) mag = 0;
       else {
         angle = navAngle(m, t, b.goal);

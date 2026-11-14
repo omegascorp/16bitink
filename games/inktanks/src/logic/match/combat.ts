@@ -28,7 +28,7 @@ export function aimAndFire(m: Match, t: Tank, input: TankInput, dt: number): voi
     }
     return;
   }
-  if (!input.fire || t.reload > 0 || t.repairT > 0 || t.role === 'truck' || t.role === 'boss') return;
+  if (!input.fire || t.reload > 0 || t.repairT > 0 || t.role === 'truck' || t.role === 'boss' || t.role === 'crew') return;
   t.reload = t.stats.gun.reload;
   t.firedAt = m.t;
   spawnShot(m, t, t.stats.gun.shots > 1 ? 1 : 0);
@@ -70,7 +70,7 @@ function moveShot(m: Match, s: Shot, dt: number, speed: number): void {
   s.travelled += speed * dt;
   // Tanks first: a shot fired point-blank past a wall corner still hits the tank.
   for (const t of m.tanks) {
-    if (!t.alive || t.dropT > 0 || t.team === s.team) continue;
+    if (!t.alive || t.team === s.team) continue;
     // Shots fly over a fortress's deck edge to reach its turrets.
     const r = t.role === 'boss' ? t.stats.radius * 0.55 : t.stats.radius + (t.role === 'bossTurret' ? 8 : 3);
     if ((t.x - s.x) ** 2 + (t.y - s.y) ** 2 > r * r) continue;
@@ -103,7 +103,7 @@ function explode(m: Match, s: Shot, direct: number | null): void {
   if (s.splash <= 0) return;
   m.emit({ kind: 'explode', x: s.x, y: s.y, r: s.splash });
   for (const t of m.tanks) {
-    if (!t.alive || t.dropT > 0 || t.id === direct || t.team === s.team) continue;
+    if (!t.alive || t.id === direct || t.team === s.team) continue;
     const reach = s.splash + t.stats.radius;
     if ((t.x - s.x) ** 2 + (t.y - s.y) ** 2 <= reach * reach) hitTank(m, t, s.damage * SPLASH_SHARE, s.gun, s.owner);
   }
@@ -146,15 +146,14 @@ export function hitTank(m: Match, t: Tank, dmg: number, gun: GunFamily, from: nu
   if (t.hp <= 0) killTank(m, t, attacker, gun);
 }
 
-export function killTank(m: Match, t: Tank, killer: Tank | null, by: GunFamily | 'storm'): void {
+export function killTank(m: Match, t: Tank, killer: Tank | null, by: GunFamily | 'artillery'): void {
   if (!t.alive) return;
   t.alive = false;
   t.hp = 0;
   t.deadAt = m.t;
-  t.placement = m.tanks.filter((o) => o.alive && o.role === 'tank').length + 1;
   if (killer && killer.id !== t.id) {
     killer.kills++;
-    if (by !== 'storm') killer.victims.push({ hull: t.stats.hull, drive: t.stats.drive, gun: t.stats.gun.family, by });
+    if (by !== 'artillery') killer.victims.push({ hull: t.stats.hull, drive: t.stats.drive, gun: t.stats.gun.family, by });
   }
   m.emit({ kind: 'kill', killer: killer?.id ?? null, victim: t.id, by });
   if (t.role === 'tank' || t.role === 'bossTurret') {

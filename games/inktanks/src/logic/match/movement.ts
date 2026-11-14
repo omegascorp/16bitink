@@ -98,7 +98,7 @@ function collideStructures(m: Match, t: Tank): void {
 
 function collideTanks(m: Match, t: Tank): void {
   for (const o of m.tanks) {
-    if (o === t || !o.alive || o.dropT > 0 || o.role === 'bossTurret') continue;
+    if (o === t || !o.alive || o.role === 'bossTurret') continue;
     const dx = t.x - o.x;
     const dy = t.y - o.y;
     const need = (t.stats.radius + o.stats.radius) * 0.8;

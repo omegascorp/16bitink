@@ -10,7 +10,8 @@ html, body { margin: 0; height: 100%; background: #1b1a16; overflow: hidden; tou
 #hud .row { display: flex; justify-content: space-between; gap: 10px; margin-top: 4px; }
 #hud .kits { white-space: nowrap; }
 #hud .row span { background: rgba(20, 18, 14, 0.62); padding: 2px 7px; border-radius: 4px; }
-#hud .goal { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); background: rgba(20, 18, 14, 0.62); padding: 4px 10px; border-radius: 4px; }
+#hud .arrow { display: none; position: absolute; left: 0; top: 0; width: 0; height: 0; margin: -12px 0 0 -12px; border-top: 12px solid transparent; border-bottom: 12px solid transparent; border-left: 24px solid #f0c040; filter: drop-shadow(0 1px 1px #000); }
+#hud .goal { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); background: rgba(20, 18, 14, 0.72); padding: 5px 12px; border-radius: 4px; font-size: 16px; white-space: nowrap; }
 #hud .bottom { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background: rgba(20, 18, 14, 0.62); padding: 6px 10px; border-radius: 6px; }
 #hud .hpbar { position: relative; width: 220px; height: 16px; background: #2a2620; border-radius: 3px; overflow: hidden; }
 #hud .hpbar i { position: absolute; inset: 0 auto 0 0; }
@@ -32,12 +33,6 @@ html, body { margin: 0; height: 100%; background: #1b1a16; overflow: hidden; tou
 .stick i { position: absolute; left: 46px; top: 46px; width: 44px; height: 44px; border-radius: 50%; background: rgba(244, 236, 216, 0.85); }
 #overlay { position: fixed; inset: 0; z-index: 4; pointer-events: none; }
 #overlay > * { pointer-events: auto; }
-.dropmap { position: fixed; inset: 0; background: #2a2418; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; transition: opacity 0.3s; }
-.dropmap.gone { opacity: 0; }
-.dropmap .frame { position: relative; transition: none; }
-.dropmap canvas { display: block; border: 3px solid #14120e; box-shadow: 0 6px 30px rgba(0, 0, 0, 0.5); }
-.dropmap .pin { display: none; position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: #3c6cc8; border: 3px solid #f4ecd8; }
-.dropmap .caption { position: absolute; bottom: 18px; text-align: center; } .dropmap .caption b { display: block; font-size: 20px; }
 .results { position: fixed; inset: 0; background: rgba(27, 26, 22, 0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
 .results h1 { margin: 0; font-size: 30px; } .results h2 { margin: 10px 0 0; font-size: 18px; } .results .sub { opacity: 0.8; margin: 0; }
 .results ul { list-style: none; padding: 0; margin: 4px 0; } .results .medals li { opacity: 0.5; margin: 4px 0; } .results .medals li.on { opacity: 1; }

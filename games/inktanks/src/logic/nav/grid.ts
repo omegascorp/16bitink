@@ -1,5 +1,5 @@
 import { pointInShape, pushOut, shapeBounds } from '../geom';
-import { CELL, GROUNDS, type OpenLand, type StructureDef } from '../land';
+import { CELL, GROUNDS, type Land, type StructureDef } from '../land';
 
 /**
  * The coarse navigation grid, one cell per ground cell (CELL px). A cost of 0
@@ -17,18 +17,22 @@ export interface NavGrid {
 }
 
 const GROUND_COST: Readonly<Record<string, number>> = { grass: 2, grassDry: 2, dirt: 2, bridge: 2, sand: 3, mud: 3, water: 0 };
-/** How much a solid's footprint is grown when marking cells. */
-const MARGIN = 14;
+/**
+ * How much a solid's footprint is grown when marking cells: more than half a
+ * cell, so a thin wall (the world art's are 4–14 px) blocks the cells on
+ * both sides even when it lies on a cell boundary.
+ */
+const MARGIN = 22;
 
 export function solid(s: StructureDef): boolean {
   return !s.cover && !s.flattenable;
 }
 
-export function buildNav(l: OpenLand): NavGrid {
+export function buildNav(l: Land): NavGrid {
   const cols = l.gridCols;
   const rows = l.gridRows;
   const cost = new Uint8Array(cols * rows);
-  for (let i = 0; i < cost.length; i++) cost[i] = l.open[i] ? GROUND_COST[GROUNDS[l.ground[i]!]!]! : 0;
+  for (let i = 0; i < cost.length; i++) cost[i] = GROUND_COST[GROUNDS[l.ground[i]!]!]!;
   const blocks = new Map<string, number[]>();
   for (const s of l.structures) {
     if (!solid(s)) continue;
@@ -51,10 +55,10 @@ export function buildNav(l: OpenLand): NavGrid {
 }
 
 /** Reopens a broken structure's cells to the ground under them. */
-export function unblock(nav: NavGrid, l: OpenLand, id: string): void {
+export function unblock(nav: NavGrid, l: Land, id: string): void {
   const cells = nav.blocks.get(id);
   if (!cells) return;
-  for (const i of cells) nav.cost[i] = l.open[i] ? GROUND_COST[GROUNDS[l.ground[i]!]!]! : 0;
+  for (const i of cells) nav.cost[i] = GROUND_COST[GROUNDS[l.ground[i]!]!]!;
   nav.blocks.delete(id);
   // Another solid may still cover some of those cells.
   for (const other of nav.blocks.values()) for (const i of other) nav.cost[i] = 0;

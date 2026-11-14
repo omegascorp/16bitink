@@ -57,18 +57,18 @@ export class TankView {
     const vis = t.alive;
     // Placeholders until the world art's truck and fortress land: a turret-less tank, a big one, bare turrets.
     const body = t.role !== 'bossTurret';
-    const gun = t.role !== 'boss' && t.role !== 'truck';
+    const gun = t.role !== 'boss' && t.role !== 'truck' && t.role !== 'crew';
     for (const i of [this.shadow, this.drive, this.hull]) i.setVisible(vis && body);
     for (const i of [this.tShadow, this.turret]) i.setVisible(vis && gun);
-    const showBar = !!this.bar && vis && t.dropT <= 0 && t.hp < t.stats.maxHp;
+    const showBar = !!this.bar && vis && t.hp < t.stats.maxHp;
     if (this.bar) for (const b of this.bar) b.setVisible(showBar);
     if (!vis) return;
-    const drop = t.dropT > 0 ? t.dropT / 3 : 0;
-    const scale = (1 + drop * 1.5) * (t.role === 'boss' ? 2.3 : 1);
+    // Placeholders: the boss is a big tank, a freed crew a small one, until their art lands.
+    const scale = t.role === 'boss' ? 2.3 : t.role === 'crew' ? 0.45 : 1;
     const x = Math.round(t.x);
     const y = Math.round(t.y);
     const frame = k.drive[Math.floor(t.rolled / ROLL_STEP) % k.drive.length]!;
-    const lift = 6 + drop * 120;
+    const lift = 6;
     this.bank.apply(this.shadow, k.hull, t.heading);
     this.shadow.setPosition(x + SHADOW.x * lift, y + SHADOW.y * lift).setScale(scale);
     this.bank.apply(this.drive, frame, t.heading);
@@ -84,13 +84,11 @@ export class TankView {
     this.drive.setDepth(d + DEPTH.drive);
     this.hull.setDepth(d + DEPTH.hull);
     this.tShadow.setDepth(d + DEPTH.turretShadow);
-    this.turret.setDepth(d + DEPTH.turret + (drop > 0 ? 6000 : 0));
+    this.turret.setDepth(d + DEPTH.turret);
     this.drive.setPosition(x, y).setScale(scale);
     this.hull.setPosition(x, y).setScale(scale);
     this.tShadow.setPosition(tx + SHADOW.x * 4, ty + SHADOW.y * 4).setScale(scale);
     this.turret.setPosition(Math.round(tx), Math.round(ty)).setScale(scale);
-    const alpha = drop > 0 ? 0.55 : 1;
-    for (const i of [this.drive, this.hull, this.turret]) i.setAlpha(alpha);
     if (this.bar && showBar) {
       const w = 40;
       const share = Math.max(0, t.hp / t.stats.maxHp);

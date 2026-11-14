@@ -9,7 +9,7 @@
     "snap": "node dev/snap.mjs",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "sim": "node dev/sim.mjs",
+    "lab": "node dev/lab.mjs",
     "fps": "node dev/fps.mjs"
   },
   "dependencies": {

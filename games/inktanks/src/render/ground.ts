@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { CELL, GROUNDS, type Ground, type OpenLand } from '../logic/land';
+import { CELL, GROUNDS, type Ground, type Land } from '../logic/land';
 
 /**
  * The ground, streamed in 512 px chunks round the camera. Each chunk is
@@ -72,7 +72,7 @@ export class GroundStream {
   private n = 0;
   built = 0;
 
-  constructor(private readonly scene: Phaser.Scene, private readonly land: OpenLand) {
+  constructor(private readonly scene: Phaser.Scene, private readonly land: Land) {
     this.src = sources(scene);
   }
 
@@ -187,7 +187,7 @@ export class GroundStream {
   private isOpen(gx: number, gy: number): boolean {
     const l = this.land;
     if (gx < 0 || gy < 0 || gx >= l.gridCols || gy >= l.gridRows) return false;
-    return l.open[gy * l.gridCols + gx] === 1;
+    return true;
   }
 
   destroy(): void {

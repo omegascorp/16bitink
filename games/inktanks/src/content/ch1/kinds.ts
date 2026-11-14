@@ -3,7 +3,7 @@ import { rectShape, type Poly, type Shape } from '../../logic/geom';
 import worldManifest from '../../art/pixel/world/manifest.json';
 
 /**
- * Placeholder structure kinds for the chapter 1 land, in native px. When the
+ * Structure kinds for chapter 1's levels, in native px. When the
  * world art lands (src/art/pixel/world/manifest.json), its footprints replace
  * these shapes; keys match the world manifest's structure names.
  */
@@ -31,6 +31,7 @@ const PLACEHOLDER_KINDS: Readonly<Record<string, KindDef>> = {
   fence: { shape: rectShape(120, 8), material: 'wood', hp: 20, flattenable: true, colour: 0x7a5a36, height: 16 },
   fenceV: { shape: rectShape(8, 120), material: 'wood', hp: 20, flattenable: true, colour: 0x7a5a36, height: 16 },
   wallStone: { shape: rectShape(120, 22), material: 'stone', hp: 0, colour: 0x8c8c84, height: 28 },
+  wallStoneV: { shape: rectShape(22, 120), material: 'stone', hp: 0, colour: 0x8c8c84, height: 28 },
   oak: { shape: { kind: 'circle', r: 16 }, material: 'rock', hp: 0, colour: 0x3c6a2c, height: 80 },
   pine: { shape: { kind: 'circle', r: 10 }, material: 'tree', hp: 30, flattenable: true, colour: 0x2c5a34, height: 70 },
   bush: { shape: { kind: 'circle', r: 28 }, material: 'tree', hp: 0, cover: true, colour: 0x4a7a34, height: 20 },
@@ -47,15 +48,18 @@ const PLACEHOLDER_KINDS: Readonly<Record<string, KindDef>> = {
   fortWallV: { shape: rectShape(30, 240), material: 'stone', hp: 0, colour: 0x6e6a62, height: 50 },
   fortGate: { shape: rectShape(120, 30), material: 'brick', hp: 300, colour: 0x8a5a3a, height: 50 },
   wagon: { shape: rectShape(120, 50), material: 'stone', hp: 0, colour: 0x5a4a3a, height: 40 },
+  /** Rescue: a crew's cage (no art yet). */
+  cage: { shape: rectShape(56, 56), material: 'wood', hp: 60, colour: 0x6a5030, height: 34 },
+  fortTower: { shape: { kind: 'circle', r: 44 }, material: 'stone', hp: 0, colour: 0x6e6a62, height: 70 },
 };
 
 /** Our kind names → the world manifest's structure names. */
 export const ART_NAME: Readonly<Record<string, string>> = {
   farmhouse: 'farmhouse', barn: 'barn', houseA: 'houseTimber', houseB: 'houseStone', shed: 'shed',
-  wallBrick: 'brickWallH', wallBrickV: 'brickWallV', fence: 'fenceH', fenceV: 'fenceV', wallStone: 'stoneWallH',
+  wallBrick: 'brickWallH', wallBrickV: 'brickWallV', fence: 'fenceH', fenceV: 'fenceV', wallStone: 'stoneWallH', wallStoneV: 'stoneWallV',
   oak: 'oak', pine: 'pine', bush: 'bush', crops: 'crops', rockA: 'rockA', rockB: 'rockB', rockC: 'rockC',
   bridgeRail: 'bridgeRailN', fuelBarrels: 'fuelBarrels', radarMast: 'radarMast', hangar: 'hangar',
-  fortWall: 'fortWallH', fortWallV: 'fortWallV', fortGate: 'fortGate', wagon: 'wagon',
+  fortWall: 'fortWallH', fortWallV: 'fortWallV', fortGate: 'fortGate', wagon: 'wagon', fortTower: 'fortTower',
 };
 
 type Footprint = Readonly<Record<string, readonly (readonly (readonly [number, number])[])[]>>;

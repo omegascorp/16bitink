@@ -1,80 +1,68 @@
+import type { AlarmState } from '../bots/alarm';
+import { createBrain, type Brain } from '../bots/brain';
 import { botInput } from '../bots/control';
-import type { Brain } from '../bots/brain';
-import { CH1_BOTS, PERSONALITIES, PLAYER_BOT, type Difficulty } from '../bots/personality';
+import { CH1_BOTS, PLAYER_BOT, type Difficulty } from '../bots/difficulty';
 import { segmentHits } from '../geom';
-import { isDrivable, openCircle, openLand, scaleForArea, type LandDef, type OpenLand } from '../land';
-import { CH1_LOOT, rollCrate, rollSupply, supplyTimes, SUPPLY_WARNING, type LootTable } from '../loot';
-import type { MissionDef } from '../mission/types';
+import { buildLand, type Land } from '../land';
+import type { LoadedLevel, ResolvedEnemy } from '../level/load';
+import { rollCrate } from '../loot';
 import { FlowCache } from '../nav/flow';
 import { buildNav, passable, type NavGrid } from '../nav/grid';
+import { createObjective } from '../objectives';
+import type { Objective } from '../objectives/types';
 import type { Loadout } from '../parts';
 import { createRng, type Rng } from '../rng';
 import type { Research } from '../stats';
-import { calmStorm, insideCircle, planStorm, stormAt, type StormNow, type StormPlan } from '../storm';
-import type { IntelBag } from '../workshop';
 import type { Pt } from '../vec';
-import { aimAndFire, killTank, stepShots } from './combat';
+import type { IntelBag } from '../workshop';
+import { aimAndFire, stepShots } from './combat';
 import { driveTank, placeMounted } from './movement';
-import { mainDone, objectiveFailed, objectiveInput, setupObjective, stepObjective, type ObjectiveRt } from './objective';
 import { repair, touchPickups } from './pickups';
-import { addTank, chooseDrop, drivableNear, spawnBot } from './spawn';
+import { addTank, spawnEnemy } from './spawn';
 import { StructGrid } from './spatial';
 import { IDLE, type MatchEvent, type MatchOver, type Pickup, type PickupKind, type Shot, type StructRt, type Tank, type TankInput } from './types';
-import { createBrain } from '../bots/brain';
 
 export interface PlayerSetup {
   readonly loadout: Loadout;
   readonly research?: Research;
   readonly kits?: number;
   readonly name?: string;
-  /** Where the player tapped to land; null lets the game choose. */
-  readonly drop?: Pt | null;
 }
 
 export interface MatchConfig {
-  readonly land: LandDef;
-  readonly mission: MissionDef;
+  readonly level: LoadedLevel;
   readonly seed: number;
-  /** null: bots only. */
+  /** null: no player (enemies only, for tests and the stress page). */
   readonly player: PlayerSetup | null;
   /** A bot drives the player's tank (the headless sim). */
   readonly playerBot?: boolean;
   readonly difficulty?: Difficulty;
-  readonly loot?: LootTable;
 }
 
-interface SupplyRt {
-  readonly at: number;
-  readonly x: number;
-  readonly y: number;
-  warned: boolean;
-  landed: boolean;
-}
+/** A level with no timer still ends here (a stuck sim run). */
+export const HARD_CAP = 600;
 
 /**
- * One mission being played: the land as open at its level, every tank, shot
- * and pickup, the storm and the objective. Pure logic, no rendering: the
- * mission scene and the headless sim both drive it with `step`.
- * The state is mutated in place each step for speed; the rules it applies
- * (stats, damage, storm, loot, objectives) are pure functions.
+ * One level being played: its map, every tank, shot and pickup, the alarm
+ * and the objective. Pure logic, no rendering: the mission scene and the
+ * headless sim both drive it with `step`. The state is mutated in place
+ * each step for speed; the rules it applies (stats, damage, loot,
+ * objectives) are pure functions over it.
  */
 export class Match {
-  readonly land: OpenLand;
+  readonly level: LoadedLevel;
+  readonly land: Land;
   readonly nav: NavGrid;
   readonly flow: FlowCache;
   readonly rng: Rng;
   readonly structs: StructRt[];
   readonly grid: StructGrid;
-  readonly storm: StormPlan;
-  readonly loot: LootTable;
   readonly difficulty: Difficulty;
+  readonly start: Pt;
   readonly brains = new Map<number, Brain>();
   readonly usedNames = new Set<string>();
-  readonly objective: ObjectiveRt;
-  readonly supplies: SupplyRt[];
-  readonly length: number;
-  /** Until then bots loot rather than pick fights. */
-  readonly calmUntil: number;
+  readonly objective: Objective;
+  readonly alarm: AlarmState = { firstAt: null, count: 0 };
   t = 0;
   tanks: Tank[] = [];
   shots: Shot[] = [];
@@ -82,58 +70,33 @@ export class Match {
   events: MatchEvent[] = [];
   over: MatchOver | null = null;
   intel: IntelBag = {};
-  aceIntelTaken = false;
   player: Tank | null = null;
   nextId = 1;
-  nextTeam = 1;
-  private stormPhase = -1;
+  private waves: ResolvedEnemy[];
   private readonly byId = new Map<number, Tank>();
+  private dt = 1 / 60;
 
   constructor(readonly cfg: MatchConfig) {
+    this.level = cfg.level;
     this.rng = createRng(cfg.seed);
-    this.loot = cfg.loot ?? cfg.mission.loot ?? CH1_LOOT;
     this.difficulty = cfg.difficulty ?? CH1_BOTS;
-    this.land = openLand(cfg.land, cfg.mission.level);
+    this.land = buildLand(cfg.level.land);
     this.nav = buildNav(this.land);
     this.flow = new FlowCache(this.nav);
     this.structs = this.land.structures.map((def) => ({ def, hp: def.hp, state: 2 as const }));
     this.grid = new StructGrid(this.structs);
-    this.length = cfg.mission.length ?? 330;
-    this.calmUntil = cfg.mission.main.kind === 'royale' ? this.length * 0.4 : 15;
-    const start = openCircle(this.land);
-    this.storm = cfg.mission.storm === 'on'
-      ? planStorm(start, this.rng.fork(1), { area: this.land.area, length: this.length, isValid: (x, y) => isDrivable(this.land, x, y) })
-      : calmStorm(start);
-    this.stormNow = stormAt(this.storm, 0);
-    this.placeCrates();
+    this.start = cfg.level.start;
+    for (const c of cfg.level.crates) this.addPickup({ kind: 'crate', content: c.content === 'kit' ? { kind: 'kit' } : c.content ? { kind: 'part', part: c.content } : rollCrate(this.rng, cfg.level.def.loot) }, c.at.x, c.at.y);
     if (cfg.player) this.player = this.spawnPlayer(cfg.player);
-    this.objective = setupObjective(this);
-    const scale = scaleForArea(this.land.area);
-    const bots = cfg.mission.bots ?? scale.bots;
-    for (let i = 0; i < bots; i++) spawnBot(this, null, this.difficulty);
-    this.supplies = supplyTimes(cfg.mission.supplyDrops, this.length).map((at) => {
-      const p = drivableNear(this, this.stormNow.circle, this.stormNow.circle.r * 0.5, this.rng);
-      return { at, x: p.x, y: p.y, warned: false, landed: false };
-    });
-    for (const t of this.tanks) this.byId.set(t.id, t);
-  }
-
-  stormNow: StormNow;
-
-  private placeCrates(): void {
-    const want = scaleForArea(this.land.area).crates;
-    const spots = [...this.land.crateSpots];
-    for (let i = spots.length - 1; i > 0; i--) {
-      const j = this.rng.int(i + 1);
-      [spots[i], spots[j]] = [spots[j]!, spots[i]!];
-    }
-    for (const s of spots.slice(0, want)) this.addPickup({ kind: 'crate', content: rollCrate(this.rng, this.loot) }, s.x, s.y);
+    this.objective = createObjective(this, cfg.level.def.objective);
+    this.waves = cfg.level.enemies.filter((e) => e.role === 'wave');
+    for (const e of cfg.level.enemies) if (e.role !== 'wave') spawnEnemy(this, e);
+    this.drainEvents();
   }
 
   private spawnPlayer(p: PlayerSetup): Tank {
-    const at = p.drop && isDrivable(this.land, p.drop.x, p.drop.y) ? p.drop : chooseDrop(this, this.rng, true, []);
-    const t = addTank(this, { name: p.name ?? 'You', clan: 'ink', team: 0, isPlayer: true, loadout: p.loadout, research: p.research, kits: p.kits ?? 1, maxKits: p.kits ?? 1, at });
-    if (this.cfg.playerBot) this.brains.set(t.id, createBrain(t, PERSONALITIES.player, PLAYER_BOT, this.rng.fork(999)));
+    const t = addTank(this, { name: p.name ?? 'You', clan: 'ink', team: 0, isPlayer: true, loadout: p.loadout, research: p.research, kits: p.kits ?? 1, maxKits: p.kits ?? 1, at: this.start, heading: this.level.def.startHeading ?? 0 });
+    if (this.cfg.playerBot) this.brains.set(t.id, createBrain(t, null, PLAYER_BOT, this.rng.fork(999)));
     return t;
   }
 
@@ -157,10 +120,36 @@ export class Match {
     return t;
   }
 
+  point(key: string): Pt {
+    const p = this.land.def.points[key];
+    if (!p) throw new Error(`level ${this.level.def.number} has no point "${key}"`);
+    return p;
+  }
+
+  road(key: string): readonly Pt[] {
+    const r = this.land.def.roads[key];
+    if (!r) throw new Error(`level ${this.level.def.number} has no road "${key}"`);
+    return r;
+  }
+
   addPickup(kind: PickupKind, x: number, y: number): Pickup {
     const p = { ...kind, id: this.nextId++, x, y, taken: false } as Pickup;
     this.pickups.push(p);
     return p;
+  }
+
+  /** A tank leaves the map by its exit (no wreck): a convoy truck, a runner, a crew reaching home. */
+  escape(t: Tank): void {
+    if (!t.alive) return;
+    t.alive = false;
+    t.escaped = true;
+    t.deadAt = this.t;
+    this.emit({ kind: 'escape', tank: t.id });
+  }
+
+  /** Waves still to come; `timedOnly` leaves out the ones waiting on the alarm or the objective. */
+  pendingWaves(timedOnly = false): number {
+    return timedOnly ? this.waves.filter((w) => typeof w.when === 'number').length : this.waves.length;
   }
 
   navPassable(x: number, y: number): boolean {
@@ -179,31 +168,23 @@ export class Match {
   }
 
   private inputFor(t: Tank, playerInput: TankInput): TankInput {
-    if (t.role === 'truck' || t.role === 'boss') return objectiveInput(this, t) ?? IDLE;
+    const own = this.objective.drive(t);
+    if (own) return own;
+    if (t.role === 'truck' && !this.brains.has(t.id)) return IDLE;
     if (t.isPlayer && !this.cfg.playerBot) return playerInput;
     const b = this.brains.get(t.id);
     return b ? botInput(this, b, t, this.dt) : IDLE;
   }
 
-  private dt = 1 / 60;
-
   step(dt: number, playerInput: TankInput = IDLE): void {
     if (this.over) return;
     this.dt = dt;
     this.t += dt;
-    this.stormNow = stormAt(this.storm, this.t);
-    if (this.stormNow.phase !== this.stormPhase) {
-      this.stormPhase = this.stormNow.phase;
-      this.emit({ kind: 'storm', phase: this.stormPhase });
-    }
-    this.stepSupplies();
+    this.stepWaves();
     for (const t of this.tanks) {
       if (!t.alive) continue;
-      if (t.dropT > 0) {
-        t.dropT = Math.max(0, t.dropT - dt);
-        continue;
-      }
       const input = this.inputFor(t, playerInput);
+      if (!t.alive) continue;
       driveTank(this, t, input, dt);
       placeMounted(this, t);
       aimAndFire(this, t, input, dt);
@@ -211,62 +192,39 @@ export class Match {
       touchPickups(this, t, input, dt, input.swap);
     }
     stepShots(this, dt);
-    this.stormDamage(dt);
-    stepObjective(this, dt);
-    for (const t of this.tanks) if (!this.byId.has(t.id)) this.byId.set(t.id, t);
+    this.objective.step(dt);
     this.checkOver();
   }
 
-  private stepSupplies(): void {
-    for (const s of this.supplies) {
-      if (!s.warned && this.t >= s.at - SUPPLY_WARNING) {
-        s.warned = true;
-        this.emit({ kind: 'supplyWarn', x: s.x, y: s.y, at: s.at });
-      }
-      if (!s.landed && this.t >= s.at) {
-        s.landed = true;
-        this.addPickup({ kind: 'part', part: rollSupply(this.rng, this.loot), supply: true }, s.x, s.y);
-        this.emit({ kind: 'supply', x: s.x, y: s.y });
-      }
-    }
-  }
-
-  private stormDamage(dt: number): void {
-    const s = this.stormNow;
-    if (s.dps <= 0) return;
-    for (const t of this.tanks) {
-      if (!t.alive || t.dropT > 0 || t.role !== 'tank' || insideCircle(s.circle, t.x, t.y)) continue;
-      const d = s.dps * dt;
-      t.hp -= d;
-      t.stormDamage += d;
-      if (t.hp <= 0) killTank(this, t, t.lastHitBy !== null && this.t - t.lastHitAt < 5 ? (this.tank(t.lastHitBy) ?? null) : null, 'storm');
-    }
-  }
-
-  /** Tanks still fighting for placement (no trucks or boss parts). */
-  aliveTanks(): number {
-    return this.tanks.reduce((n, t) => n + (t.alive && t.role === 'tank' ? 1 : 0), 0);
+  private stepWaves(): void {
+    if (this.waves.length === 0) return;
+    const ready = (w: ResolvedEnemy): boolean =>
+      typeof w.when === 'number' ? this.t >= w.when : w.when === 'alarm' ? this.alarm.firstAt !== null : this.objective.staged();
+    const due = this.waves.filter(ready);
+    if (due.length === 0) return;
+    this.waves = this.waves.filter((w) => !ready(w));
+    for (const w of due) spawnEnemy(this, w);
   }
 
   private finish(passed: boolean, reason: string): void {
     this.over = { passed, reason, time: this.t };
-    if (this.player?.alive) this.player.placement = this.aliveTanks();
     this.emit({ kind: 'over', passed, reason });
   }
 
   private checkOver(): void {
-    const main = this.cfg.mission.main;
     const p = this.player;
-    const royale = main.kind === 'royale' || !p;
-    if (p && !p.alive) return this.finish(main.kind === 'royale' && p.placement <= main.top, 'destroyed');
-    if (royale) {
-      if (this.aliveTanks() <= 1) return this.finish(!p || p.alive, 'last tank');
-      if (this.t > Math.min(this.storm.end + 10, this.length + 120)) return this.finish(false, 'time');
-      return;
-    }
-    const failed = objectiveFailed(this);
-    if (failed) return this.finish(false, failed);
-    if (mainDone(this)) return this.finish(true, 'objective');
-    if (this.t > this.length + 120) this.finish(false, 'time');
+    if (p && !p.alive) return this.finish(false, 'destroyed');
+    const s = this.objective.status();
+    if (s.failed) return this.finish(false, s.failed);
+    if (s.done) return this.finish(true, 'objective');
+    const limit = this.level.def.timeLimit;
+    if (limit !== undefined && this.t >= limit) return this.finish(false, 'time');
+    if (this.t >= HARD_CAP) this.finish(false, 'time');
+  }
+
+  /** Seconds left on the level's timer, or null when it has none. */
+  timeLeft(): number | null {
+    const limit = this.level.def.timeLimit;
+    return limit === undefined ? null : Math.max(0, limit - this.t);
   }
 }

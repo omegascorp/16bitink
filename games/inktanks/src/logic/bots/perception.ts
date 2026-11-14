@@ -6,8 +6,6 @@ import { dps } from '../stats';
 
 /** About one screen around a tank. */
 export const VISION = 440;
-/** Firing is heard (shown on minimaps) this far, for 2 s. */
-export const HEARING = 1100;
 export const REVEAL = 2;
 const NEAR_SPOT = 100;
 
@@ -24,22 +22,18 @@ export function hidden(m: Match, t: Tank): boolean {
 }
 
 export function enemies(m: Match, me: Tank): Tank[] {
-  return m.tanks.filter((o) => o.alive && o.dropT <= 0 && o.team !== me.team);
+  return m.tanks.filter((o) => o.alive && o.team !== me.team);
 }
 
-export function canSee(m: Match, me: Tank, o: Tank): boolean {
+export function canSee(m: Match, me: Tank, o: Tank, range = VISION): boolean {
   const d2 = (o.x - me.x) ** 2 + (o.y - me.y) ** 2;
-  if (d2 > VISION * VISION) return false;
+  if (d2 > range * range) return false;
   return d2 < NEAR_SPOT * NEAR_SPOT || !hidden(m, o);
-}
-
-export function heard(m: Match, me: Tank, o: Tank): boolean {
-  return m.t - o.firedAt < REVEAL && (o.x - me.x) ** 2 + (o.y - me.y) ** 2 < HEARING * HEARING;
 }
 
 /** My odds against `o`: their time to kill me over my time to kill them (above 1 favours me). */
 export function odds(me: Tank, o: Tank): number {
-  if (o.role === 'truck') return 10;
+  if (o.role === 'truck' || o.role === 'crew') return 10;
   const mine = dps(me.stats, o.stats, damageTaken);
   const theirs = o.role === 'boss' ? 0 : dps(o.stats, me.stats, damageTaken);
   const myTtk = o.hp / Math.max(0.01, mine);

@@ -1,7 +1,7 @@
-import { CELL, GROUNDS, SCREEN, type OpenLand, type RegionDef } from '../../logic/land';
+import { CELL, GROUNDS, type Land } from '../../logic/land';
 
 /**
- * A small painted map of the open land, for the drop map and the minimap:
+ * A small painted map of the level, for the minimap (and later the briefing):
  * one canvas, drawn once per mission from the ground grid and structures.
  */
 const COLOURS: Readonly<Record<string, string>> = {
@@ -12,7 +12,7 @@ const PAPER = '#d9ccaa';
 export interface LandMap {
   readonly canvas: HTMLCanvasElement;
   readonly scale: number;
-  /** World px of the map's top-left corner (the open land's bounds, plus a margin). */
+  /** World px of the map's top-left corner. */
   readonly x0: number;
   readonly y0: number;
   readonly w: number;
@@ -21,7 +21,7 @@ export interface LandMap {
 
 const MARGIN = 120;
 
-export function paintLandMap(l: OpenLand, scale: number): LandMap {
+export function paintLandMap(l: Land, scale: number): LandMap {
   const x0 = Math.max(0, l.bounds.x0 - MARGIN);
   const y0 = Math.max(0, l.bounds.y0 - MARGIN);
   const w = Math.min(l.width, l.bounds.x1 + MARGIN) - x0;
@@ -37,7 +37,6 @@ export function paintLandMap(l: OpenLand, scale: number): LandMap {
   for (let gy = 0; gy < l.gridRows; gy++) {
     for (let gx = 0; gx < l.gridCols; gx++) {
       const i = gy * l.gridCols + gx;
-      if (!l.open[i]) continue;
       ctx.fillStyle = COLOURS[GROUNDS[l.ground[i]!]!]!;
       ctx.fillRect(gx * s, gy * s, s + 0.5, s + 0.5);
     }
@@ -51,8 +50,3 @@ export function paintLandMap(l: OpenLand, scale: number): LandMap {
   return { canvas: c, scale, x0, y0, w, h };
 }
 
-/** The region's cells as rects on the map, in map px. */
-export function regionRects(r: RegionDef, map: LandMap): { x: number; y: number; w: number; h: number }[] {
-  const s = map.scale;
-  return r.cells.map(([cx, cy]) => ({ x: (cx * SCREEN.w - map.x0) * s, y: (cy * SCREEN.h - map.y0) * s, w: SCREEN.w * s, h: SCREEN.h * s }));
-}

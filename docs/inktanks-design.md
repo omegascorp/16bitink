@@ -1,34 +1,37 @@
 # InkTanks: design
 
-A single-player tank war campaign with battle-royale matches. You're a young tank commander, an animal crew, who works up the military ranks from Private to General.
+A single-player tank war campaign of 50 hand-made missions. You're a young tank commander, an animal crew, who works up the military ranks from Private to General.
 
-- **Missions:** each level is one, on a land that grows a region at a time. Many play like a battle royale: drop in with bot tanks, loot parts, a storm closes in. Others are raids, escorts, holds and boss hunts.
-- **Your tank:** gun, hull and drive, each found as Mk I, II or III.
+- **Levels, as in our other games:** 5 chapters × 10 levels, picked on a chapter map. Chapter 1 (levels 1–10) is free, chapters 2–5 (levels 11–50) are paid.
+- **Every level is a clear mission** with one main objective shown before you start: blow up the fuel depot, get the truck to the village, hold the bridge for 90 seconds. Missions differ from level to level; 13 mission types are mixed through the campaign.
+- **Your tank:** gun, hull and drive, each found as Mk I, II or III. Enemies drop their parts when destroyed.
 - **Intel:** enemy tanks drop intel on their technology. Between missions you research it in the workshop and upgrade your own tank for good.
 
 Working name.
 
 Started Nov 12, 2026. Eighth game on 16bit.ink. Branch `feat/inktanks`, folder `games/inktanks`.
 
+**Nov 14 redesign:** the owner didn't like the PUBG mechanics. Gone: the air drop, picking a landing spot, the storm, and last-tank-alive royales. Each level now starts at a set spot with a set mission, on its own map.
+
 ## Why this game
 
 - **It wasn't a third eat-and-grow game.** A single-player agar.io was considered first, but InkFish and InkCrab already use that loop.
-- **Tanks plus loot is a loop everyone knows.** Battle City and Wii Play Tanks for the tanks, PUBG for drop, loot and storm.
+- **Tanks plus missions is a loop everyone knows.** Battle City and Wii Play Tanks for the tanks, campaign games like Desert Strike and Commandos for hand-made missions.
 - **The parts system** comes from Warzone 2100, where every unit is a body, a propulsion and a weapon (stats checked in its `data/mp/stats` files). Each part trades something away: heavy hulls are slow, tracks are tough but slow, and anti-tank rockets beat tracks but are weak against light, fast drives.
 - **The gap:**
-  - diep.io has tank upgrades on a big map, but it's multiplayer.
-  - The surviv.io family of 2D battle royales is multiplayer too.
-  - The portal tank games are full of ads.
-  - A single-player tank battle royale with real part loot and a campaign looks open. Run a fact-check agent before release copy says so.
+  - diep.io has tank upgrades, but it's multiplayer and has no missions.
+  - The portal tank games are full of ads and are mostly one arena repeated.
+  - A tank campaign with real part loot, varied missions and no ads looks open. Run a fact-check agent before release copy says so.
 
 ## Pillars
 
 1. **The tank is the loot.** Every crate can change how you play. Picking up a part is a decision, not a stat bump: swap the Cannon for Rockets and you're suddenly strong against heavies but weak against scouts.
 2. **Steal their tech.** Every enemy is carrying technology you want. A Heavy with Rockets on the minimap is a target because of its intel, and what you destroy decides how your tank grows.
 3. **No dominant build.** Every part costs something: weight, speed, HP, reload or range. Damage depends on the target's drive, so a counter always exists.
-4. **Readable at a glance.** Each gun, hull and drive is recognisable from its silhouette, and a Mk III looks richer than a Mk I. Threats are shown before they land: storm edge, supply-drop smoke, the aim line of a charging Siege.
-5. **Never empty driving.** The land grows with the chapter, so early missions are small and dense, and every region is packed with loot, breakable buildings and events. The storm or the mission forces a fight within 5–7 minutes. This is our "no empty walking" rule from earlier games.
-6. **No lost progress, no grind.** A lost mission is retried on the spot, and intel collected is kept win or lose. Rank and research only go up. Playing each mission once, with some bonus objectives, pays for everything the next chapter needs.
+4. **Readable at a glance.** Each gun, hull and drive is recognisable from its silhouette, and a Mk III looks richer than a Mk I. Threats are shown before they land: artillery marks, supply-drop smoke, the aim line of a charging Siege.
+5. **Never empty driving.** Each level's map is sized to its mission, 2×2 to 4×4 screens, and packed with enemies, crates, breakable buildings and events along the way. A level takes 3–5 minutes. This is our "no empty walking" rule from earlier games.
+6. **Every mission is different.** No two levels in a row share a mission type, and each level adds one twist of its own: a new part, terrain, weather or enemy. This is the InkFish playtest lesson ("levels feel the same").
+7. **No lost progress, no grind.** A lost mission is retried on the spot, and intel collected is kept win or lose. Rank and research only go up. Playing each mission once, with some bonus objectives, pays for everything the next chapter needs.
 
 ## Art (decided, Nov 12)
 
@@ -62,23 +65,22 @@ Settled by the art test in `games/inktanks/dev/art-test.html` and the density te
 
 ## Rules
 
-### A battle-royale match
+### A mission
 
-The most common mission type; the others reuse these rules (see Missions).
-
-1. **Drop:** the map opens zoomed out, and you tap where to land. Bots pick their own spots, weighted towards loot. A 3-second drop follows. You start in the tank you set up in the workshop, and bots start in their chapter's Mk I–II tanks.
-2. **Loot:**
-   - **Crates** stand in buildings, villages and ruins. They hold mostly Mk I–II parts and repair kits.
-   - **Wrecks:** a destroyed tank leaves its best part, to swap in for this match, plus **intel** on all its parts, which you keep (see Intel and the workshop).
-   - **Supply drops** fall during the match. You see red smoke and a parachute with a 10-second warning. They hold a Mk III part and are always contested.
-3. **Swapping:** drive over a part and its card shows, with the stat change against what you have (green up, red down). Hold swap for 0.5 s and the old part drops where you stand. Swapping a gun resets its reload.
-4. **Storm:** 4–5 phases. The safe circle shrinks towards a random point inside the last circle. Each phase is announced with a timer and a minimap ring. Outside the circle you lose HP per second, more each phase.
-5. **Winning:** the last tank alive wins the match. The mission sets what counts as a pass (see Missions).
-6. **Length:** 5–7 minutes. The map size, bot count and storm timings are tuned to that.
+1. **Briefing:** the commander names the main objective and two bonus objectives, with a picture of the map and the target marked.
+2. **Start:** you start at the level's set start point, in the tank you fitted in the workshop. There's no drop and no choosing a spot.
+3. **The objective stays on screen:** a short line at the top ("Fuel barrels 1/3"), and an arrow at the screen edge to the next target.
+4. **Enemies are placed by the level,** not spawned at random: guards at posts, patrols on routes, waves from marked directions, convoys on roads (see Bots).
+5. **Loot along the way:**
+   - **Crates** stand where the level puts them, usually off the direct path, as a reward for a detour. They hold Mk I–II parts and repair kits.
+   - **Wrecks:** a destroyed tank leaves its best part, to swap in for this level, plus **intel** on all its parts, which you keep (see Intel and the workshop).
+6. **Swapping:** drive over a part and its card shows, with the stat change against what you have (green up, red down). Hold swap for 0.5 s and the old part drops where you stand. Swapping a gun resets its reload.
+7. **Winning and failing:** the main objective done wins. Your tank destroyed, or a mission fail (the truck lost, the timer out), fails, and you retry on the spot. Intel picked up is kept either way.
+8. **Length:** 3–5 minutes.
 
 ### Tank stats
 
-These are starting numbers. Balance them with a whole-chapter bot-vs-bot simulation, never by guessing armies (the InkHeroes rule). **Sim-tuned, Nov 12:** HP in play is the table × 2.5 (`HP_SCALE`); at × 1, chapter 1 royales were over in about 30 s.
+These are starting numbers. Balance them with a whole-chapter bot-vs-bot simulation, never by guessing armies (the InkHeroes rule). **Sim-tuned, Nov 12:** HP in play is the table × 2.5 (`HP_SCALE`); at × 1, chapter 1 fights were over in about 30 s.
 
 - A tank's **HP** is hull HP × the drive's HP factor.
 - **Speed** is the drive's base speed × the engine factor. The engine factor is the hull's engine power ÷ total weight, clamped to 0.7–1.1, so a heavy gun on a light hull crawls.
@@ -121,9 +123,9 @@ These are starting numbers. Balance them with a whole-chapter bot-vs-bot simulat
 
 ### The Kit slot (from chapter 2)
 
-A fourth slot, PUBG's backpack, vest and scope:
+A fourth slot for gear:
 - **Armour plate:** +armour, +weight.
-- **Radar:** a wider view, and enemies show on the minimap when they fire.
+- **Radar:** a wider view, enemies show on the minimap when they fire, and Recon is faster.
 - **Cargo rack:** carry 3 repair kits instead of 1.
 - **Smoke:** a cover cloud, 20 s cooldown.
 - **Mines:** drop up to 3.
@@ -150,11 +152,18 @@ A fourth slot, PUBG's backpack, vest and scope:
 
 The same parts and rules as the player. They're the hardest code, so they're built and measured first.
 
-- **States:** loot (head for the best-value crate in reach) → rotate (move into the next circle early or late, by personality) → fight (when a target is in range and the fight looks winnable on HP, drive and counter) → flee and repair (low HP).
-- **Loot sense:** bots value parts by a simple score and prefer counters to the tank that last hit them.
-- **Difficulty per chapter:** aim error, reaction time, how well they kite (retreat while firing), focus fire, and how greedy they are about supply drops.
-- **Personalities** from a small set: camper, hunter, looter, coward.
-- **Movement:** a coarse navigation grid plus flow fields to the safe zone. Local steering avoids rocks and other tanks.
+- **Roles, set by the level:**
+  - **Guard:** stays near its post and fights what comes in range.
+  - **Patrol:** drives a route, and turns to fight when it sees you.
+  - **Wave:** arrives from a marked direction and heads for the objective (the hold zone, the truck).
+  - **Convoy:** follows a road to an exit; it only shoots back.
+  - **Hunter:** comes after you wherever you are.
+  - **Runner:** flees to an exit (Chase missions).
+  - **Turret:** doesn't move.
+- **Alarm:** a guard that's hit or sees you calls the guards near it. Sneaking past or picking off one at a time is a real choice. *(Engine, Nov 14: patrols and turrets raise it too, called guards and patrols within 420 px answer, and a called bot that then sees you calls again.)*
+- **Fighting:** when a target is in range, bots fight with the parts they carry, kite if they outrange you, and back off to repair at low HP. *(Engine, Nov 14: enemies carry no repair kit unless the level gives one, so most fight to the end; with a kit each, chapter 1 fights doubled in length.)*
+- **Difficulty per chapter:** aim error, reaction time, how well they kite (retreat while firing) and focus fire.
+- **Movement:** a coarse navigation grid plus flow fields to the role's goal. Local steering avoids rocks and other tanks.
 - **Crews are animals** (badgers, boars, weasels, crows, otters…). They show in the kill feed and on the result screen, never as people. Names use plain A–Z letters.
 
 ## Story frame
@@ -164,36 +173,40 @@ After the old world, its tank depots lie scattered across the land, and rival an
 - **Weasels:** fast scouts.
 - **Crows:** they loot everything.
 
-You're a young badger commander in the Ink Brigade. Clans fight each other as well as you, which is why most missions are free-for-all. Each clan's tanks have their own stripe colour and favourite parts, so you can see whose tech is in front of you.
+You're a young badger commander in the Ink Brigade. Each chapter has a main rival clan, and in some levels the clans fight each other as well as you. Each clan's tanks have their own stripe colour and favourite parts, so you can see whose tech is in front of you.
 
 The commander who briefs you is an old animal officer, named in the chapter 1 content pass. Names use plain A–Z letters.
 
-## The growing land
+## Levels and the chapter map
 
-**A chapter is one land that grows a region at a time,** as InkHeroes chapters do.
-- Mission 1 plays on a small, dense piece: about 2×2 screens and 5 bots.
-- Each mission opens the next region: a village, a river with bridges, woods, a quarry. By the boss mission the chapter's whole land is open: about 7×7 screens and 16 bots.
-- **A new region always shows where it opened.** The drop map pans to it, unveils it from paper, and the mission briefing points there. The storm's first circle covers the whole open land, and the region is where the mission happens.
-- Earlier regions stay. Replaying a mission uses the land as it was then, so mission 1 stays small.
-- Bot count, loot and storm timings scale with the open area, so the density per screen stays the same. That keeps the "never empty driving" pillar as maps grow.
+- **The chapter map:** each chapter is one painted land, shown as the level select, like InkCrab's beach map. The 10 levels are spots on it with a path between them, and the medals earned show on each spot.
+- **Each level plays on its own map,** a slice of that land sized to the mission (2×2 to 4×4 screens), built from the chapter's ground set and structures.
+- **Levels unlock in order.** Any open level can be replayed for missed medals.
+- **Level numbers run on:** chapter 2's first level is Level 11 in the HUD, the map, cards and docs.
 
 ## Missions
 
-Every level is a mission with a short briefing, one **main objective** and two **bonus objectives**.
-- **Medals:** each objective done earns a medal (up to 3 per mission). Medals only add up. A mission can be replayed any time for missed ones, and a replay keeps the medals you already have.
+Every level has a short briefing, one **main objective** and two **bonus objectives**.
+- **Medals:** each objective done earns a medal (up to 3 per level). Medals only add up, and a replay keeps the medals you already have.
 - **Passing:** you pass by completing the main objective. A failed mission restarts on the spot.
 
-| Type | Main objective | Notes |
+| Type | Main objective | What makes it play differently |
 |---|---|---|
-| **Royale** | Finish top N, or win | The battle-royale rules above. N tightens through the chapter |
-| **Raid** | Destroy targets: a fuel depot, a radar mast, a convoy | Targets are 3D-modelled breakable structures. The storm is optional |
-| **Escort** | Bring a supply truck to a point | The truck follows a road. Bots hunt it, not only you |
-| **Hold** | Hold a hilltop or a bridge for N seconds | Waves arrive from marked directions |
-| **Ace hunt** | Destroy a named enemy ace and take its intel | Aces carry rare tech (prototype parts) found nowhere else |
-| **Salvage** | Find a crashed prototype, take it, and get it to the pick-up | Carrying it slows you and shows you on every minimap |
-| **Fortress** | Destroy the chapter's land fortress | Level 10 of each chapter. A huge multi-part tank with breakable turrets |
+| **Assault** | Destroy every enemy tank in the area | Guards and patrols around a camp; the alarm decides how many you fight at once |
+| **Raid** | Destroy marked targets: fuel barrels, a radar mast, pipeline valves | Targets are breakable structures; some levels add a timer |
+| **Escort** | Get a supply truck to a point | The truck follows a road; enemies hunt it, not only you |
+| **Hold** | Hold a zone for N seconds | Waves arrive from marked directions |
+| **Ace** | Destroy a named enemy ace | Aces carry rare tech (prototype parts) found nowhere else |
+| **Rescue** | Break the cages and bring the captured crews home | Freed crews follow you on foot or in a truck; they can be hit (they stay down while enemies are close, and enemies don't aim at them: losing one fails) |
+| **Ambush** | Stop a convoy before it leaves the map | Pick where to cut it off; it doesn't wait for you |
+| **Salvage** | Take a crashed prototype to the pick-up | Carrying it slows you and every enemy comes for it |
+| **Breakout** | Reach the exit before the timer | A gauntlet: artillery marks, hazards, a race against time |
+| **Recon** | Get close to 3 marked spots without being seen | Bushes, reeds and roofs hide you; being seen calls reinforcements, not a fail |
+| **Capture** | Take 3 flags and hold them all at once | Enemies try to retake them, so you keep moving |
+| **Chase** | Catch a fleeing courier before it reaches its base | A faster enemy; cut corners, use shortcuts |
+| **Fortress** | Destroy the chapter's boss | Level 10 of every chapter. A huge multi-part tank with breakable turrets |
 
-Bonus objectives come from a pool and are shown in the briefing. Examples: destroy 5 tanks, win without a repair kit, take no storm damage, finish with Light hulls only, collect 10 intel, destroy a Heavy with Rockets.
+Bonus objectives are written per level and shown in the briefing. Examples: destroy 5 tanks, win without a repair kit, finish under 3 minutes, never set off the alarm, keep the truck above half HP, destroy a Heavy with Rockets.
 
 ## Intel and the workshop
 
@@ -234,58 +247,118 @@ Rank only goes up. It never gates a mission or a chapter; it gates perks. The th
 | Rank | Reached about | Unlocks |
 |---|---|---|
 | Private | Start | The workshop, 1 repair kit |
-| Corporal | Chapter 1, mission 3 | Carry 2 repair kits |
-| Sergeant | Mission 6 | Mk II in the workshop |
-| Staff Sergeant | Mission 10 | **Call-in:** one supply drop per mission, at a spot you choose |
-| Lieutenant | Chapter 2, mission 5 | Mk III in the workshop, the Kit slot |
+| Corporal | Level 3 | Carry 2 repair kits |
+| Sergeant | Level 6 | Mk II in the workshop |
+| Staff Sergeant | Level 10 | **Call-in:** one supply drop per level, a Mk III part at a spot you choose |
+| Lieutenant | Level 15 | Mk III in the workshop, the Kit slot |
 | Captain | Chapter 2 end | **A wingman:** one allied bot tank with its own animal crew |
-| Major | Chapter 3 | **Call-in:** one artillery strike per mission |
+| Major | Chapter 3 | **Call-in:** one artillery strike per level |
 | Colonel | Chapter 4 | A second wingman |
 | Brigadier | Chapter 5, mid-chapter | Prototype parts from aces can go in the workshop |
 | General | The final fortress | Gold insignia, the ending |
 
 The rank badge shows on the commander's portrait, in the HUD and on the result screen, with a short promotion ceremony when you rise.
 
-## Levels
+## The 50 levels
 
-- 5 chapters × 10 missions. Chapter 1 is free and chapters 2–5 are paid, as in our other new games. Level numbers run on: chapter 2's first mission is Level 11.
-- Each chapter mixes mission types: no two in a row of the same type, and Royale about half the time. This keeps missions from feeling the same, the InkFish playtest lesson.
+- 5 chapters × 10 levels: chapter 1 (levels 1–10) is free, chapters 2–5 (levels 11–50) are paid, as in our other new games.
+- No two levels in a row share a mission type, including across chapters. Each type turns up 3–5 times in the campaign, every time with a different twist.
+- Each chapter brings new parts, new terrain and a main rival clan. Chapters 2–5 are drafts: design each in full before building it.
 
 ### Chapter 1: Meadowlands (free)
 
-The land grows from a farm to the whole valley. Families in chapter 1: Machinegun, Cannon, Rockets; Light, Medium, Heavy; Wheels, Half-tracks, Tracks, with bots on Mk I–II and supply drops at Mk III. Your first starting tank is a Light hull on Wheels with a Machinegun. Cannon, Medium and Half-tracks are unlocked by the intel from missions 1–2.
+A farm valley. Rival: the Boars. Families in chapter 1: Machinegun, Cannon, Rockets; Light, Medium, Heavy; Wheels, Half-tracks, Tracks, with enemies on Mk I–II. Your first tank is a Light hull on Wheels with a Machinegun. Cannon, Medium and Half-tracks are unlocked by the intel from levels 1–2.
 
-| Level | Name | Region opens | Mission | Teaches |
+| Level | Name | Mission | Main objective | Teaches |
 |---|---|---|---|---|
-| 1 | First Drop | The farm (2×2 screens, 5 bots) | Royale: top 3 | Drop, drive, shoot, swap a part, intel |
-| 2 | Barn Raid | The orchard | Raid: blow up the Boars' fuel barrels | Breakable targets, the workshop after |
-| 3 | Bridges | The river and two bridges | Royale: top 3 | Water, choke points, the storm forcing a crossing |
-| 4 | Milk Run | The village road | Escort: the supply truck to the village | Protecting, roofs, close fights |
-| 5 | Weasel Ace | The woods | Ace hunt: Sly, a Weasel ace on Mk II Wheels | Target choice, rare intel |
-| 6 | Airdrop | The quarry | Royale: top 3, with two supply drops | Contested Mk III, Sergeant rank |
-| 7 | Hold the Hill | The hilltop radar | Hold: the hill for 90 s | Waves, positioning |
-| 8 | Wreck in the Rails | The rail yard | Salvage: a crashed prototype to the pick-up | Being hunted, cover |
-| 9 | Valley Brawl | The airfield (whole valley but the fort) | Royale: win | Everything |
-| 10 | The Old Fort | The fort (the full land, 7×7, 16 bots) | Fortress: destroy the Boar land fortress | The chapter boss, Staff Sergeant |
+| 1 | First Tracks | Assault | Destroy the 4 Boar scouts on the farm | Drive, aim, shoot, swap a part, intel |
+| 2 | Barn Raid | Raid | Blow up the Boars' 3 fuel barrel stacks | Breakable targets, the workshop after |
+| 3 | Milk Run | Escort | Get the supply truck to the village | Protecting, roofs, close fights |
+| 4 | Hold the Bridge | Hold | Hold the river bridge for 90 s | Waves, water, choke points |
+| 5 | Weasel Ace | Ace | Destroy Sly, a Weasel ace on Mk II Wheels, in the woods | Counters (Machinegun beats Wheels), rare intel |
+| 6 | The Old Mill | Rescue | Free 3 otter crews and bring them to the truck | Being followed, Sergeant rank |
+| 7 | Cut the Convoy | Ambush | Stop 3 Boar trucks before they leave the valley road | Interception, picking your spot |
+| 8 | Wreck in the Rails | Salvage | Get the crashed prototype from the rail yard to the pick-up | Being hunted, cover |
+| 9 | Through the Pass | Breakout | Reach the fort gate in 3 minutes through the guarded pass | Artillery marks, pace |
+| 10 | The Old Fort | Fortress | Destroy the Boar land fortress | The chapter boss, Staff Sergeant |
 
-### Later chapters (draft, design each before building it)
+### Chapter 2: Dust Flats (paid, draft)
 
-| Ch | Land | New parts | New terrain or twist | Boss |
+Desert, canyons and an oil town. Rival: the Crows. New: Mortar, the Kit slot, Recon intel. Twist: sandstorms cut vision, dunes slow Wheels.
+
+| Level | Name | Mission | Main objective | Twist |
 |---|---|---|---|---|
-| 2 | Dust Flats (desert, canyons, an oil town) | Mortar, the Kit slot | Sandstorms cut vision, dunes slow Wheels | A sand crawler fortress |
-| 3 | Mirefen (swamp, stilt villages) | Hover, Flamer | Water everywhere, so Hover routes and mud | A paddle-wheel ironclad |
-| 4 | Frostridge (snow, frozen lake) | Laser | Ice skids every drive, blizzards | A rail-gun train |
-| 5 | Ashfall (volcanic, ruined city) | Rail | Lava vents, collapsing buildings | The Iron Hive, a final fortress |
+| 11 | Sand in the Tracks | Assault | Clear the Crow camp on the oil town's edge | Mortars lob over walls |
+| 12 | Eyes on the Canyon | Recon | Scout 3 Crow camps unseen | The Radar kit |
+| 13 | Pipeline | Raid | Blow 4 pipeline valves in 3 minutes | Timer |
+| 14 | Water Truck | Escort | Get the water truck across the flats | A sandstorm mid-route |
+| 15 | The Wells | Capture | Hold all 3 wells at once | Crows retake them |
+| 16 | Dune Runner | Chase | Catch the Weasel courier before the canyon | Dunes slow Wheels; pick a drive |
+| 17 | Rook's Mesa | Ace | Destroy Rook, a Crow ace with a Mk III Mortar | Getting under a mortar's minimum range |
+| 18 | Oil Town Siege | Hold | Defend the town square through 4 waves | Mortar waves |
+| 19 | Crow Prison | Rescue | Free the Ink scouts from the Crow prison | The alarm |
+| 20 | The Sand Crawler | Fortress | Destroy the sand crawler | Boss |
+
+### Chapter 3: Mirefen (paid, draft)
+
+Swamp and stilt villages. Rival: the Weasels. New: Hover, Flamer. Twist: water everywhere, so Hover routes and mud.
+
+| Level | Name | Mission | Main objective | Twist |
+|---|---|---|---|---|
+| 21 | Hover Trials | Breakout | Cross the marsh before the tide comes in | Hover |
+| 22 | Stilt Village | Assault | Clear the stilt village | Flamers in close quarters |
+| 23 | The Barge | Escort | Get the supply barge up the river | Enemies on both banks |
+| 24 | Reed Watch | Recon | Mark 3 Weasel positions | Reeds hide you |
+| 25 | Break the Dams | Raid | Break 3 dams | Floods change the routes |
+| 26 | Mud Islands | Capture | Hold 3 islands at once | Hover against mud |
+| 27 | Grim | Ace | Destroy Grim, a Hover ace with a Flamer | A fast close-range duel |
+| 28 | Sunken Prototype | Salvage | Raise the prototype and get it out | Slow in water |
+| 29 | Last Lock | Ambush | Sink the barge convoy before the lock | Timing on water |
+| 30 | The Ironclad | Fortress | Destroy the paddle-wheel ironclad | Boss |
+
+### Chapter 4: Frostridge (paid, draft)
+
+Snow and a frozen lake. Rival: all three clans, pushed north. New: Laser. Twist: ice skids every drive, blizzards.
+
+| Level | Name | Mission | Main objective | Twist |
+|---|---|---|---|---|
+| 31 | Thin Ice | Breakout | Cross the frozen lake | Ice cracks under Heavies |
+| 32 | Snowed In | Rescue | Dig out 3 stranded crews | Break snowdrifts |
+| 33 | Laser Lab | Raid | Destroy the lab's 3 generators | Laser loot |
+| 34 | Blizzard Pass | Escort | Get the truck through the pass | Blizzard vision |
+| 35 | Ridge Line | Capture | Hold 3 ridges at once | High ground |
+| 36 | Ermine | Ace | Destroy Ermine, a Laser ace | Instant beams, dodge by cover |
+| 37 | Avalanche | Hold | Hold the pass for 2 minutes | Shoot the cliffs to bury waves |
+| 38 | Signal Run | Chase | Catch the signal courier on the ice | Skidding at speed |
+| 39 | Tracking the Train | Recon | Mark the rail-gun train's 3 depots | Sets up level 40 |
+| 40 | The Rail-Gun Train | Fortress | Destroy the rail-gun train | Boss |
+
+### Chapter 5: Ashfall (paid, draft)
+
+Volcanic land and a ruined city. Rival: the Iron Hive, the clans' old masters. New: Rail. Twist: lava vents, collapsing buildings.
+
+| Level | Name | Mission | Main objective | Twist |
+|---|---|---|---|---|
+| 41 | Ash Rain | Assault | Clear the city gate | Rail guns pierce walls |
+| 42 | Lava Fields | Breakout | Cross the vents | Vents erupt on a rhythm |
+| 43 | Hive Scouts | Recon | Scout 3 Hive works | Collapsing cover |
+| 44 | Bridges of Fire | Raid | Blow 3 bridges before the column crosses | Timer |
+| 45 | The Last Convoy | Escort | Get the Ink Brigade's convoy into the city | Buildings fall on the road |
+| 46 | Three Clans | Capture | Hold the city's 3 squares | The clans fight each other too |
+| 47 | Old Rivals | Ace | Destroy Sly, Rook and Grim together | Every counter at once |
+| 48 | Hive Cells | Rescue | Free the clan prisoners | The clans join you |
+| 49 | The Long Night | Hold | Hold the Brigade camp for 3 minutes | Every enemy type |
+| 50 | The Iron Hive | Fortress | Destroy the Iron Hive | The final fortress, General |
 
 ## Controls
 
-- **Desktop:** WASD or arrows drive. A and D turn the hull, W and S go forward and back. The mouse aims the turret, clicking or holding fires, E swaps and Q uses a repair kit.
+- **Desktop:** WASD or arrows drive in the direction pressed (diagonals too). The hull turns that way and rolls once it lines up, as the left stick does. The mouse aims the turret, clicking or holding fires, E swaps and Q uses a repair kit.
 - **Phone:**
   - The left thumbstick drives, steering towards where you point.
   - The right thumbstick aims, and fires while held past the dead zone.
   - The swap button only shows on a part. The repair button sits by the right stick.
   - Bigger buttons, only essential UI, and the HUD kept clear of the sticks (see the mobile rule).
-- **HUD:** the minimap and storm timer top right, HP and part icons bottom centre, the kill feed top left, and tanks left on the counter top right.
+- **HUD:** the objective line top centre with an edge arrow to the next target, the minimap top right, HP and part icons bottom centre, and the timer top right when a level has one.
 
 ## Performance budget
 
@@ -295,19 +368,16 @@ The land grows from a farm to the whole valley. Families in chapter 1: Machinegu
 
 ## Build phases
 
-1. **Engine (one Opus agent):**
-   - Pure logic in `src/logic`, covered by tests: parts and stats, damage and counters, storm, loot and swap, intel drops, the workshop (unlocks, Mk, research), rank XP, the mission types and objectives, and the growing land (regions opened per level).
-   - Bots as pure logic too.
-   - A headless sim plays a mission bot-vs-bot, and the whole chapter for the no-grind check.
-   - The mission scene: chunked ground, region reveal, HUD, minimap, twin-stick touch controls.
-   - The stress test: 30 tanks, FPS counter, RotSprite vs free rotation.
-   - Placeholder art is the density C test parts.
-2. **Art for chapter 1 (one Opus agent, in parallel):**
-   - Every chapter 1 part at Mk I–III, with clan stripe masks.
-   - The Meadowlands ground set and structures: houses, barns, walls, fences, trees, rocks, bridge, crates, supply drop, fuel barrels, the radar mast, the truck and the rail yard.
-   - The fortress boss.
-   - A manifest the engine loads.
-3. **Screens:** workshop, rank and promotion, mission briefing, drop map, results with medals and intel.
-4. **Chapter 1 content:** the Meadowlands land with its 10 regions and 10 missions, tuned from the sim. Then the owner's playtest.
+Phase 1 (engine, art test, density test, stress test) is done, with the battle-royale rules. The redesign reworks it:
+
+1. **Engine rework (one Opus agent), done Nov 14:** levels as data, roles, alarm, all 13 objectives, the lab (`npm run lab`), and chapter 1's 10 levels as first drafts. Content agents work from `docs/inktanks-level-kit.md`.
+   - Remove the drop map, the storm, Royale, and land regions that grow per mission.
+   - Add level layouts in `src/content`: map size and slice of the chapter land, start point, enemy placements with roles and routes, crates, targets, objective and bonuses.
+   - Rework bots from loot/rotate/fight/flee to the level roles (guard, patrol, wave, convoy, hunter, runner, turret) and the alarm.
+   - Keep and adapt Raid, Escort, Hold, Ace, Salvage and Fortress. Add Assault, Rescue, Ambush, Breakout, Recon, Capture and Chase, all pure logic with tests.
+   - The headless sim plays every level with a player bot and reports pass rate, time and medals, for tuning; the no-grind check runs over the whole chapter.
+2. **Art for chapter 1 (in parallel):** every chapter 1 part at Mk I–III with clan stripe masks; the Meadowlands ground set and structures (houses, barns, walls, fences, trees, rocks, bridge, crates, fuel barrels, the radar mast, cages, the truck, the rail yard, flags); the fortress boss; the chapter map.
+3. **Screens:** chapter map, mission briefing, workshop, rank and promotion, results with medals and intel.
+4. **Chapter 1 content:** the 10 levels, tuned from the sim. Then the owner's playtest.
 5. **Release:** game-sdk integration, the site page, itch build, promo shorts.
-6. **Chapters 2–5**, one at a time.
+6. **Chapters 2–5**, one at a time, each designed in full first.

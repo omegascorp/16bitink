@@ -52,7 +52,7 @@ export interface TankStats {
 
 /**
  * Every tank's HP is the table's × this. Tuned with the sim: at ×1 the doc's
- * guns end a chapter 1 royale in about 30 s; ×2.5 with chapter 1 aim gives 3–5 minute matches.
+ * guns end a chapter 1 fight in about 30 s; ×2.5 with chapter 1 aim gives 3–5 minute matches.
  */
 export const HP_SCALE = 2.5;
 

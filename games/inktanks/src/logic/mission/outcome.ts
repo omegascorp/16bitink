@@ -1,8 +1,8 @@
 import type { MatchReport } from '../match/report';
 import { XP } from '../rank';
 import { addIntel, type Progress } from '../workshop';
-import { BONUSES } from './bonus';
-import type { MissionDef } from './types';
+import type { LevelDef } from '../level/types';
+import { bonusMet } from './bonus';
 
 export type Medals = readonly [boolean, boolean, boolean];
 
@@ -18,9 +18,9 @@ export interface Outcome {
   readonly xp: number;
 }
 
-export function outcome(def: MissionDef, r: MatchReport, prev: Medals | undefined): Outcome {
+export function outcome(def: LevelDef, r: MatchReport, prev: Medals | undefined): Outcome {
   const passed = r.passedMain;
-  const done: Medals = [passed, passed && BONUSES[def.bonus[0]].test(r), passed && BONUSES[def.bonus[1]].test(r)];
+  const done: Medals = [passed, passed && bonusMet(def.bonus[0], r), passed && bonusMet(def.bonus[1], r)];
   const old = prev ?? [false, false, false];
   const medals: Medals = [old[0] || done[0], old[1] || done[1], old[2] || done[2]];
   const fresh: Medals = [done[0] && !old[0], done[1] && !old[1], done[2] && !old[2]];
@@ -31,8 +31,8 @@ export function outcome(def: MissionDef, r: MatchReport, prev: Medals | undefine
 }
 
 /** Applies a played mission to progress: intel is kept win or lose, XP and medals only go up. */
-export function applyOutcome(p: Progress, def: MissionDef, r: MatchReport): { progress: Progress; outcome: Outcome } {
-  const o = outcome(def, r, p.medals[def.level]);
+export function applyOutcome(p: Progress, def: LevelDef, r: MatchReport): { progress: Progress; outcome: Outcome } {
+  const o = outcome(def, r, p.medals[def.number]);
   const withIntel = addIntel(p, r.intel);
-  return { progress: { ...withIntel, xp: withIntel.xp + o.xp, medals: { ...withIntel.medals, [def.level]: o.medals } }, outcome: o };
+  return { progress: { ...withIntel, xp: withIntel.xp + o.xp, medals: { ...withIntel.medals, [def.number]: o.medals } }, outcome: o };
 }

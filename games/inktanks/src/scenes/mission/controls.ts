@@ -1,8 +1,8 @@
 import type { TankInput } from '../../logic/match/types';
 
 /**
- * Player controls from the DOM. Desktop: WASD or arrows drive (A/D turn,
- * W/S throttle), the mouse aims, click or hold fires, E (held) swaps, Q
+ * Player controls from the DOM. Desktop: WASD or arrows drive in the
+ * direction pressed (the hull turns that way, then rolls), the mouse aims, click or hold fires, E (held) swaps, Q
  * repairs. Touch: a floating left stick drives towards where it points; a
  * floating right stick aims and fires while pulled past the dead zone
  * (as InkSnake's stick: 56 px pull, 22% dead zone); swap and repair are
@@ -120,11 +120,12 @@ export class Controls {
   read(tank: { x: number; y: number; turret: number }): TankInput {
     if (!this.enabled) return { move: null, aim: null, fire: false, swap: false, repair: false };
     const k = this.keys;
-    const throttle = (k.has('w') || k.has('arrowup') ? 1 : 0) - (k.has('s') || k.has('arrowdown') ? 1 : 0);
-    const turn = (k.has('d') || k.has('arrowright') ? 1 : 0) - (k.has('a') || k.has('arrowleft') ? 1 : 0);
-    const l = this.pull(this.left);
+    const kx = (k.has('d') || k.has('arrowright') ? 1 : 0) - (k.has('a') || k.has('arrowleft') ? 1 : 0);
+    const ky = (k.has('s') || k.has('arrowdown') ? 1 : 0) - (k.has('w') || k.has('arrowup') ? 1 : 0);
+    const keyed = kx || ky ? { angle: Math.atan2(ky, kx), mag: 1 } : null;
+    const l = keyed ?? this.pull(this.left);
     const r = this.pull(this.right);
-    const move: TankInput['move'] = l ? { kind: 'point', angle: l.angle, mag: l.mag } : throttle || turn ? { kind: 'tank', throttle, turn } : null;
+    const move: TankInput['move'] = l ? { kind: 'point', angle: l.angle, mag: l.mag } : null;
     let aim: number | null = null;
     let fire = false;
     if (r) {

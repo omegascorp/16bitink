@@ -75,7 +75,6 @@ export function touchPickups(m: Match, t: Tank, input: TankInput, dt: number, wa
         if (t.team === 0) {
           p.taken = true;
           m.intel = mergeIntel(m.intel, p.bag);
-          if (p.ace) m.aceIntelTaken = true;
           m.emit({ kind: 'pickup', tank: t.id, what: 'intel', amount: sumIntel(p.bag) });
         }
         break;

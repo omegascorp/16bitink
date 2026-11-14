@@ -1,20 +1,20 @@
 import { createBrain } from '../bots/brain';
-import { PERSONALITIES, type Difficulty, type PersonalityId } from '../bots/personality';
+import { ACE_BOT } from '../bots/difficulty';
 import { isDrivable } from '../land';
-import { rollLoadout } from '../loot';
-import { nearestPassable } from '../nav/grid';
+import type { ResolvedEnemy } from '../level/load';
 import type { Loadout } from '../parts';
 import type { Rng } from '../rng';
 import { tankStats, type Research } from '../stats';
-import type { Pt } from '../vec';
+import { nearestPassable } from '../nav/grid';
+import { angleTo, type Pt } from '../vec';
 import type { Match } from './match';
-import { CLAN_CREW, CLAN_TASTE, crewName } from './names';
+import { CLAN_CREW, crewName } from './names';
 import type { Clan, Tank, TankRole } from './types';
-
-export const DROP_TIME = 3;
 
 export interface TankSpec {
   readonly name: string;
+  /** The crew's animal (default: the clan's). */
+  readonly crew?: string;
   readonly clan: Clan;
   readonly team: number;
   readonly role?: TankRole;
@@ -25,24 +25,30 @@ export interface TankSpec {
   readonly kits?: number;
   readonly maxKits?: number;
   readonly hpMult?: number;
+  readonly speedMult?: number;
   readonly at: Pt;
-  readonly drop?: boolean;
+  readonly heading?: number;
 }
+
+/** Enemy clans share one team: they fight you, not each other (clan wars come later). */
+export const ENEMY_TEAM = 1;
+/** A truck's body, in place of tank stats. */
+export const TRUCK = { radius: 24, armour: 10 } as const;
 
 export function addTank(m: Match, spec: TankSpec): Tank {
   const stats = tankStats(spec.loadout, spec.research);
   const maxHp = stats.maxHp * (spec.hpMult ?? 1);
+  const heading = spec.heading ?? 0;
   const t: Tank = {
-    id: m.nextId++, name: spec.name, crew: CLAN_CREW[spec.clan], clan: spec.clan, team: spec.team, role: spec.role ?? 'tank',
+    id: m.nextId++, name: spec.name, crew: spec.crew ?? CLAN_CREW[spec.clan], clan: spec.clan, team: spec.team, role: spec.role ?? 'tank',
     isPlayer: spec.isPlayer ?? false, ace: spec.ace ?? false, loadout: spec.loadout, research: spec.research ?? {},
-    stats: { ...stats, maxHp }, hpMult: spec.hpMult ?? 1, x: spec.at.x, y: spec.at.y, heading: m.rng.range(-Math.PI, Math.PI), turret: 0, speed: 0,
-    hp: maxHp, alive: true, dropT: spec.drop === false ? 0 : DROP_TIME, reload: 0, burst: 0, burstT: 0,
+    stats: { ...stats, maxHp, speed: stats.speed * (spec.speedMult ?? 1) }, hpMult: spec.hpMult ?? 1, x: spec.at.x, y: spec.at.y, heading, turret: heading, speed: 0,
+    hp: maxHp, alive: true, escaped: false, reload: 0, burst: 0, burstT: 0,
     kits: spec.kits ?? 1, maxKits: spec.maxKits ?? 1, repairT: 0, firedAt: -99, kills: 0,
-    lastHitBy: null, lastHitAt: -99, lastHitDrive: null, stormDamage: 0, usedKit: false,
+    lastHitBy: null, lastHitAt: -99, lastHitDrive: null, usedKit: false,
     hullsUsed: [spec.loadout.hull.family as Tank['hullsUsed'][number]], picks: [], swapT: 0, onPart: null, carrying: false,
-    rolled: 0, parent: null, mount: null, victims: [], deadAt: -1, placement: 0, shotsFired: 0, shotsHit: 0, dealt: 0,
+    rolled: 0, parent: null, mount: null, victims: [], deadAt: -1, shotsFired: 0, shotsHit: 0, dealt: 0,
   };
-  t.turret = t.heading;
   m.tanks.push(t);
   return t;
 }
@@ -59,43 +65,17 @@ export function drivableNear(m: Match, around: Pt, spread: number, rng: Rng): Pt
   return nearestPassable(m.nav, around.x, around.y, 30) ?? around;
 }
 
-/** Bots land weighted towards loot: a looter picks the richest of several spots. */
-export function chooseDrop(m: Match, rng: Rng, greedy: boolean, avoid: readonly Pt[]): Pt {
-  const { x0, y0, x1, y1 } = m.land.bounds;
-  let best: Pt | null = null;
-  let bestScore = -Infinity;
-  for (let i = 0; i < (greedy ? 8 : 4); i++) {
-    const p = drivableNear(m, { x: rng.range(x0, x1), y: rng.range(y0, y1) }, 60, rng);
-    if (!isDrivable(m.land, p.x, p.y)) continue;
-    const loot = m.pickups.filter((c) => !c.taken && (c.x - p.x) ** 2 + (c.y - p.y) ** 2 < 300 * 300).length;
-    const crowd = avoid.filter((o) => (o.x - p.x) ** 2 + (o.y - p.y) ** 2 < 350 * 350).length;
-    const score = loot - crowd * 2.5 + rng.next();
-    if (score > bestScore) {
-      bestScore = score;
-      best = p;
-    }
-  }
-  return best ?? drivableNear(m, { x: (x0 + x1) / 2, y: (y0 + y1) / 2 }, 300, rng);
-}
-
-const CLANS: readonly Clan[] = ['boars', 'weasels', 'crows'];
-const CLAN_PERS: Readonly<Record<Clan, readonly PersonalityId[]>> = {
-  boars: ['camper', 'hunter', 'camper'],
-  weasels: ['hunter', 'coward', 'hunter'],
-  crows: ['looter', 'looter', 'hunter'],
-  ink: ['hunter'],
-};
-
-export function spawnBot(m: Match, at: Pt | null, diff: Difficulty, opts: { clan?: Clan; drop?: boolean; goal?: Pt; personality?: PersonalityId } = {}): Tank {
-  const rng = m.rng;
-  const clan = opts.clan ?? rng.pick(CLANS);
-  const pers = PERSONALITIES[opts.personality ?? rng.pick(CLAN_PERS[clan])];
-  const place = at ?? chooseDrop(m, rng, pers.id === 'looter', m.tanks.map((t) => t));
+/** Puts a level's enemy on the map with its role's brain. */
+export function spawnEnemy(m: Match, e: ResolvedEnemy): Tank {
+  const at = m.navPassable(e.at.x, e.at.y) ? e.at : (nearestPassable(m.nav, e.at.x, e.at.y, 8) ?? e.at);
+  const route = e.route ? m.land.def.roads[e.route]! : null;
   const t = addTank(m, {
-    name: crewName(rng, clan, m.usedNames), clan, team: m.nextTeam++, loadout: rollLoadout(rng, m.loot, CLAN_TASTE[clan]), at: place, drop: opts.drop,
+    name: e.name ?? crewName(m.rng, e.clan, m.usedNames), clan: e.clan, team: ENEMY_TEAM, role: e.truck ? 'truck' : 'tank',
+    ace: e.ace, loadout: e.loadout, at, kits: e.kits ?? (e.ace ? 1 : 0), maxKits: e.kits ?? 1, hpMult: e.hpMult ?? (e.ace ? 1.5 : 1), speedMult: e.speedMult,
+    heading: route ? angleTo(route[0]!, route[1]!) : angleTo(at, m.start),
   });
-  const b = createBrain(t, pers, diff, rng.fork(t.id));
-  if (opts.goal) b.home = opts.goal;
-  m.brains.set(t.id, b);
+  if (e.truck) t.stats = { ...t.stats, radius: TRUCK.radius, armour: TRUCK.armour };
+  m.brains.set(t.id, createBrain(t, e, e.ace ? ACE_BOT : m.difficulty, m.rng.fork(t.id), route));
+  m.emit({ kind: 'spawn', tank: t.id });
   return t;
 }
