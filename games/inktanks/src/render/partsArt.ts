@@ -1,4 +1,4 @@
-import { ART_FAMILY, type HullFamily, type Part } from '../logic/parts';
+import { ART_FAMILY, artMk, type HullFamily, type Part } from '../logic/parts';
 
 /**
  * The tank parts' art. Reads src/art/pixel/parts/manifest.json (the parts
@@ -52,15 +52,15 @@ function realArt(m: PartsManifest): PartsArt {
     source: 'parts',
     size: m.size,
     urls,
-    hull: (p) => `${ART_FAMILY[p.family]}-mk${p.mk}`,
+    hull: (p) => `${ART_FAMILY[p.family]}-mk${artMk(p.mk)}`,
     drive: (p, hull) => {
       const fam = ART_FAMILY[p.family];
       const size = m.hullSize?.[ART_FAMILY[hull]] ?? 'L';
-      const key = m.drives?.[fam]?.[size]?.[`mk${p.mk}`];
-      return key && urls.has(key) ? key : `${fam}-mk${p.mk}`;
+      const key = m.drives?.[fam]?.[size]?.[`mk${artMk(p.mk)}`];
+      return key && urls.has(key) ? key : `${fam}-mk${artMk(p.mk)}`;
     },
     frames: (k) => m.frames?.[k] ?? [k, `${k}-f1`, `${k}-f2`].filter((f) => urls.has(f)),
-    turret: (p) => `${ART_FAMILY[p.family]}-mk${p.mk}`,
+    turret: (p) => `${ART_FAMILY[p.family]}-mk${artMk(p.mk)}`,
     stripe: (k) => (m.stripe.includes(k) && urls.has(`${k}-stripe`) ? `${k}-stripe` : null),
     ring: (k) => m.ring[k] ?? [0, 2],
     muzzles: (k) => m.muzzle?.[k] ?? [[0, -30]],
@@ -79,7 +79,7 @@ function testArt(m: PartsManifest): PartsArt {
     hull: fam,
     drive: (p) => fam(p),
     frames: (k) => [k, `${k}-f1`, `${k}-f2`],
-    turret: (p) => (p.family === 'cannon' && p.mk === 3 ? 'turretCannon3' : fam(p)),
+    turret: (p) => (p.family === 'cannon' && p.mk >= 3 ? 'turretCannon3' : fam(p)),
     stripe: (k) => (m.stripe.includes(k) ? `${k}-stripe` : null),
     ring: (k) => m.ring[k] ?? [0, 2],
     muzzles: (k) => (k.startsWith('turretCannon') ? [[0, -40]] : k.startsWith('turretRocket') ? [[-7, -14], [7, -14]] : [[-3, -29], [3, -29]]),

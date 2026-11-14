@@ -15,6 +15,8 @@ import type { Shot, Tank, TankInput } from './types';
 const BURST_GAP = 0.16;
 /** Splash hurts this share of a direct hit. */
 const SPLASH_SHARE = 0.5;
+/** A boss dazed from ramming a wall takes this much more (objectives/bossRage.ts). */
+export const BOSS_STUN_MULT = 1.5;
 /** A boss body takes this share while any of its turrets stands. */
 export const BOSS_SHIELD = 0.25;
 const SUBSTEP = 12;
@@ -178,7 +180,7 @@ function bossShielded(m: Match, t: Tank): boolean {
  */
 export function hitTank(m: Match, t: Tank, dmg: number, gun: GunFamily, from: number | null, raw = false): void {
   const attacker = from === null ? null : (m.tank(from) ?? null);
-  const shield = bossShielded(m, t) ? BOSS_SHIELD : 1;
+  const shield = bossShielded(m, t) ? BOSS_SHIELD : m.t < t.stunnedUntil ? BOSS_STUN_MULT : 1;
   const brain = t.alive ? m.brains.get(t.id) : undefined;
   const ambush = brain !== undefined && brain.role !== 'player' && brain.aware !== 'alert' && attacker !== null && attacker.team !== t.team && attacker.team === 0;
   const d = (raw ? dmg : damageTaken(dmg, gun, t.stats.drive, t.stats.armour)) * shield * (ambush ? AMBUSH : 1);

@@ -92,6 +92,8 @@ export interface Tank {
   gadgetT: number;
   /** A mine broke a track: slow until then. */
   trackBrokenUntil: number;
+  /** The boss rammed a wall: dazed (and hit harder) until then. */
+  stunnedUntil: number;
   /** Sim counters. */
   ambushHits: number;
   gadgetsUsed: number;
@@ -155,7 +157,9 @@ export type MatchEvent =
   /** A hit on a calm or suspicious enemy: ×2 damage. */
   | { readonly kind: 'ambush'; readonly x: number; readonly y: number; readonly target: number; readonly dmg: number }
   /** A big gun's telegraph: the aim line held until `until` (match time), then the shot. */
-  | { readonly kind: 'aim'; readonly tank: number; readonly angle: number; readonly len: number; readonly until: number }
+  /** A held aim line; `width` and `dur` for the boss's charge lane. */
+  | { readonly kind: 'aim'; readonly tank: number; readonly angle: number; readonly len: number; readonly until: number; readonly width?: number; readonly dur?: number }
+  | { readonly kind: 'boss'; readonly what: 'enraged' | 'charge' | 'ram' | 'stunned'; readonly x: number; readonly y: number }
   | { readonly kind: 'gadget'; readonly tank: number; readonly gadget: GadgetKind; readonly x: number; readonly y: number }
   | { readonly kind: 'mine'; readonly x: number; readonly y: number; readonly target: number }
   | { readonly kind: 'over'; readonly passed: boolean; readonly reason: string };

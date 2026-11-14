@@ -3,6 +3,7 @@ import { rankOf } from '../logic/rank';
 import type { Progress } from '../logic/workshop';
 import { esc, render } from './dom';
 import { tankCanvas } from './tankArt';
+import { rankLine } from './rankArt';
 
 export interface MenuData {
   readonly progress: Progress;
@@ -36,7 +37,7 @@ export function showMenu(root: HTMLElement, d: MenuData, a: MenuActions): void {
         <div class="t36 gold">${esc(ch.name)}</div>
         <div>Rival: ${esc(ch.rival)}</div>
         <div class="row"><span class="medal on"></span>${medals} / ${(ch.last - ch.first + 1) * 3}</div>
-        <div class="rank"><i></i>${esc(rank.name)}</div>
+        <div>${rankLine(rank)}</div>
       </div>
     </div>
     <button class="btn go rise" data-act="play">${d.started ? 'Continue' : 'Play'}</button>

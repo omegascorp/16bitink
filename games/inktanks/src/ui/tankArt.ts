@@ -1,4 +1,4 @@
-import type { HullFamily, Loadout, Part } from '../logic/parts';
+import { MK_COLOUR, partLabel, roman, type HullFamily, type Loadout, type Mk, type Part } from '../logic/parts';
 import { partsArt } from '../render/partsArt';
 
 /**
@@ -56,9 +56,16 @@ export function tankCanvas(l: Loadout, scale: number): HTMLCanvasElement {
   return c;
 }
 
+/** The Mk numeral on a part icon, in its tier's colour (grey, green, blue, violet, orange). */
+export const mkBadge = (mk: Mk): string => `<em style="color:${MK_COLOUR[mk].light}">${roman(mk)}</em>`;
+/** "Mk IV" as a chip filled with its tier's colour: readable on gold buttons too. */
+export const mkChip = (mk: Mk): string => `<span class="mkchip" style="background:${MK_COLOUR[mk].mid}">Mk ${roman(mk)}</span>`;
+
+/** "Cannon Mk II" in its tier's colour (names are plain letters: no escaping needed). */
+export const partName = (p: Part): string => `<span style="color:${MK_COLOUR[p.mk].light}">${partLabel(p)}</span>`;
+
 /** A part's icon as HTML (the art's icon, or its family's first letters). */
 export function partIcon(p: Part): string {
   const url = partsArt().icon(p);
-  const tier = 'I'.repeat(p.mk);
-  return `<span class="ic">${url ? `<img src="${url}" alt="">` : p.family.slice(0, 3)}<em>${tier}</em></span>`;
+  return `<span class="ic">${url ? `<img src="${url}" alt="">` : p.family.slice(0, 3)}${mkBadge(p.mk)}</span>`;
 }

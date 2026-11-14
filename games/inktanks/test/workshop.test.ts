@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RANKS } from '../src/logic/rank';
+import { MK_COLOUR, partLabel, roman, type Mk } from '../src/logic/parts';
 import { addIntel, canFit, fit, newProgress, raiseMk, research, researchCost, unlock } from '../src/logic/workshop';
 import { counterFamily, fitBest, noGrindCheck, spendIntel } from '../src/sim/policy';
 
@@ -27,6 +28,27 @@ describe('workshop', () => {
     const r3 = raiseMk({ ...r2.progress, xp: RANKS[4]!.xp }, 'machinegun');
     expect(r3.ok && r3.progress.mk.machinegun).toBe(3);
     expect(raiseMk(sgt, 'rockets').ok).toBe(false);
+  });
+
+  it('Mk IV needs Major and 35; Mk V needs Brigadier and 55, and stops there', () => {
+    const rank = (id: string): number => RANKS.find((r) => r.id === id)!.xp;
+    const p = { ...addIntel(newProgress(), { machinegun: 200 }), mk: { ...newProgress().mk, machinegun: 3 as const }, xp: rank('lieutenant') };
+    expect(raiseMk(p, 'machinegun')).toEqual({ ok: false, reason: 'needs Major' });
+    const r4 = raiseMk({ ...p, xp: rank('major') }, 'machinegun');
+    expect(r4.ok && r4.progress.mk.machinegun).toBe(4);
+    if (!r4.ok) return;
+    expect(r4.progress.intel.machinegun).toBe(165);
+    expect(raiseMk(r4.progress, 'machinegun')).toEqual({ ok: false, reason: 'needs Brigadier' });
+    const r5 = raiseMk({ ...r4.progress, xp: rank('brigadier') }, 'machinegun');
+    expect(r5.ok && r5.progress.mk.machinegun).toBe(5);
+    if (!r5.ok) return;
+    expect(raiseMk(r5.progress, 'machinegun')).toEqual({ ok: false, reason: 'already Mk V' });
+  });
+
+  it('every Mk has a tier colour and a Roman numeral, grey to orange', () => {
+    expect([1, 2, 3, 4, 5].map((m) => roman(m as Mk))).toEqual(['I', 'II', 'III', 'IV', 'V']);
+    expect([1, 2, 3, 4, 5].map((m) => MK_COLOUR[m as Mk].mid)).toEqual(['#92969e', '#549c4c', '#389cdc', '#8850b8', '#ee8018']);
+    expect(partLabel({ family: 'cannon', mk: 4 })).toBe('Cannon Mk IV');
   });
 
   it('research lines cost 5, 10, 15 and stop at 3 steps', () => {

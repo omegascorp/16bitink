@@ -4,7 +4,8 @@ import { at, blob, each, LOOT_LATE, patch, row, TANK } from './kit';
 /**
  * Level 10, The Old Fort (Fortress): the Boars' land fortress, the Iron
  * Sow, circles inside the old fort's walls, 3 × 3 screens. Break its four
- * turrets (its hull shrugs off hits while any stand), then the hull. Two
+ * turrets (its hull shrugs off hits while any stand), then the hull, which
+ * charges once its guns are gone (objectives/bossRage.ts). Two
  * gate guards, a wall turret and a patrol outside; rockets in a crate by the start.
  */
 const FX = 1440;
@@ -12,7 +13,7 @@ const FY = 760;
 
 export const LEVEL_10: LevelDef = {
   id: 'ch1-10', number: 10, name: 'The Old Fort', type: 'fortress',
-  briefing: 'The Boars hold the old fort with the Iron Sow, a land fortress. Break its turrets first: the hull is armoured while they stand. Then the hull.',
+  briefing: 'The Boars hold the old fort with the Iron Sow, a land fortress. Break its turrets first: the hull is armoured while they stand. With its guns gone it charges with its tusks: watch for the red lane, step aside, and let it ram the fort walls. A dazed Sow takes extra damage.',
   teaches: 'The chapter boss, Staff Sergeant',
   map: {
     cols: 3, rows: 3, base: 'grass',

@@ -6,13 +6,12 @@ import { gadgetIconUrl } from '../scenes/mission/hud';
 import type { Match } from '../logic/match/match';
 import { bonusText } from '../logic/mission/bonus';
 import type { Medals } from '../logic/mission/outcome';
-import { partLabel } from '../logic/parts';
 import { perksOf } from '../logic/rank';
 import type { Progress } from '../logic/workshop';
 import { paintLandMap } from '../scenes/mission/landMap';
 import { workshopButton } from './blueprint';
 import { esc, render } from './dom';
-import { partIcon, tankCanvas } from './tankArt';
+import { partIcon, partName, tankCanvas } from './tankArt';
 
 /** The commander's portrait, once the art exists; a missing file just leaves it out. */
 const portraits = import.meta.glob<string>('../art/pixel/ui/commander.png', { eager: true, query: '?url', import: 'default' });
@@ -74,7 +73,7 @@ export function showBriefing(root: HTMLElement, m: Match, p: Progress, a: Briefi
         <div class="col">
           <div class="mapbox"></div>
           <div class="row"><div class="pic"></div><div class="col"><div class="row">${partIcon(l.gun)}${partIcon(l.hull)}${partIcon(l.drive)}</div>
-            <div class="t12 hide-short">${esc([l.gun, l.hull, l.drive].map(partLabel).join(' · '))}</div><div class="t12 dimt">Repair kits: ${perksOf(p.xp).repairKits}</div></div></div>
+            <div class="t12 hide-short">${[l.gun, l.hull, l.drive].map(partName).join(' · ')}</div><div class="t12 dimt">Repair kits: ${perksOf(p.xp).repairKits}</div></div></div>
           <div class="gadgets">${gadgetPicker(picked)}</div>
         </div>
       </div>

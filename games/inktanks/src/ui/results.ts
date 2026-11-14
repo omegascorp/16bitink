@@ -9,6 +9,7 @@ import type { Progress } from '../logic/workshop';
 import { bpAmount, workshopButton } from './blueprint';
 import { clock, esc, render } from './dom';
 import { partIcon } from './tankArt';
+import { rankLine, strapBig } from './rankArt';
 
 /** What each rank brings (design doc "Military ranks"), for the promotion moment. */
 export const RANK_UNLOCKS: Readonly<Record<RankId, string>> = {
@@ -18,9 +19,9 @@ export const RANK_UNLOCKS: Readonly<Record<RankId, string>> = {
   staffSergeant: 'Supply drops (coming soon)',
   lieutenant: 'Mk III parts in the workshop',
   captain: 'A wingman tank (coming soon)',
-  major: 'Artillery strikes (coming soon)',
+  major: 'Mk IV parts in the workshop · artillery strikes (coming soon)',
   colonel: 'A second wingman (coming soon)',
-  brigadier: 'Ace prototypes in the workshop (coming soon)',
+  brigadier: 'Mk V parts in the workshop · ace prototypes (coming soon)',
   general: 'Gold insignia',
 };
 
@@ -76,12 +77,12 @@ export function showResults(root: HTMLElement, d: ResultsData, a: ResultsActions
           <div class="bplist">${intel || '<span class="dimt t12" style="grid-column:1/-1">None this time</span>'}</div>
           ${readyHtml}
           <div class="dimt t12">Rank</div>
-          <div class="row spread"><span class="rank"><i></i>${esc(after.name)}</span><span class="green">+${o.xp} XP</span></div>
+          <div class="row spread">${rankLine(after)}<span class="green">+${o.xp} XP</span></div>
           <div class="bar"><i class="xp" style="width:${Math.round(share * 100)}%"></i></div>
           <div class="t12 dimt">${up ? `${up.need} XP to ${esc(up.next.name)}` : 'Top rank'}</div>
         </div>
       </div>
-      ${promoted ? `<div class="promo"><div class="t12 dimt">Promoted!</div><div class="t36 gold">${esc(after.name)}</div><div class="t12">${esc(RANK_UNLOCKS[after.id])}</div></div>` : ''}
+      ${promoted ? `<div class="promo">${strapBig(after)}<div class="t12 dimt">Promoted!</div><div class="t36 gold">${esc(after.name)}</div><div class="t12">${esc(RANK_UNLOCKS[after.id])}</div></div>` : ''}
       ${d.next.kind === 'none' && d.next.note ? `<div class="t12 dimt center row">${esc(d.next.note)}</div>` : ''}
       <div class="row center"><button class="btn" data-act="map">Map</button>${workshopButton(d.after)}<button class="btn${o.passed ? '' : ' go'}" data-act="retry">${o.passed ? 'Play again' : 'Retry'}</button>${o.passed ? nextBtn : ''}</div>
     </div>`, { ...a });

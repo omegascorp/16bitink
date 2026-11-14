@@ -1,11 +1,12 @@
 import { damageTaken } from '../logic/damage';
-import { DRIVE_FAMILIES, familyName, GUN_FAMILIES, HULL_FAMILIES, slotOf, withPart, type Family, type Slot } from '../logic/parts';
+import { DRIVE_FAMILIES, familyName, GUN_FAMILIES, HULL_FAMILIES, MAX_MK, MK_COLOUR, roman, slotOf, withPart, type Family, type Slot } from '../logic/parts';
 import { perksOf, rankOf, RANKS } from '../logic/rank';
 import { bpAmount } from './blueprint';
 import { fireRate, RESEARCH_MAX, RESEARCH_STEP, researchSteps, tankStats, type ResearchLine } from '../logic/stats';
-import { fit, LINES_BY_SLOT, MK_COST, MK_RANK, ownedPart, raiseMk, research, researchCost, UNLOCK_COST, unlock, type Progress, type Result } from '../logic/workshop';
+import { fit, LINES_BY_SLOT, MK_COST, MK_RANK, ownedPart, type NextMk, raiseMk, research, researchCost, UNLOCK_COST, unlock, type Progress, type Result } from '../logic/workshop';
 import { esc, render } from './dom';
-import { partIcon, tankCanvas } from './tankArt';
+import { mkChip, partIcon, tankCanvas } from './tankArt';
+import { rankLine } from './rankArt';
 
 /**
  * The workshop between missions: your tank in the middle with its stats,
@@ -33,6 +34,8 @@ export function showWorkshop(root: HTMLElement, start: Progress, a: WorkshopActi
   let p = start;
   let tab: Slot = 'gun';
   let note = '';
+  // Only the first draw rises in; a redraw after a click (even a refused one) swaps in place, keeping the scroll.
+  let first = true;
   const apply = (r: Result, done: string): void => {
     if (!r.ok) {
       note = r.reason;
@@ -44,7 +47,8 @@ export function showWorkshop(root: HTMLElement, start: Progress, a: WorkshopActi
     draw();
   };
   const draw = (): void => {
-    render(root, 'dark', html(p, tab, note, a.backLabel), {
+    const scroll = root.scrollTop;
+    render(root, 'dark', html(p, tab, note, a.backLabel, first), {
       back: a.back,
       tab: (el) => {
         tab = el.dataset.slot as Slot;
@@ -57,7 +61,7 @@ export function showWorkshop(root: HTMLElement, start: Progress, a: WorkshopActi
         const r = raiseMk(p, f);
         // The fitted part of that family is raised with it.
         const fitted = r.ok && p.loadout[slotOf(f)].family === f ? fit(r.progress, withPart(r.progress.loadout, ownedPart(r.progress, f)!)) : r;
-        apply(fitted, `${famName(f)} raised to Mk ${'I'.repeat(r.ok ? r.progress.mk[f] ?? 1 : 1)}`);
+        apply(fitted, `${famName(f)} raised to Mk ${roman(r.ok ? r.progress.mk[f] ?? 1 : 1)}`);
       },
       fit: (el) => {
         const f = el.dataset.f as Family;
@@ -66,6 +70,8 @@ export function showWorkshop(root: HTMLElement, start: Progress, a: WorkshopActi
       research: (el) => apply(research(p, el.dataset.f as Family, el.dataset.line as ResearchLine), `${LINE_NAMES[el.dataset.line as ResearchLine]} researched`),
     });
     root.querySelector('.pic')!.appendChild(tankCanvas(p.loadout, innerHeight > 560 ? 2 : 1));
+    root.scrollTop = scroll;
+    first = false;
   };
   draw();
 }
@@ -77,13 +83,13 @@ function statsHtml(p: Progress): string {
   return rows.map(([k, v]) => `<span class="dimt">${k}</span><span>${Math.round(v)}</span>`).join('');
 }
 
-function html(p: Progress, tab: Slot, note: string, backLabel: string): string {
+function html(p: Progress, tab: Slot, note: string, backLabel: string, rise: boolean): string {
   const rank = rankOf(p.xp);
   const tabs = SLOTS.map((s) => `<button class="btn small${s.slot === tab ? ' gold' : ''}" data-act="tab" data-slot="${s.slot}">${s.name}: ${esc(famName(p.loadout[s.slot].family))}</button>`).join('');
   const cards = SLOTS.find((s) => s.slot === tab)!.families.map((f) => famCard(p, f)).join('');
   return `
-    <div class="panel sheet rise">
-      <div class="row spread"><span class="t36 gold">Workshop</span><span class="rank"><i></i>${esc(rank.name)} <span class="t12 dimt">${p.xp} XP</span></span><button class="btn small" data-act="back">${esc(backLabel)}</button></div>
+    <div class="panel sheet${rise ? ' rise' : ''}">
+      <div class="row spread"><span class="t36 gold">Workshop</span>${rankLine(rank, ` <span class="t12 dimt">${p.xp} XP</span>`)}<button class="btn small" data-act="back">${esc(backLabel)}</button></div>
       <div class="explain">Destroy enemy tanks to collect blueprints of their parts, then spend them here to upgrade yours. Each part has its own blueprints.</div>
       <div class="cols">
         <div class="col" style="flex:0 0 auto;align-items:center"><div class="pic"></div><div class="intelrow t12">${statsHtml(p)}</div></div>
@@ -115,11 +121,11 @@ function famCard(p: Progress, f: Family): string {
     acts.push(costBtn(f, 'Unlock', UNLOCK_COST, have, `data-act="unlock" data-f="${f}"`, null));
   } else {
     if (!fitted) acts.push(`<button class="btn small go" data-act="fit" data-f="${f}">Fit</button>`);
-    if (mk < 3) {
-      const next = (mk + 1) as 2 | 3;
+    if (mk < MAX_MK) {
+      const next = (mk + 1) as NextMk;
       const rankOk = perksOf(p.xp).maxMk >= next;
       goal = MK_COST[next];
-      acts.push(costBtn(f, `Mk ${'I'.repeat(next)}`, MK_COST[next], have, `data-act="mk" data-f="${f}"`, rankOk ? null : rankName(MK_RANK[next])));
+      acts.push(costBtn(f, mkChip(next), MK_COST[next], have, `data-act="mk" data-f="${f}"`, rankOk ? null : rankName(MK_RANK[next])));
     }
     for (const line of LINES_BY_SLOT[slotOf(f)] as readonly ResearchLine[]) {
       const steps = researchSteps(p.research, f, line);
@@ -132,7 +138,7 @@ function famCard(p: Progress, f: Family): string {
   const share = Math.min(1, have / goal);
   return `<div class="fam${fitted ? ' fitted' : ''}${unlocked ? '' : ' locked'}">
     ${partIcon({ family: f, mk: unlocked ? mk : 1 })}
-    <div class="famhead">${esc(famName(f))}${unlocked ? ` <span class="gold t12">Mk ${'I'.repeat(mk)}</span>` : ' <span class="t12 dimt">locked</span>'}${fitted ? ' <span class="t12 green">fitted</span>' : ''}</div>
+    <div class="famhead">${esc(famName(f))}${unlocked ? ` <span class="t12" style="color:${MK_COLOUR[mk].light}">Mk ${roman(mk)}</span>` : ' <span class="t12 dimt">locked</span>'}${fitted ? ' <span class="t12 green">fitted</span>' : ''}</div>
     <div class="bpline"><span class="t12">${esc(famName(f))} blueprints:</span><span class="big">${bpAmount(have, false, f)}</span></div>
     <div class="bar wide"><i style="width:${Math.round(share * 100)}%"></i></div>
     <div class="acts">${acts.join('')}</div>

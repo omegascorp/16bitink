@@ -44,7 +44,7 @@ export const SCREENS_CSS = `
 .ikt .bar i { position: absolute; inset: 0 auto 0 0; background: var(--gold); box-shadow: inset 0 -3px 0 rgba(0,0,0,0.3); }
 .ikt .bar i.xp { background: var(--blue); }
 .ikt .tankpic { image-rendering: pixelated; display: block; }
-.ikt .rank { display: inline-flex; align-items: center; gap: 6px; } .ikt .rank i { display: inline-block; width: 22px; height: 16px; background: var(--gold); box-shadow: 0 0 0 2px var(--ink); clip-path: polygon(0 0, 50% 45%, 100% 0, 100% 40%, 50% 100%, 0 40%); }
+.ikt .rank { display: inline-flex; align-items: center; gap: 6px; } .ikt .rank img.strap { height: 34px; image-rendering: pixelated; filter: drop-shadow(0 1px 0 var(--ink)); } .ikt .promo img.strap.big { height: 168px; image-rendering: pixelated; display: block; margin: 0 auto 6px; } .ikt .rank i { display: inline-block; width: 22px; height: 16px; background: var(--gold); box-shadow: 0 0 0 2px var(--ink); clip-path: polygon(0 0, 50% 45%, 100% 0, 100% 40%, 50% 100%, 0 40%); }
 .ikt-hud .pausebtn { position: absolute; left: max(12px, env(safe-area-inset-left)); top: max(10px, env(safe-area-inset-top)); pointer-events: auto; font: inherit; font-size: 12px; color: #f4ecd8; background: #6b5434; border: 0; padding: 6px 12px; min-height: 36px; cursor: pointer; box-shadow: inset 0 -3px 0 #3e301c, 0 0 0 3px #14110c; }
 .ikt-hud .feed { top: 60px; }
 .ikt-hud .btn { font-family: inherit; }
@@ -118,6 +118,7 @@ export const SCREENS_CSS = `
 .ikt .fam.locked { opacity: 0.75; }
 .ikt .fam .ic { width: 40px; height: 40px; background: #3a3428; display: flex; align-items: center; justify-content: center; font-size: 12px; position: relative; }
 .ikt .fam .ic img { width: 40px; height: 40px; image-rendering: pixelated; }
+.ikt .mkchip { display: inline-block; padding: 0 5px; color: #14110c; font-weight: bold; text-shadow: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.45); }
 .ikt .fam .ic em { position: absolute; right: 1px; bottom: -2px; font-size: 12px; font-style: normal; color: var(--gold); }
 .ikt .fam .acts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0 2px; }
 .ikt .why { font-size: 12px; color: var(--dim); }

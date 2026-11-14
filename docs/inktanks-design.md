@@ -120,7 +120,9 @@ These are starting numbers. Balance them with a whole-chapter bot-vs-bot simulat
 | Mortar | 0.9 | 1.0 | 0.8 | 1.2 |
 | Flamer | 1.1 | 1.0 | 0.9 | 1.3 |
 
-**Tiers:** Mk II is +20% and Mk III +40% on the part's main stat. Main stats: gun damage, hull HP, drive speed. Art shows the tier through plating, rivets, extras and wear, never only colour.
+**Tiers:** five, Mk I to Mk V, each +20% on the part's main stat (Mk V is +80%). Main stats: gun damage, hull HP, drive speed. Art shows the tier through plating, rivets, extras and wear; Mk IV and V wear Mk III's art until their own is made.
+
+**Tier colours** (owner, 2026-11-14), the rarity order every 16bit.ink game uses, with InkHeroes' shades: Mk I grey, Mk II green, Mk III blue, Mk IV violet, Mk V orange. The numeral on part icons, "Mk N" in the workshop, part names on the briefing and swap card, and the ring round a part lying on the ground all take the tier's colour (`MK_COLOUR` in src/logic/parts.ts).
 
 ### The Kit slot (from chapter 2)
 
@@ -254,7 +256,7 @@ Every level has a short briefing, one **main objective** and two **bonus objecti
 | **Recon** | Get close to 3 marked spots without being seen | Bushes, reeds and roofs hide you; being seen calls reinforcements, not a fail |
 | **Capture** | Take 3 flags and hold them all at once | Enemies try to retake them, so you keep moving |
 | **Chase** | Catch a fleeing courier before it reaches its base | A faster enemy; cut corners, use shortcuts |
-| **Fortress** | Destroy the chapter's boss | Level 10 of every chapter. A huge multi-part tank with breakable turrets |
+| **Fortress** | Destroy the chapter's boss | Level 10 of every chapter. A huge multi-part tank with breakable turrets; its hull is shielded while any stand. Phase 2 (owner, 2026-11-14: "once you destroy all towers the boss is useless"): the bare hull is enraged and charges you down a telegraphed red lane (1.3 s warning, 70 ramming damage); a charge into a wall dazes it for 3 s and it takes ×1.5 damage. The fight becomes baiting charges into walls |
 
 Bonus objectives are written per level and shown in the briefing. Examples: destroy 5 tanks, win without a repair kit, finish under 3 minutes, never set off the alarm, keep the truck above half HP, destroy a Heavy with Rockets.
 
@@ -263,7 +265,7 @@ Bonus objectives are written per level and shown in the briefing. Examples: dest
 This is the owner's "pick up technology from the enemies and upgrade your own tank".
 
 **In the mission:**
-- A destroyed enemy drops **intel** for each part it carries, worth 2 for Mk I, 3 for Mk II and 5 for Mk III (sim-tuned: at 1/2/4 the no-grind check passed on 2 of 4 seeds). Aces drop much more, plus their prototype.
+- A destroyed enemy drops **intel** for each part it carries, worth 2 for Mk I, 3 for Mk II, 5 for Mk III, 7 for Mk IV and 9 for Mk V (Mk I–III sim-tuned: at 1/2/4 the no-grind check passed on 2 of 4 seeds). Aces drop much more, plus their prototype.
 - Intel is counted per **part family**: Machinegun, Cannon, Rockets, Light hull, Medium hull, Heavy hull, Wheels, Half-tracks, Tracks, and later Mortar, Hover and the others.
 - **Recon (chapter 2+):** staying within range of an enemy for 3 s without being seen gives 1 intel on its parts. With the Radar kit it takes 1.5 s.
 - **Target choice:** enemies in view show their part icons, small and next to the tank. You pick targets by the tech you want: a Heavy with Rockets is worth hunting if you're short on rocket intel.
@@ -271,7 +273,7 @@ This is the owner's "pick up technology from the enemies and upgrade your own ta
 
 **Between missions, in the workshop:**
 - **Unlock a family** (3 intel): you can now fit it in your starting tank. Before that, a family exists for you only as loot inside missions.
-- **Raise its Mk** for your starting tank. Mk II costs 8 and needs Sergeant; Mk III costs 20 and needs Lieutenant.
+- **Raise its Mk** for your starting tank. Mk II costs 8 and needs Sergeant; Mk III costs 20 and needs Lieutenant; Mk IV costs 35 and needs Major; Mk V costs 55 and needs Brigadier.
 - **Research lines**, like Warzone 2100's research, 3 steps per line at 5, 10 and 15 intel, each step +8%:
   - guns: Damage, Reload
   - hulls: Armour, HP
@@ -302,12 +304,14 @@ Rank only goes up. It never gates a mission or a chapter; it gates perks. The th
 | Staff Sergeant | Level 10 | **Call-in:** one supply drop per level, a Mk III part at a spot you choose |
 | Lieutenant | Level 15 | Mk III in the workshop, the Kit slot |
 | Captain | Chapter 2 end | **A wingman:** one allied bot tank with its own animal crew |
-| Major | Chapter 3 | **Call-in:** one artillery strike per level |
+| Major | Chapter 3 | Mk IV in the workshop; **call-in:** one artillery strike per level |
 | Colonel | Chapter 4 | A second wingman |
-| Brigadier | Chapter 5, mid-chapter | Prototype parts from aces can go in the workshop |
+| Brigadier | Chapter 5, mid-chapter | Mk V in the workshop; prototype parts from aces can go in the workshop |
 | General | The final fortress | Gold insignia, the ending |
 
 The rank badge shows on the commander's portrait, in the HUD and on the result screen, with a short promotion ceremony when you rise.
+
+**Shoulder boards** (owner, 2026-11-14): every rank has its own board, assembled by `dev/pixel/straps.py` from generated pieces so every count is exact. Enlisted ranks wear gold bars across a plain olive board (Private none, Corporal 1, Sergeant 3, Staff Sergeant a wide bar and 2 narrow); junior officers one lengthwise gold stripe with small stars (Lieutenant 2, Captain 4); senior officers two stripes with big stars (Major 1, Colonel 3); Brigadier and General a gold-braided board with big silver stars (1 and 3). The board shows flat beside the rank name on the menu, map, workshop and results, and standing up, big, at a promotion (src/ui/rankArt.ts).
 
 ## The 50 levels
 

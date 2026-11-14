@@ -6,7 +6,7 @@ import type { IntelBag } from './workshop';
  * started at 1 / 2 / 4; the whole-chapter sim passed the no-grind bar on
  * only half its seeds with that, so Mk I and II pay a little more.
  */
-export const INTEL_PER_MK: Readonly<Record<Mk, number>> = { 1: 2, 2: 3, 3: 5 };
+export const INTEL_PER_MK: Readonly<Record<Mk, number>> = { 1: 2, 2: 3, 3: 5, 4: 7, 5: 9 };
 /** Aces drop much more. */
 export const ACE_INTEL_MULT = 4;
 

@@ -76,6 +76,49 @@ describe('assault, ace, fortress', () => {
     m.step(1 / 30);
     expect(m.over?.passed).toBe(true);
   });
+
+  it('fortress: with its turrets gone the hull charges, rams you, and is dazed by a wall', () => {
+    const m = make(ch1Level(10));
+    freeze(m);
+    const boss = m.tanks.find((t) => t.role === 'boss')!;
+    const p = m.player!;
+    for (const t of m.tanks) if (t.parent === boss.id) killTank(m, t, p, 'rockets');
+    // The Sow mid-fort facing east, you 300 px ahead of it, holding still.
+    put(boss, { x: 1240, y: 760 });
+    boss.heading = 0;
+    put(p, { x: 1540, y: 760 });
+    const seen: string[] = [];
+    const hp0 = p.hp;
+    for (let i = 0; i < 8 * 30 && !seen.includes('ram'); i++) {
+      m.step(1 / 30, IDLE);
+      for (const e of m.events) if (e.kind === 'boss') seen.push(e.what);
+      m.events.length = 0;
+    }
+    expect(seen.slice(0, 3)).toEqual(['enraged', 'charge', 'ram']);
+    expect(hp0 - p.hp).toBeGreaterThanOrEqual(70);
+    expect(m.objective.status().text).toContain('charges');
+
+    // Next charge: you stand before the east wall and step aside once it charges, so it runs into the wall and is dazed.
+    put(p, { x: 1900, y: 760 });
+    boss.heading = 0;
+    for (let i = 0; i < 12 * 30 && !seen.includes('stunned'); i++) {
+      // Hold it before the wall until it charges (it would roam its ring meanwhile), then step aside.
+      if (seen.filter((w) => w === 'charge').length < 2) put(boss, { x: 1700, y: 760 });
+      else put(p, { x: 1500, y: 1060 });
+      m.step(1 / 30, IDLE);
+      for (const e of m.events) if (e.kind === 'boss') seen.push(e.what);
+      m.events.length = 0;
+    }
+    expect(seen).toContain('stunned');
+    expect(m.objective.status().text).toContain('dazed');
+    const before = boss.hp;
+    hitTank(m, boss, 100, 'rockets', p.id);
+    const dazedHit = before - boss.hp;
+    boss.stunnedUntil = -1;
+    const mid = boss.hp;
+    hitTank(m, boss, 100, 'rockets', p.id);
+    expect(dazedHit).toBeCloseTo((mid - boss.hp) * 1.5, 5);
+  });
 });
 
 describe('raid and rescue', () => {

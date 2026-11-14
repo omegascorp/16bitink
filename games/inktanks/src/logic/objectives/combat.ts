@@ -5,6 +5,7 @@ import { addTank, ENEMY_TEAM } from '../match/spawn';
 import { mergeIntel } from '../intel';
 import { tankStats } from '../stats';
 import { angleTo } from '../vec';
+import { bossRage, type Rage } from './bossRage';
 import { BASE, nearest, type Objective } from './types';
 
 /** Assault: destroy every enemy tank in the area (timed waves still to come count too). */
@@ -79,27 +80,39 @@ export function fortress(m: Match, def: Extract<ObjectiveDef, { kind: 'fortress'
   }
   let roadI = 1;
   const turrets = () => m.tanks.filter((t) => t.parent === body.id);
+  /** Phase 2, once every turret is down: the hull charges (bossRage.ts). */
+  let rage: Rage | null = null;
+  const ringDrive = () => {
+    const next = road[roadI % road.length]!;
+    if (Math.hypot(next.x - body.x, next.y - body.y) < 50) roadI++;
+    return { move: { kind: 'point' as const, angle: angleTo(body, next), mag: 1 }, aim: null, fire: false, swap: false, repair: false };
+  };
   return {
     ...BASE,
     kind: 'fortress',
     title: `Destroy the ${b.name}`,
-    step: () => undefined,
+    step: (dt) => {
+      if (!body.alive) return;
+      if (!rage && !turrets().some((t) => t.alive)) rage = bossRage(m, body);
+      rage?.step(dt);
+    },
     status: () => {
       const tu = turrets();
       const up = tu.filter((t) => t.alive).length;
-      const text = up > 0 ? `${b.name}: turrets ${tu.length - up}/${tu.length}` : `${b.name}: break the hull ${Math.ceil((body.hp / b.hp) * 100)}%`;
+      const dazed = m.t < body.stunnedUntil;
+      const text = up > 0 ? `${b.name}: turrets ${tu.length - up}/${tu.length}` : dazed ? `${b.name} is dazed: hit it now! ${Math.ceil((body.hp / b.hp) * 100)}%` : `${b.name} is enraged: dodge its charges into the walls · hull ${Math.ceil((body.hp / b.hp) * 100)}%`;
       return { text, target: body.alive ? body : null, done: !body.alive, failed: null };
     },
     playerHint: (t) => {
       if (!body.alive) return null;
+      const dodge = rage?.dodge(t);
+      if (dodge) return dodge;
       const turret = nearest(t, turrets().filter((x) => x.alive));
       return { goal: body, goalRadius: t.stats.gun.range * 0.75, target: (turret ?? body).id };
     },
     drive: (t) => {
       if (t.id !== body.id) return null;
-      const next = road[roadI % road.length]!;
-      if (Math.hypot(next.x - t.x, next.y - t.y) < 50) roadI++;
-      return { move: { kind: 'point', angle: angleTo(t, next), mag: 1 }, aim: null, fire: false, swap: false, repair: false };
+      return rage ? rage.drive(ringDrive) : ringDrive();
     },
   };
 }

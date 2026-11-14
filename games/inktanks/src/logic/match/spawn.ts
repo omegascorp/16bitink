@@ -50,7 +50,7 @@ export function addTank(m: Match, spec: TankSpec): Tank {
     lastHitBy: null, lastHitAt: -99, lastHitDrive: null, usedKit: false,
     hullsUsed: [spec.loadout.hull.family as Tank['hullsUsed'][number]], picks: [], swapT: 0, onPart: null, onFullKit: false, carrying: false,
     rolled: 0, parent: null, mount: null, victims: [], deadAt: -1,
-    gadget: spec.gadget ?? null, gadgetCharges: spec.gadget ? (spec.gadgetCharges ?? 0) : 0, gadgetT: 0, trackBrokenUntil: -1,
+    gadget: spec.gadget ?? null, gadgetCharges: spec.gadget ? (spec.gadgetCharges ?? 0) : 0, gadgetT: 0, trackBrokenUntil: -1, stunnedUntil: -1,
     ambushHits: 0, gadgetsUsed: 0, shotsFired: 0, shotsHit: 0, dealt: 0,
   };
   m.tanks.push(t);

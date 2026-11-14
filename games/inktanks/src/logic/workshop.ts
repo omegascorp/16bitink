@@ -1,4 +1,4 @@
-import { familyName, FAMILIES, slotOf, type Family, type Loadout, type Mk, type Part } from './parts';
+import { familyName, FAMILIES, MAX_MK, roman, slotOf, type Family, type Loadout, type Mk, type Part } from './parts';
 import { perksOf, rankOf, RANKS, type RankId } from './rank';
 import { RESEARCH_MAX, researchSteps, type Research, type ResearchLine } from './stats';
 
@@ -25,8 +25,9 @@ export interface Progress {
 }
 
 export const UNLOCK_COST = 3;
-export const MK_COST: Readonly<Record<2 | 3, number>> = { 2: 8, 3: 20 };
-export const MK_RANK: Readonly<Record<2 | 3, RankId>> = { 2: 'sergeant', 3: 'lieutenant' };
+export type NextMk = Exclude<Mk, 1>;
+export const MK_COST: Readonly<Record<NextMk, number>> = { 2: 8, 3: 20, 4: 35, 5: 55 };
+export const MK_RANK: Readonly<Record<NextMk, RankId>> = { 2: 'sergeant', 3: 'lieutenant', 4: 'major', 5: 'brigadier' };
 export const RESEARCH_COST: readonly number[] = [5, 10, 15];
 
 export const LINES_BY_SLOT = {
@@ -79,8 +80,8 @@ export function unlock(p: Progress, f: Family): Result {
 export function raiseMk(p: Progress, f: Family): Result {
   if (!p.unlocked.includes(f)) return fail('not unlocked');
   const cur = p.mk[f] ?? 1;
-  if (cur >= 3) return fail('already Mk III');
-  const next = (cur + 1) as 2 | 3;
+  if (cur >= MAX_MK) return fail(`already Mk ${roman(MAX_MK)}`);
+  const next = (cur + 1) as NextMk;
   if (perksOf(p.xp).maxMk < next) return fail(`needs ${RANKS.find((r) => r.id === MK_RANK[next])?.name ?? MK_RANK[next]}`);
   if (have(p, f) < MK_COST[next]) return fail(`needs ${MK_COST[next]} ${blueprintsOf(f)}`);
   return { ok: true, progress: { ...p, intel: spend(p.intel, f, MK_COST[next]), mk: { ...p.mk, [f]: next } } };

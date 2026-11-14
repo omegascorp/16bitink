@@ -4,6 +4,7 @@
  * mission played once) so Corporal comes about mission 3, Sergeant about 6,
  * Staff Sergeant about 10 and Lieutenant about chapter 2 mission 5.
  */
+import type { Mk } from './parts';
 export type RankId = 'private' | 'corporal' | 'sergeant' | 'staffSergeant' | 'lieutenant' | 'captain' | 'major' | 'colonel' | 'brigadier' | 'general';
 
 export interface RankDef {
@@ -55,7 +56,7 @@ export function toNextRank(xp: number): { next: RankDef; need: number } | null {
 /** The perks a rank brings. */
 export interface Perks {
   readonly repairKits: number;
-  readonly maxMk: 1 | 2 | 3;
+  readonly maxMk: Mk;
   readonly callIn: boolean;
   readonly kitSlot: boolean;
   /** Allied bot tanks (Captain one, Colonel two). */
@@ -69,7 +70,7 @@ export interface Perks {
 export function perksOf(xp: number): Perks {
   return {
     repairKits: atLeast(xp, 'corporal') ? 2 : 1,
-    maxMk: atLeast(xp, 'lieutenant') ? 3 : atLeast(xp, 'sergeant') ? 2 : 1,
+    maxMk: atLeast(xp, 'brigadier') ? 5 : atLeast(xp, 'major') ? 4 : atLeast(xp, 'lieutenant') ? 3 : atLeast(xp, 'sergeant') ? 2 : 1,
     callIn: atLeast(xp, 'staffSergeant'),
     kitSlot: atLeast(xp, 'lieutenant'),
     wingmen: atLeast(xp, 'colonel') ? 2 : atLeast(xp, 'captain') ? 1 : 0,

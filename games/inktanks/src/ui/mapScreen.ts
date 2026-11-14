@@ -4,6 +4,7 @@ import { rankOf } from '../logic/rank';
 import type { Progress } from '../logic/workshop';
 import { workshopButton } from './blueprint';
 import { esc, medalsHtml, render } from './dom';
+import { rankLine } from './rankArt';
 
 export interface MapData {
   readonly progress: Progress;
@@ -49,7 +50,7 @@ export function showMap(root: HTMLElement, d: MapData, a: MapActions): () => voi
   render(root, 'map', `
     <svg class="trail" width="100%" height="100%"><polyline points="" /></svg>
     ${spots}
-    <div class="panel top"><span class="t12 dimt">Chapter 1</span> <span class="gold">Meadowlands</span> <span class="rank t12"><i></i>${esc(rank.name)}</span></div>
+    <div class="panel top"><span class="t12 dimt">Chapter 1</span> <span class="gold">Meadowlands</span> <span class="t12">${rankLine(rank)}</span></div>
     <div class="corner left"><button class="btn small" data-act="menu">Menu</button></div>
     <div class="corner right">${workshopButton(d.progress, 'small')}</div>
     <div class="chapters">${chips}</div>`, {

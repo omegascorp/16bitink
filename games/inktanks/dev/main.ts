@@ -31,6 +31,19 @@ function midSave(): Progress {
   };
 }
 
+/** Late game, for checking the Mk tier colours: the three guns at Mk III, IV and V. */
+function tiersSave(): Progress {
+  const p = newProgress();
+  return {
+    ...midSave(),
+    xp: qnum('xp', 9000),
+    intel: { machinegun: 60, cannon: 40, rockets: 30 },
+    unlocked: [...p.unlocked, 'cannon', 'rockets'],
+    mk: { ...p.mk, machinegun: 3, cannon: 4, rockets: 5 },
+    loadout: { gun: { family: 'rockets', mk: 5 }, hull: { family: 'light', mk: 1 }, drive: { family: 'wheels', mk: 1 } },
+  };
+}
+
 function memoryStore(seed: string | null): KeyValueStore {
   const m = new Map<string, string>();
   if (seed) m.set(SAVE_KEY, seed);
@@ -38,7 +51,7 @@ function memoryStore(seed: string | null): KeyValueStore {
 }
 
 const preset = query.get('save');
-const storage = preset === 'mid' ? memoryStore(JSON.stringify({ v: SAVE_VERSION, progress: midSave(), sound: true })) : preset === 'new' ? memoryStore(null) : window.localStorage;
+const storage = preset === 'mid' || preset === 'tiers' ? memoryStore(JSON.stringify({ v: SAVE_VERSION, progress: preset === 'mid' ? midSave() : tiersSave(), sound: true })) : preset === 'new' ? memoryStore(null) : window.localStorage;
 const parent = document.getElementById('game')!;
 const handle = mount(parent, {
   unlocked: __DEV_UNLOCK__,

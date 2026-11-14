@@ -1,7 +1,7 @@
-import { familyName, FAMILIES, slotOf, type Family } from './parts';
+import { familyName, FAMILIES, MAX_MK, roman, slotOf, type Family } from './parts';
 import { RANKS, perksOf, type RankId } from './rank';
 import { type ResearchLine } from './stats';
-import { LINES_BY_SLOT, MK_COST, researchCost, UNLOCK_COST, type Progress } from './workshop';
+import { LINES_BY_SLOT, MK_COST, researchCost, UNLOCK_COST, type NextMk, type Progress } from './workshop';
 
 /**
  * Blueprints are the player-facing name of intel (code keeps `intel`).
@@ -12,7 +12,7 @@ export interface Upgrade {
   readonly kind: 'unlock' | 'mk' | 'research';
   readonly family: Family;
   /** The Mk reached (kind mk) or the research line. */
-  readonly mk?: 2 | 3;
+  readonly mk?: NextMk;
   readonly line?: ResearchLine;
   readonly cost: number;
   /** Stable identity, to compare before and after a mission. */
@@ -35,9 +35,9 @@ export function affordableUpgrades(p: Progress, rank: RankId = rankIdOf(p.xp)): 
       continue;
     }
     const mk = p.mk[f] ?? 1;
-    if (mk < 3) {
-      const next = (mk + 1) as 2 | 3;
-      if (maxMk >= next && have >= MK_COST[next]) out.push({ kind: 'mk', family: f, mk: next, cost: MK_COST[next], key: `mk:${f}:${next}`, label: `${name} Mk ${'I'.repeat(next)}` });
+    if (mk < MAX_MK) {
+      const next = (mk + 1) as NextMk;
+      if (maxMk >= next && have >= MK_COST[next]) out.push({ kind: 'mk', family: f, mk: next, cost: MK_COST[next], key: `mk:${f}:${next}`, label: `${name} Mk ${roman(next)}` });
     }
     for (const line of LINES_BY_SLOT[slotOf(f)] as readonly ResearchLine[]) {
       const cost = researchCost(p, f, line);

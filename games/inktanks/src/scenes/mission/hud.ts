@@ -2,7 +2,8 @@ import { damageTaken } from '../../logic/damage';
 import { sumIntel } from '../../logic/intel';
 import type { Match } from '../../logic/match/match';
 import type { MatchEvent, Tank } from '../../logic/match/types';
-import { familyName, partLabel, withPart, type Family, type Part } from '../../logic/parts';
+import { familyName, withPart, type Family, type Part } from '../../logic/parts';
+import { mkBadge, partName } from '../../ui/tankArt';
 import { fireRate, tankStats, type TankStats } from '../../logic/stats';
 import { partsArt } from '../../render/partsArt';
 import { pickupUrl } from '../../render/pickupArt';
@@ -32,6 +33,9 @@ const TIP_S = 4.5;
 const FRIENDLY_POP_GAP = 1.5;
 const LOW_HP = 0.4;
 const $ = <T extends HTMLElement>(root: HTMLElement, sel: string): T => root.querySelector(sel) as T;
+
+/** The fortress boss's phase 2 calls (objectives/bossRage.ts). */
+const BOSS_POP = { enraged: 'Enraged! It charges', charge: 'Charge!', ram: 'Rammed!', stunned: 'Dazed! Hit it ×1.5' } as const;
 
 export class Hud {
   private readonly feed: HTMLElement;
@@ -112,6 +116,7 @@ export class Hud {
       this.pop(m, e.x, e.y, 'Friendly fire!');
     }
     else if (e.kind === 'mine') this.pop(m, e.x, e.y, 'Mine!');
+    else if (e.kind === 'boss') this.pop(m, e.x, e.y, BOSS_POP[e.what]);
   }
 
   /** A word that floats up from a world point and fades ("Ambush ×2"). */
@@ -257,7 +262,7 @@ export class Hud {
       this.cardFor = pick.id;
       const now = tankStats(p.loadout, p.research);
       const next = tankStats(withPart(p.loadout, pick.part), p.research);
-      this.card.innerHTML = `<div class="title">${iconHtml(pick.part)} ${partLabel(pick.part)}</div>${diffs(now, next)}<div class="hint">Hold E to swap</div><div class="hold"><i></i></div>`;
+      this.card.innerHTML = `<div class="title">${iconHtml(pick.part)} ${partName(pick.part)}</div>${diffs(now, next)}<div class="hint">Hold E to swap</div><div class="hold"><i></i></div>`;
     }
     ($(this.card, '.hold i')).style.width = `${(p.swapT / SWAP_HOLD) * 100}%`;
   }
@@ -318,8 +323,7 @@ function who(t: Tank): string {
 
 export function iconHtml(p: Part): string {
   const url = partsArt().icon(p);
-  const tier = 'I'.repeat(p.mk);
-  return url ? `<span class="ic"><img src="${url}" alt=""><em>${tier}</em></span>` : `<span class="ic txt">${p.family.slice(0, 3)}<em>${tier}</em></span>`;
+  return url ? `<span class="ic"><img src="${url}" alt="">${mkBadge(p.mk)}</span>` : `<span class="ic txt">${p.family.slice(0, 3)}${mkBadge(p.mk)}</span>`;
 }
 
 function diffs(a: TankStats, b: TankStats): string {

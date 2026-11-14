@@ -8,7 +8,8 @@ export type HullFamily = 'light' | 'medium' | 'heavy';
 export type DriveFamily = 'wheels' | 'halftracks' | 'tracks';
 export type Family = GunFamily | HullFamily | DriveFamily;
 export type Slot = 'gun' | 'hull' | 'drive';
-export type Mk = 1 | 2 | 3;
+export type Mk = 1 | 2 | 3 | 4 | 5;
+export const MAX_MK: Mk = 5;
 
 export interface Part {
   readonly family: Family;
@@ -96,8 +97,27 @@ export const HULL_FAMILIES: readonly HullFamily[] = ['light', 'medium', 'heavy']
 export const DRIVE_FAMILIES: readonly DriveFamily[] = ['wheels', 'halftracks', 'tracks'];
 export const FAMILIES: readonly Family[] = [...GUN_FAMILIES, ...HULL_FAMILIES, ...DRIVE_FAMILIES];
 
-/** Mk II is +20% and Mk III +40% on the part's main stat. */
-export const TIER_BONUS: Readonly<Record<Mk, number>> = { 1: 1, 2: 1.2, 3: 1.4 };
+/** Each Mk is +20% on the part's main stat: Mk II +20% … Mk V +80%. */
+export const TIER_BONUS: Readonly<Record<Mk, number>> = { 1: 1, 2: 1.2, 3: 1.4, 4: 1.6, 5: 1.8 };
+
+/** "IV": a Mk as a Roman numeral. */
+export const roman = (mk: Mk): string => ['I', 'II', 'III', 'IV', 'V'][mk - 1]!;
+
+/**
+ * The Mk's colour, the rarity order every 16bit.ink game uses (owner, Nov 14;
+ * the same shades as InkHeroes' ranks): Mk I grey, II green, III blue,
+ * IV violet, V orange. `light` is for text on dark panels, `mid` for rings and fills.
+ */
+export const MK_COLOUR: Readonly<Record<Mk, { readonly light: string; readonly mid: string; readonly hex: number }>> = {
+  1: { light: '#d6d8dc', mid: '#92969e', hex: 0x92969e },
+  2: { light: '#b0e28c', mid: '#549c4c', hex: 0x549c4c },
+  3: { light: '#a8e2fc', mid: '#389cdc', hex: 0x389cdc },
+  4: { light: '#d6aaf0', mid: '#8850b8', hex: 0x8850b8 },
+  5: { light: '#ffcc78', mid: '#ee8018', hex: 0xee8018 },
+};
+
+/** Mk IV and V have no art of their own yet: they wear Mk III's. */
+export const artMk = (mk: Mk): 1 | 2 | 3 => (mk > 3 ? 3 : mk) as 1 | 2 | 3;
 
 export function slotOf(family: Family): Slot {
   if ((GUN_FAMILIES as readonly string[]).includes(family)) return 'gun';
@@ -130,7 +150,7 @@ export const ART_FAMILY: Readonly<Record<Family, string>> = {
 
 /** The art key `<family>-mk<n>`, as src/art/pixel/parts/manifest.json lists it. */
 export function artKey(p: Part): string {
-  return `${ART_FAMILY[p.family]}-mk${p.mk}`;
+  return `${ART_FAMILY[p.family]}-mk${artMk(p.mk)}`;
 }
 
 /** A family's name alone: "Half-tracks". */
@@ -143,7 +163,7 @@ export function partLabel(p: Part): string {
     light: 'Light hull', medium: 'Medium hull', heavy: 'Heavy hull',
     wheels: 'Wheels', halftracks: 'Half-tracks', tracks: 'Tracks',
   };
-  return `${p.proto ? 'Prototype ' : ''}${name[p.family]} Mk ${'I'.repeat(p.mk)}`;
+  return `${p.proto ? 'Prototype ' : ''}${name[p.family]} Mk ${roman(p.mk)}`;
 }
 
 export function withPart(l: Loadout, p: Part): Loadout {

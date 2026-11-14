@@ -32,7 +32,7 @@ type Obj = Readonly<Record<string, unknown>>;
 const isObj = (x: unknown): x is Obj => typeof x === 'object' && x !== null && !Array.isArray(x);
 const isFamily = (x: unknown): x is Family => typeof x === 'string' && (FAMILIES as readonly string[]).includes(x);
 const isCount = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x) && x >= 0 && x < 1e7;
-const isMk = (x: unknown): x is Mk => x === 1 || x === 2 || x === 3;
+const isMk = (x: unknown): x is Mk => x === 1 || x === 2 || x === 3 || x === 4 || x === 5;
 
 /** Thrown inside validation; caught by parseSave, never escapes it. */
 class BadSave extends Error {}

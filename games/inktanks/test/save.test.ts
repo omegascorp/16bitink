@@ -35,7 +35,7 @@ describe('save', () => {
     ['a research step past 3', stored({ ...newProgress(), research: { cannon: { damage: 9 } } })],
     ['a line the family has not', stored({ ...newProgress(), research: { cannon: { speed: 1 } } })],
     ['a gun in the hull slot', stored({ ...newProgress(), loadout: { gun: { family: 'cannon', mk: 1 }, hull: { family: 'cannon', mk: 1 }, drive: { family: 'wheels', mk: 1 } } })],
-    ['Mk 4', stored({ ...newProgress(), mk: { machinegun: 4 } })],
+    ['Mk 6', stored({ ...newProgress(), mk: { machinegun: 6 } })],
     ['no progress', stored(null)],
   ])('resets to defaults on %s, never throws', (_what, raw) => {
     const r = parseSave(raw);

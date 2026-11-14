@@ -1,7 +1,7 @@
 import type Phaser from 'phaser';
 import type { Match } from '../logic/match/match';
 import type { MatchEvent } from '../logic/match/types';
-import { slotOf } from '../logic/parts';
+import { MK_COLOUR, slotOf } from '../logic/parts';
 import { partsArt } from './partsArt';
 import { bpTexture, pickupKey, preloadPickups, type PickupArt } from './pickupArt';
 import { BombLayer, preloadBombs } from './bombView';
@@ -50,7 +50,7 @@ export class WorldFx {
   private readonly items = new Map<number, Phaser.GameObjects.Image>();
   private puffs: Puff[] = [];
   /** Telegraphed big shots: the aim line held until `until` (match time). */
-  private aimLines: { tank: number; angle: number; len: number; until: number }[] = [];
+  private aimLines: { tank: number; angle: number; len: number; until: number; width: number; dur: number }[] = [];
   private readonly aims: Phaser.GameObjects.Graphics;
   private readonly bombs: BombLayer;
   /** Match time at the last update, for events (bombers pass over marks on time). */
@@ -70,7 +70,7 @@ export class WorldFx {
     else if (e.kind === 'hit') this.puffs.push({ x: e.x, y: e.y, r: e.shot === 'tracer' ? 4 : 12, t: 0, life: 0.18, colour: 0xffb060 });
     else if (e.kind === 'explode' || e.kind === 'mark') this.bombs.onEvent(e, this.now);
     else if (e.kind === 'kill') this.puffs.push({ x: 0, y: 0, r: 0, t: 0, life: 0, colour: 0 });
-    else if (e.kind === 'aim') this.aimLines.push({ tank: e.tank, angle: e.angle, len: e.len, until: e.until });
+    else if (e.kind === 'aim') this.aimLines.push({ tank: e.tank, angle: e.angle, len: e.len, until: e.until, width: e.width ?? 0, dur: e.dur ?? 0.4 });
     else if (e.kind === 'gadget' && e.gadget === 'smoke') this.puffs.push({ x: e.x, y: e.y, r: 40, t: 0, life: 0.25, colour: 0xf4ecd8 });
   }
 
@@ -126,10 +126,28 @@ export class WorldFx {
     for (const a of this.aimLines) {
       const t = m.tank(a.tank);
       if (!t?.alive) continue;
-      const k = 1 - Math.max(0, a.until - m.t) / 0.4;
+      const k = 1 - Math.max(0, a.until - m.t) / a.dur;
       const c = Math.cos(a.angle);
       const s = Math.sin(a.angle);
       const r0 = t.stats.radius;
+      if (a.width > 0) {
+        // The boss's charge lane: a red band as wide as the hull, its edges flashing faster as it comes.
+        const ex = t.x + c * (r0 + a.len);
+        const ey = t.y + s * (r0 + a.len);
+        const nx = -s * (a.width / 2);
+        const ny = c * (a.width / 2);
+        const flash = 0.5 + 0.4 * Math.sin(m.t * (10 + 20 * k));
+        g.lineStyle(a.width, 0xc83a2a, 0.12 + 0.18 * k).lineBetween(t.x + c * r0, t.y + s * r0, ex, ey);
+        g.lineStyle(2, 0xff4a2a, flash).lineBetween(t.x + c * r0 + nx, t.y + s * r0 + ny, ex + nx, ey + ny).lineBetween(t.x + c * r0 - nx, t.y + s * r0 - ny, ex - nx, ey - ny);
+        for (let i = 1; i <= 3; i++) {
+          // Chevrons down the lane, pointing the way it will go.
+          const d = r0 + (a.len * i) / 4;
+          const bx = t.x + c * d;
+          const by = t.y + s * d;
+          g.lineBetween(bx - c * 18 + nx * 0.5, by - s * 18 + ny * 0.5, bx, by).lineBetween(bx - c * 18 - nx * 0.5, by - s * 18 - ny * 0.5, bx, by);
+        }
+        continue;
+      }
       g.lineStyle(1.5, 0xff4a2a, 0.35 + 0.5 * k).lineBetween(t.x + c * r0, t.y + s * r0, t.x + c * a.len, t.y + s * a.len);
       g.fillStyle(0xff4a2a, 0.4 + 0.5 * k).fillCircle(t.x + c * a.len, t.y + s * a.len, 2.5);
     }
@@ -158,7 +176,7 @@ export class WorldFx {
           const key = slot === 'gun' ? art.turret(p.part) : slot === 'hull' ? art.hull(p.part) : art.frames(art.drive(p.part, 'medium'))[0]!;
           this.parts.set(p.id, this.scene.add.image(p.x, p.y, key).setScale(0.55).setDepth(DEPTH.pickups + 1));
         }
-        g.lineStyle(2, p.part.mk === 3 ? 0xf0c040 : p.part.mk === 2 ? 0xc0c8d0 : 0xa08060, 0.8 + 0.2 * Math.sin(m.t * 5)).strokeCircle(p.x, p.y, 26);
+        g.lineStyle(2, MK_COLOUR[p.part.mk].hex, 0.8 + 0.2 * Math.sin(m.t * 5)).strokeCircle(p.x, p.y, 26);
       } else if (p.kind === 'gadget') {
         g.lineStyle(2, 0xe0b040, 0.55 + 0.35 * Math.sin(m.t * 4)).strokeCircle(p.x, p.y, 24);
         const icon = gadgetIconKey(m.player?.gadget ?? 'mines');
