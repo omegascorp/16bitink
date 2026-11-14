@@ -30,6 +30,10 @@ export interface GunStats {
   readonly shot: ShotKind;
   readonly turretTurn: number;
   readonly spread: number;
+  /** Rounds per belt, 0 for a gun without one. */
+  readonly belt: number;
+  /** Seconds to load a new belt; Reload research shortens it as it does `reload`. */
+  readonly beltReload: number;
 }
 
 export interface TankStats {
@@ -99,11 +103,18 @@ export function tankStats(l: Loadout, research?: Research): TankStats {
       shot: gun.shot,
       turretTurn: gun.turretTurn,
       spread: gun.spread,
+      belt: gun.belt ?? 0,
+      beltReload: (gun.beltReload ?? 0) / bonus(research, g, 'reload'),
     },
   };
 }
 
+/** Trigger pulls per second over a long fight, belt reloads included. */
+export function fireRate(g: GunStats): number {
+  return g.belt > 0 ? g.belt / (g.belt * g.reload + g.beltReload) : 1 / g.reload;
+}
+
 /** Sustained damage per second of `a`'s gun on `b`, counters and armour included. */
 export function dps(a: TankStats, b: TankStats, damageFn: (dmg: number, gun: GunFamily, drive: DriveFamily, armour: number) => number): number {
-  return (damageFn(a.gun.damage, a.gun.family, b.drive, b.armour) * a.gun.shots) / a.gun.reload;
+  return damageFn(a.gun.damage, a.gun.family, b.drive, b.armour) * a.gun.shots * fireRate(a.gun);
 }

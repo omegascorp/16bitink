@@ -39,6 +39,8 @@ export function swapIn(m: Match, t: Tank, pickupId: number): void {
   if (slot === 'gun') {
     t.reload = t.stats.gun.reload;
     t.burst = 0;
+    t.ammo = t.stats.gun.belt;
+    t.beltT = 0;
   }
   if (slot === 'hull' && !t.hullsUsed.includes(p.part.family as HullFamily)) t.hullsUsed.push(p.part.family as HullFamily);
   t.picks.push(p.part);

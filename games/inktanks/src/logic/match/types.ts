@@ -54,6 +54,10 @@ export interface Tank {
   /** Left the map by its exit (a convoy truck, a runner) or reached home (a crew). */
   escaped: boolean;
   reload: number;
+  /** Belt guns: rounds left, seconds left of a belt reload, and seconds since the trigger was last held. */
+  ammo: number;
+  beltT: number;
+  idleT: number;
   /** Rocket pairs: shots still to fire, and the gap before the next. */
   burst: number;
   burstT: number;

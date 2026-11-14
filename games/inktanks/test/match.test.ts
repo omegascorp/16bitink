@@ -12,7 +12,7 @@ import { intelOf, sumIntel } from '../src/logic/intel';
 import { part, STARTER_LOADOUT } from '../src/logic/parts';
 import { newProgress } from '../src/logic/workshop';
 import { XP } from '../src/logic/rank';
-import { tankStats } from '../src/logic/stats';
+import { fireRate, tankStats } from '../src/logic/stats';
 
 const make = (level: number, seed = 5, bot = true) => new Match({ level: ch1Level(level), seed, player: { loadout: STARTER_LOADOUT }, playerBot: bot });
 const run = (m: Match) => {
@@ -162,26 +162,60 @@ describe('medals and bonuses', () => {
 });
 
 describe('fire rate', () => {
-  /** Shots the player fires in 3 s of holding fire, at a step size. */
-  const shotsIn3s = (dt: number, reloadSteps: number): number => {
+  /** Shots the player fires in `secs` of holding fire, at a step size. */
+  const shotsIn = (secs: number, dt: number, reloadSteps: number): number => {
     const m = new Match({ level: ch1Level(1), seed: 1, player: { loadout: STARTER_LOADOUT, research: { machinegun: { reload: reloadSteps } } }, playerBot: false });
     const p = m.player!;
     const before = p.shotsFired;
-    for (let i = 0; i < Math.round(3 / dt); i++) m.step(dt, { move: null, aim: 0, fire: true, swap: false, repair: false });
+    for (let i = 0; i < Math.round(secs / dt); i++) m.step(dt, { move: null, aim: 0, fire: true, swap: false, repair: false });
     return p.shotsFired - before;
   };
 
-  it('matches the gun at the game and sim step sizes', () => {
-    const want = 3 / tankStatsOf(0);
-    for (const dt of [1 / 60, 1 / 30]) expect(Math.abs(shotsIn3s(dt, 0) - want)).toBeLessThanOrEqual(1);
+  it('matches the gun, belt reloads included, at the game and sim step sizes', () => {
+    const want = 14 * fireRate(tankStats(STARTER_LOADOUT).gun);
+    for (const dt of [1 / 60, 1 / 30]) expect(Math.abs(shotsIn(14, dt, 0) - want)).toBeLessThanOrEqual(6);
   });
 
   it('fires faster with every Reload research step', () => {
-    const shots = [0, 1, 2, 3].map((n) => shotsIn3s(1 / 60, n));
+    const shots = [0, 1, 2, 3].map((n) => shotsIn(14, 1 / 60, n));
     for (let i = 1; i < shots.length; i++) expect(shots[i]!).toBeGreaterThan(shots[i - 1]!);
   });
 });
 
-function tankStatsOf(reloadSteps: number): number {
-  return tankStats(STARTER_LOADOUT, { machinegun: { reload: reloadSteps } }).gun.reload;
-}
+
+describe('machinegun belt', () => {
+  const fire = { move: null, aim: 0, fire: true, swap: false, repair: false } as const;
+  const hold = { ...fire, fire: false } as const;
+  const make1 = (reloadSteps = 0) => new Match({ level: ch1Level(1), seed: 1, player: { loadout: STARTER_LOADOUT, research: { machinegun: { reload: reloadSteps } } }, playerBot: false });
+
+  it('fires a 20-round belt, then pauses for the belt reload', () => {
+    const m = make1();
+    const p = m.player!;
+    expect(p.ammo).toBe(20);
+    // 20 rounds take about 1.9 s; the belt is back about 1.5 s later.
+    for (let i = 0; i < 150; i++) m.step(1 / 60, fire);
+    expect(p.shotsFired).toBe(20);
+    expect(p.beltT).toBeGreaterThan(0);
+    for (let i = 0; i < 30; i++) m.step(1 / 60, fire);
+    expect(p.shotsFired).toBe(20);
+    for (let i = 0; i < 60; i++) m.step(1 / 60, fire);
+    expect(p.shotsFired).toBeGreaterThan(20);
+  });
+
+  it('tops a part-used belt up after a pause as long as a reload', () => {
+    const m = make1();
+    const p = m.player!;
+    for (let i = 0; i < 30; i++) m.step(1 / 60, fire);
+    expect(p.ammo).toBeLessThan(20);
+    for (let i = 0; i < 95; i++) m.step(1 / 60, hold);
+    expect(p.ammo).toBe(20);
+  });
+
+  it('reloads the belt faster with Reload research, and sustained fire counts the pauses', () => {
+    const base = tankStats(STARTER_LOADOUT).gun;
+    const researched = tankStats(STARTER_LOADOUT, { machinegun: { reload: 3 } }).gun;
+    expect(researched.beltReload).toBeLessThan(base.beltReload);
+    expect(fireRate(base)).toBeCloseTo(20 / (20 * 0.1 + 1.5), 5);
+    expect(fireRate(researched)).toBeGreaterThan(fireRate(base));
+  });
+});

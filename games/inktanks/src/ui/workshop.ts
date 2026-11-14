@@ -2,7 +2,7 @@ import { damageTaken } from '../logic/damage';
 import { DRIVE_FAMILIES, familyName, GUN_FAMILIES, HULL_FAMILIES, slotOf, withPart, type Family, type Slot } from '../logic/parts';
 import { perksOf, rankOf, RANKS } from '../logic/rank';
 import { bpAmount } from './blueprint';
-import { RESEARCH_MAX, RESEARCH_STEP, researchSteps, tankStats, type ResearchLine } from '../logic/stats';
+import { fireRate, RESEARCH_MAX, RESEARCH_STEP, researchSteps, tankStats, type ResearchLine } from '../logic/stats';
 import { fit, LINES_BY_SLOT, MK_COST, MK_RANK, ownedPart, raiseMk, research, researchCost, UNLOCK_COST, unlock, type Progress, type Result } from '../logic/workshop';
 import { esc, render } from './dom';
 import { partIcon, tankCanvas } from './tankArt';
@@ -72,7 +72,7 @@ export function showWorkshop(root: HTMLElement, start: Progress, a: WorkshopActi
 
 function statsHtml(p: Progress): string {
   const s = tankStats(p.loadout, p.research);
-  const dps = (damageTaken(s.gun.damage, s.gun.family, 'halftracks', 7) * s.gun.shots) / s.gun.reload;
+  const dps = damageTaken(s.gun.damage, s.gun.family, 'halftracks', 7) * s.gun.shots * fireRate(s.gun);
   const rows: [string, number][] = [['HP', s.maxHp], ['Speed', s.speed], ['Damage/s', dps], ['Range', s.gun.range]];
   return rows.map(([k, v]) => `<span class="dimt">${k}</span><span>${Math.round(v)}</span>`).join('');
 }

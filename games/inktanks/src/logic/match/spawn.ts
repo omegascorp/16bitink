@@ -45,7 +45,7 @@ export function addTank(m: Match, spec: TankSpec): Tank {
     id: m.nextId++, name: spec.name, crew: spec.crew ?? CLAN_CREW[spec.clan], clan: spec.clan, team: spec.team, role: spec.role ?? 'tank',
     isPlayer: spec.isPlayer ?? false, ace: spec.ace ?? false, loadout: spec.loadout, research: spec.research ?? {},
     stats: { ...stats, maxHp, speed: stats.speed * (spec.speedMult ?? 1) }, hpMult: spec.hpMult ?? 1, x: spec.at.x, y: spec.at.y, heading, turret: heading, speed: 0,
-    hp: maxHp, alive: true, escaped: false, reload: 0, burst: 0, burstT: 0,
+    hp: maxHp, alive: true, escaped: false, reload: 0, ammo: stats.gun.belt, beltT: 0, idleT: 0, burst: 0, burstT: 0,
     kits: spec.kits ?? 1, maxKits: spec.maxKits ?? 1, repairT: 0, firedAt: -99, kills: 0,
     lastHitBy: null, lastHitAt: -99, lastHitDrive: null, usedKit: false,
     hullsUsed: [spec.loadout.hull.family as Tank['hullsUsed'][number]], picks: [], swapT: 0, onPart: null, onFullKit: false, carrying: false,

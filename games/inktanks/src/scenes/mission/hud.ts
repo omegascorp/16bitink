@@ -3,7 +3,7 @@ import { sumIntel } from '../../logic/intel';
 import type { Match } from '../../logic/match/match';
 import type { MatchEvent, Tank } from '../../logic/match/types';
 import { familyName, partLabel, withPart, type Family, type Part } from '../../logic/parts';
-import { tankStats, type TankStats } from '../../logic/stats';
+import { fireRate, tankStats, type TankStats } from '../../logic/stats';
 import { partsArt } from '../../render/partsArt';
 import { pickupUrl } from '../../render/pickupArt';
 import { bpIcon } from '../../ui/blueprint';
@@ -149,7 +149,7 @@ export class Hud {
     this.gadget.title = GADGET_NAME[g];
     this.gadgetBtn.innerHTML = `${url ? `<img src="${url}" alt="">` : GADGET_NAME[g]}<b>${p.gadgetCharges}</b>`;
     this.gadgetBtn.classList.toggle('off', p.gadgetCharges === 0);
-    if (!this.gadgetTipped && m.t > 1.5 && m.t < 30) {
+    if (!this.gadgetTipped && p.gadgetCharges > 0 && m.t > 1.5 && m.t < 30) {
       this.gadgetTipped = true;
       const verb = g === 'mines' ? 'lay a mine' : g === 'oil' ? 'spill an oil slick' : 'pop smoke';
       this.showTip(m, `${this.touch ? 'Tap the gadget button' : 'Press <kbd>G</kbd>'} to ${verb}`);
@@ -316,7 +316,7 @@ export function iconHtml(p: Part): string {
 
 function diffs(a: TankStats, b: TankStats): string {
   const ref = { drive: 'halftracks' as const, armour: 7 };
-  const dps = (s: TankStats) => (damageTaken(s.gun.damage, s.gun.family, ref.drive, ref.armour) * s.gun.shots) / s.gun.reload;
+  const dps = (s: TankStats) => damageTaken(s.gun.damage, s.gun.family, ref.drive, ref.armour) * s.gun.shots * fireRate(s.gun);
   const rows: [string, number, number][] = [['HP', a.maxHp, b.maxHp], ['Speed', a.speed, b.speed], ['Damage/s', dps(a), dps(b)], ['Range', a.gun.range, b.gun.range]];
   return rows
     .filter(([, x, y]) => Math.abs(x - y) > 0.5)

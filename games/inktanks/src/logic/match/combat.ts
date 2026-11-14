@@ -26,6 +26,7 @@ export function aimAndFire(m: Match, t: Tank, input: TankInput, dt: number): voi
   // at any step size: without the carry a 0.1 s gun at 1/60 s steps rounded up to whole steps, and
   // Reload research under a step's worth did nothing.
   t.reload -= dt;
+  tickBelt(t, input.fire, dt);
   if (t.burst > 0) {
     t.burstT -= dt;
     if (t.burstT <= 0) {
@@ -36,16 +37,36 @@ export function aimAndFire(m: Match, t: Tank, input: TankInput, dt: number): voi
     return;
   }
   const canFire = input.fire && t.repairT <= 0 && t.role !== 'truck' && t.role !== 'boss' && t.role !== 'crew';
-  if (!canFire || t.reload > 0) {
+  if (!canFire || t.reload > 0 || t.beltT > 0) {
     // Idle: no banking shots while not firing.
     if (t.reload < 0) t.reload = 0;
     return;
   }
   t.reload += t.stats.gun.reload;
   t.firedAt = m.t;
+  if (t.stats.gun.belt > 0 && --t.ammo <= 0) t.beltT = t.stats.gun.beltReload;
   spawnShot(m, t, t.stats.gun.shots > 1 ? 1 : 0);
   t.burst = t.stats.gun.shots - 1;
   t.burstT = BURST_GAP;
+}
+
+/**
+ * Belt guns: an empty belt reloads for `beltReload` s; a part-used belt is topped up once the
+ * trigger has been off that long, so a pause between fights always starts the next on a full belt.
+ */
+function tickBelt(t: Tank, firing: boolean, dt: number): void {
+  const g = t.stats.gun;
+  if (g.belt <= 0) return;
+  if (t.beltT > 0) {
+    t.beltT -= dt;
+    if (t.beltT <= 0) {
+      t.beltT = 0;
+      t.ammo = g.belt;
+    }
+    return;
+  }
+  t.idleT = firing ? 0 : t.idleT + dt;
+  if (t.ammo < g.belt && t.idleT >= g.beltReload) t.ammo = g.belt;
 }
 
 function spawnShot(m: Match, t: Tank, side: number): void {

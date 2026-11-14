@@ -40,6 +40,9 @@ export interface GunSpec {
   readonly weight: number;
   readonly breaksBrick: boolean;
   readonly shot: ShotKind;
+  /** Rounds in a belt; the gun then stops for `beltReload` s (0 or unset: no belt). */
+  readonly belt?: number;
+  readonly beltReload?: number;
   /** Turret turn, radians per second. */
   readonly turretTurn: number;
   /** Spread of each shot, radians. */
@@ -70,7 +73,8 @@ export interface DriveSpec {
 }
 
 export const GUNS: Readonly<Record<GunFamily, GunSpec>> = {
-  machinegun: { damage: 6, shots: 1, reload: 0.1, range: 280, shotSpeed: 900, splash: 0, weight: 1, breaksBrick: false, shot: 'tracer', turretTurn: 6, spread: 0.05 },
+  // The Machinegun fires in belts: 20 rounds (2 s), then a 1.5 s reload (owner, Nov 14: "longer reload").
+  machinegun: { damage: 6, shots: 1, reload: 0.1, range: 280, shotSpeed: 900, splash: 0, weight: 1, breaksBrick: false, shot: 'tracer', turretTurn: 6, spread: 0.05, belt: 20, beltReload: 1.5 },
   cannon: { damage: 40, shots: 1, reload: 1.1, range: 360, shotSpeed: 650, splash: 0, weight: 4, breaksBrick: true, shot: 'shell', turretTurn: 3.6, spread: 0.015 },
   rockets: { damage: 30, shots: 2, reload: 2.4, range: 400, shotSpeed: 380, splash: 20, weight: 3, breaksBrick: true, shot: 'rocket', turretTurn: 3.2, spread: 0.03 },
 };
