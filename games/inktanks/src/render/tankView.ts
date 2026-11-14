@@ -22,6 +22,13 @@ export const DEPTH = { shadow: 20, drive: 0.01, hull: 0.02, turretShadow: 0.03, 
 export const footDepth = (y: number): number => 1000 + y / 10;
 /** Native px a drive rolls per frame step. */
 const ROLL_STEP = 6;
+/** The crew's facing for a world heading (0 = east, y down): s, e, n or w. */
+export function crewFacing(heading: number): 's' | 'e' | 'n' | 'w' {
+  const c = Math.cos(heading);
+  const sn = Math.sin(heading);
+  if (Math.abs(c) >= Math.abs(sn)) return c >= 0 ? 'e' : 'w';
+  return sn >= 0 ? 's' : 'n';
+}
 
 export function preloadParts(scene: Phaser.Scene): void {
   for (const [key, url] of partsArt().urls) if (!scene.textures.exists(key)) scene.load.image(key, url);
@@ -132,12 +139,11 @@ export class TankView {
       return;
     }
     if (t.role === 'crew') {
-      // An otter on foot: a 4-frame walk, turned to its heading like a tank.
-      const key = worldKey(`crew/crew-${step % 4}`);
-      this.bank.apply(this.shadow, key, t.heading);
-      this.shadow.setVisible(true).setPosition(x + 3, y - 2).setScale(1.6).setDepth(DEPTH.shadow);
-      this.bank.apply(this.hull, key, t.heading);
-      this.hull.setVisible(true).setPosition(x, y).setScale(1.6).setDepth(footDepth(y + 10) + DEPTH.hull);
+      // An otter on foot: a 4-frame walk in four facings (s, e, n, w), picked by heading and never rotated.
+      const key = worldKey(`crew/crew-${crewFacing(t.heading)}-${step % 4}`);
+      this.shadow.setTexture(key).setRotation(0).setVisible(true).setPosition(x + 3, y - 2).setDepth(DEPTH.shadow);
+      this.hull.setTexture(key).setRotation(0).setVisible(true).setPosition(x, y).setScale(1).setDepth(footDepth(y + 10) + DEPTH.hull);
+      this.shadow.setScale(1);
       return;
     }
     const boss = t.role === 'boss';

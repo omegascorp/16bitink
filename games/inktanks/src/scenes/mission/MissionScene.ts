@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import type { Match } from '../../logic/match/match';
 import type { Tank, TankInput } from '../../logic/match/types';
 import { GroundStream, preloadGround } from '../../render/ground';
+import { AlertLayer, preloadAlerts } from '../../render/alertView';
 import { preloadFx, WorldFx } from '../../render/fx';
+import { GadgetLayer, preloadGadgets } from '../../render/gadgetView';
 import { RotBank, textureMegabytes, type RotMode } from '../../render/rotBank';
 import { preloadStructures, StructLayer } from '../../render/structView';
 import { preloadParts, tankKeys, TankView } from '../../render/tankView';
@@ -27,12 +29,16 @@ export function preloadMission(scene: Phaser.Scene): void {
   preloadGround(scene);
   preloadStructures(scene);
   preloadFx(scene);
+  preloadGadgets(scene);
+  preloadAlerts(scene);
 }
 
 export class MissionScene extends Phaser.Scene {
   private ground: GroundStream | undefined;
   private structs!: StructLayer;
   private fx!: WorldFx;
+  private gadgets!: GadgetLayer;
+  private alerts!: AlertLayer;
   readonly bank: RotBank;
   private readonly views = new Map<number, TankView>();
   private acc = 0;
@@ -54,6 +60,8 @@ export class MissionScene extends Phaser.Scene {
     this.ground = new GroundStream(this, m.land);
     this.structs = new StructLayer(this, m.structs);
     this.fx = new WorldFx(this);
+    this.gadgets = new GadgetLayer(this);
+    this.alerts = new AlertLayer(this);
     if (this.bank.mode === 'rot32') this.warmAll();
     this.cameras.main.setBounds(0, 0, m.land.width, m.land.height).setRoundPixels(true);
     this.centre();
@@ -118,7 +126,9 @@ export class MissionScene extends Phaser.Scene {
     this.ground!.update(view);
     this.structs.update(view, m.player);
     this.fx.update(m, dt, view);
+    this.gadgets.update(m);
     this.drawTanks(view);
+    this.alerts.update(m, view);
     this.hooks.onFrame(dt);
     if (m.over && !this.ended) {
       this.ended = true;

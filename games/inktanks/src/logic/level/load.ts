@@ -13,6 +13,7 @@ export interface StructKind {
   readonly flattenable?: boolean;
   readonly cover?: boolean;
   readonly roof?: boolean;
+  readonly low?: boolean;
 }
 
 export type ResolvedEnemy = Omit<EnemyDef, 'at' | 'tank'> & { readonly at: Pt; readonly loadout: Loadout; readonly index: number };
@@ -81,7 +82,7 @@ export function loadLevel(def: LevelDef, kinds: Readonly<Record<string, StructKi
     const k = kinds[s.kind];
     if (!k) return soft(`structure ${i}: unknown kind "${s.kind}"`, []);
     inside(s, `structure ${i} (${s.kind})`);
-    return [{ id: s.id ?? `${s.kind}${i}`, kind: s.kind, x: s.x, y: s.y, shape: k.shape, material: k.material, hp: k.hp, flattenable: k.flattenable, cover: k.cover, roof: k.roof, tag: s.tag }];
+    return [{ id: s.id ?? `${s.kind}${i}`, kind: s.kind, x: s.x, y: s.y, shape: k.shape, material: k.material, hp: k.hp, flattenable: k.flattenable, cover: k.cover, roof: k.roof, low: k.low, tag: s.tag }];
   });
   const ids = new Set<string>();
   for (const s of structures) {

@@ -38,6 +38,17 @@ export const HUD_CSS = `
 .ikt-hud .card .hint { opacity: 0.7; font-size: 12px; margin-top: 4px; }
 .ikt-hud .card .hold { height: 4px; background: #2a2620; margin-top: 4px; } .ikt-hud .card .hold i { display: block; height: 4px; background: #f0c040; }
 .ikt-hud .btn { display: none; position: absolute; pointer-events: auto; width: 84px; height: 84px; border-radius: 50%; border: 2px solid rgba(244, 236, 216, 0.6); background: rgba(20, 18, 14, 0.6); color: #f4ecd8; font: 700 15px ui-monospace, Menlo, monospace; }
+.ikt-hud .gadget { display: flex; align-items: center; gap: 2px; white-space: nowrap; }
+.ikt-hud .gadget img { width: 32px; height: 32px; image-rendering: pixelated; }
+.ikt-hud .gadget i { font-style: normal; font-weight: 700; color: #f0c040; }
+.ikt-hud .gadget b { font-size: 14px; color: #f4ecd8; min-width: 10px; }
+.ikt-hud .gadget.off img, .ikt-hud .gadget.off i { opacity: 0.3; filter: grayscale(1); }
+.ikt-hud .gadgetbtn { right: 116px; bottom: 236px; width: 76px; height: 76px; padding: 0; font-size: 11px; }
+.ikt-hud .gadgetbtn img { width: 44px; height: 44px; image-rendering: pixelated; display: block; margin: 0 auto; }
+.ikt-hud .gadgetbtn b { position: absolute; right: 8px; bottom: 6px; font-size: 15px; color: #f0c040; }
+.ikt-hud .gadgetbtn.off { opacity: 0.4; }
+.ikt-hud .pops { position: absolute; inset: 0; overflow: hidden; }
+.ikt-hud .pop { position: absolute; left: 0; top: 0; font: 700 18px ui-monospace, Menlo, monospace; color: #f0c040; text-shadow: 0 2px 0 #14110c, 0 0 4px #14110c; white-space: nowrap; }
 .ikt-hud .swap { right: 150px; bottom: 150px; } .ikt-hud .repair { right: 40px; bottom: 210px; width: 64px; height: 64px; font-size: 12px; }
 @media (pointer: coarse) { .ikt-hud .bottom { bottom: 8px; transform: translateX(-50%) scale(1.1); } .ikt-hud .mini { width: 150px; height: auto; } }
 .stick { position: fixed; width: 136px; height: 136px; margin: -68px 0 0 -68px; border-radius: 50%; background: rgba(244, 236, 216, 0.18); border: 2px solid rgba(244, 236, 216, 0.5); z-index: 3; pointer-events: none; }

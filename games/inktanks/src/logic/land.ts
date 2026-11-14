@@ -41,6 +41,8 @@ export interface StructureDef {
   readonly cover?: boolean;
   /** Has a roof that hides tanks under it. */
   readonly roof?: boolean;
+  /** Low cover (sandbags, fences, crates, hay): shots pass over it in their first 50 px; it never blocks sight. */
+  readonly low?: boolean;
   /** Mission tag: 'target' (raid), 'cage' (rescue)… */
   readonly tag?: string;
 }

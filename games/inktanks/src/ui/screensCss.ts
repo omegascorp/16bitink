@@ -103,6 +103,10 @@ export const SCREENS_CSS = `
 .ikt .objective { font-size: 24px; color: var(--gold); }
 .ikt .bonus { display: flex; align-items: center; gap: 4px; }
 .ikt .minimap { width: 100%; height: auto; image-rendering: pixelated; box-shadow: 0 0 0 4px var(--ink); background: #d9ccaa; display: block; }
+.ikt .gpicks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.ikt .gpick { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; background: #241f17; color: inherit; font: inherit; font-size: 14px; border: 0; box-shadow: inset 0 0 0 2px #3a3020; cursor: pointer; min-height: 44px; }
+.ikt .gpick img { width: 40px; height: 40px; image-rendering: pixelated; }
+.ikt .gpick.on { box-shadow: inset 0 0 0 3px var(--gold); background: #3a2c14; color: var(--gold); }
 .ikt .intelrow { display: grid; grid-template-columns: 1fr auto; gap: 2px 14px; }
 .ikt .slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: start; }
 .ikt .slot { display: flex; flex-direction: column; gap: 6px; }
@@ -131,6 +135,9 @@ export const SCREENS_CSS = `
   .ikt .chip b { display: inline; margin-left: 6px; }
   .ikt .minimap { max-height: 36vh; width: auto; max-width: 100%; }
   .ikt .briefing .pic { display: none; }
+  .ikt .gpick { flex-direction: row; justify-content: center; padding: 2px 4px; font-size: 12px; min-height: 36px; }
+  .ikt .gpick img { width: 26px; height: 26px; }
+  .ikt .briefing .minimap { max-height: 30vh; }
 }
 @media (min-height: 900px) and (min-width: 1400px) {
   .ikt { font-size: 36px; } .ikt .screen .btn { font-size: 36px; } .ikt .objective { font-size: 36px; }

@@ -76,7 +76,8 @@ describe('the alarm', () => {
     steps(m, 2);
     expect(m.alarm.firstAt).toBeNull();
     Object.assign(m.player!, { x: g.x - 150, y: g.y });
-    steps(m, 1);
+    // A glimpse makes it suspicious; still in sight after AWARE.confirm, it's alert and calls the alarm.
+    steps(m, 2);
     expect(m.alarm.firstAt).not.toBeNull();
   });
 });

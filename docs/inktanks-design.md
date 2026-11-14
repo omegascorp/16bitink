@@ -53,6 +53,7 @@ Settled by the art test in `games/inktanks/dev/art-test.html` and the density te
   - Every hull has the same turret-ring mount point.
   - A flat grey stripe area is tinted with the team colour; the player is ink blue.
   - Direct PixelLab whole-tank images look nice but bake the turret in, so they're rejected.
+  - **Rolling frames:** the paint pass paints one frame per drive, so after installing parts (or repainting the truck or fortress treads) run `python3 dev/pixel/rollframes.py`. It rebuilds the -f1/-f2 frames by sliding the tread along the drive; `--check` lists any frame set that doesn't roll.
 - **Structures use the castle recipe** in [inkheroes-castles.md](inkheroes-castles.md): model, render, pack, paint and cut. Breakable pieces keep their states (whole 2, cracked 1, breached 0).
 - **Ground:**
   - A few painted textures that tile without visible seams, plus scattered decals: tufts, craters, tyre ruts, flowers, puddles.
@@ -147,6 +148,55 @@ A fourth slot for gear:
 - Tracks and Heavy hulls flatten fences and small trees by driving through them. Rocks and big trees are solid.
 - Water stops ground drives, and bridges are choke points.
 - Sand slows Wheels by 30%. Mud slows everything except Tracks by 20%.
+
+## Tactics (approved Nov 14; Phases A and B built Nov 14)
+
+The owner's playtest: "hard and monotonous: you can't plan anything, you can't get any advantage, your only hope is your reaction." The cause is in the engine: bots see through walls, fights are even (same tanks, no flank damage), cover only delays a fight, and the player has no tool but the gun. Research on Wii Play: Tanks!, Battle City, World of Tanks, Enter the Gungeon and Into the Breach points to one fix: give the player information and tools, so a fight is won before it starts.
+
+### 1. Stealth and sight (Phase A)
+- **Walls, buildings and rocks block sight,** not only shots. A bot knows where you are only if it sees you, hears you fire nearby (about 300 px), or is called by an alarm.
+- **Alert states, shown over each enemy:** calm (patrols its route, turret forward, sees about 340 px in a 140° cone) → **?** suspicious (heard or glimpsed you: turns and checks the spot for 2 s) → **!** alert (fights, calls the alarm). The player can read every enemy at a glance, as Into the Breach shows every threat.
+- **Bushes, crops and roofs** hide a tank that isn't firing; only an enemy within 60 px spots it. Firing reveals you for 2 s, so the plan is: pick a firing spot, shoot, slip back into the bush.
+- **Ambush bonus:** a hit on a calm or suspicious enemy does ×2 damage. Stealth pays, and every fight can be opened on your terms.
+
+### 2. Cover you can fight from (Phase A)
+- **Low cover:** sandbags, fences, crates, hay bales and low walls. A shot passes over low cover in the first 50 px of its flight. Hug the sandbags and you fire out, while their shots hit the bags.
+- **Cover has HP and shows it:** whole, cracked, breached (the art already has states 2/1/0). Breaking cover is a clock the player can see.
+- **Bots shoot your cover:** when you're behind breakable cover, one enemy shoots the cover down while others flank. High walls and buildings block shots both ways (no peeking).
+
+### 3. Gadgets: a fourth slot from chapter 1 (Phase B)
+Replaces the chapter-2 Kit slot idea. Pick one gadget in the briefing. 2 charges a level, crates can give more. Key G or a third touch button.
+- **Mines:** arm after 1 s, trigger when an enemy rolls within 28 px: 90 damage, 40 px splash, and a broken track (×0.5 speed for 3 s). Enemies don't see your mines unless they watched you lay one (Wii Play: Tanks!), so you can lure a chaser over one.
+- **Oil slick:** a 60 px patch for 8 s; enemies in it slide at ×0.4 speed and can't turn well. Safe for the player, good for Escort and Hold.
+- **Smoke:** a 90 px cloud for 6 s that blocks sight both ways. Breaks line of sight to retreat, repair or cross open ground.
+- Later chapters add more: a decoy, a call-in, an EMP.
+
+### 4. Readable danger (Phase A)
+- **Big shots are telegraphed:** Cannon and Rockets bots show a thin aim line for 0.4 s before they fire (the Rail already does). Machineguns don't. You dodge by reading, not by twitch.
+
+### 5. Flanking (Phase C)
+- **Side hits ×1.3, rear hits ×1.6,** by the hit angle against the target's hull. Heavy turrets turn slowly, so getting behind a Heavy is a real plan. A "Rear hit!" popup teaches it.
+
+### 6. Levels built for plans (Phase C)
+- The briefing map shows enemy positions and patrol routes (recon), as Door Kickers does.
+- Every level has 2–3 approaches: an open road, a covered flank, a bush line. Sandbag lines near objectives.
+- Enemy types per level act differently (turret, patrol, mine-layer, rusher), so each level reads as a small puzzle (Wii Play: Tanks!).
+
+### Phases
+- **Phase A (engine, biggest lever), done Nov 14:** sight blocked by walls, alert states and icons, the ambush bonus, low cover, cover HP, bots shooting cover, telegraphed big shots. Retune chapter 1 with the lab after (still to do).
+- **Phase B, done Nov 14 (sounds still to do):** the gadget slot (mines, oil, smoke), their art, a gadget pick in the briefing.
+- **Phase C:** flank damage, recon on the briefing map, chapter 1 levels re-laid for 2–3 approaches.
+
+### As built (Nov 14)
+Code: `src/logic/bots/perception.ts` (sight, hiding, the shot line), `bots/awareness.ts` (alert states, hearing), `bots/brain.ts` and `bots/control.ts` (cover shooting, the telegraph, mine avoidance), `bots/playerBot.ts` (the sim's stand-in), `match/gadgets.ts` and `match/gadgetUse.ts`, `match/combat.ts` (ambush, low cover); the view in `src/render/alertView.ts`, `render/gadgetView.ts`, the aim line in `render/fx.ts`, the HUD and briefing picker. Tests: `test/tactics.test.ts`, `test/gadgets.test.ts`.
+- **Sight:** walls, buildings, rocks, gates and smoke block it; low cover, bushes, fences and small trees don't. The player's view is the screen, so this only limits bots.
+- **Alert states** as the doc says, with these numbers: calm sees its role's sight (guard 340, patrol 380, turret 400 px) in a 140° cone round the turret; a calm guard or turret sweeps its turret ±40° round its post's heading, so a gap opens now and then. A glimpse (or a shot heard within 300 px) makes it **?**: it stops and turns to the spot. Still in sight **0.6 s** after the glimpse: **!** (spotted). Not seen again for **2 s**: calm. An alert bot sees all round to 440 px and calms back to ? after **8 s** without seeing anyone, then checks where it last saw you. Hit, or called by the alarm: alert at once. Waves, hunters and boss turrets are always alert. Only alert bots raise the alarm.
+- **Hiding:** bushes, crops, roofs and smoke hide a tank that hasn't fired for 2 s; an enemy within **60 px** (was 100) still spots it.
+- **Ambush ×2** on any player hit (shell, splash, mine) on a calm or suspicious enemy; the hit alerts it, so a Machinegun burst gets ×2 once. The HUD pops "Ambush ×2".
+- **Low cover:** a `low` structure flag. Sandbags (H and V, 120 HP, any gun breaks them), hay bales (60 HP), crates (40 HP, flattenable) and fences. A shot passes over low cover for its first 50 px of flight (about 70 px from the tank's centre); high cover blocks both ways. Levels 1 and 4 have sandbag lines near their objectives.
+- **Bots shoot cover:** one bot per target (COVER_SHOOTERS = 1) shoots breakable cover in the way, aimed where it last saw you, for up to 6 s; the others flank. A bot that loses you behind a wall drives to where it last saw you; it never shoots at where it can't see.
+- **Telegraph:** Cannon and Rockets bots lock their turret and show a thin red aim line for **0.4 s**, then fire along it (it doesn't track you during the hold). This cuts their fire rate a little (a tuning pass follows). Machineguns and the player don't telegraph.
+- **Gadgets:** 2 charges a level, up to 4 from crates (12% of rolled crates that aren't kits hold a charge), one use per 0.6 s, key G or the big phone button. The pick is saved (`SaveData.gadget`, default mines). Mines: arm 1 s, 28 px trigger for enemies only, 90 damage (raw, not through armour), 40 px splash at half to other enemies, broken track ×0.5 for 3 s; only bots that saw it laid steer round it. Oil: 60 px, 8 s, enemies at ×0.4 speed and ×0.35 turning; the player is safe in it. Smoke: 90 px, 6 s, blocks sight both ways and hides a tank inside.
 
 ## Bots
 

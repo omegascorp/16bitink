@@ -14,6 +14,8 @@ export interface KindDef {
   readonly flattenable?: boolean;
   readonly cover?: boolean;
   readonly roof?: boolean;
+  /** Low cover: shots pass over it in their first 50 px (hug it and fire out); it doesn't block sight. */
+  readonly low?: boolean;
   /** Placeholder fill for the renderer until the art lands. */
   readonly colour: number;
   /** Height in native px (for the castle projection placeholder). */
@@ -28,8 +30,13 @@ const PLACEHOLDER_KINDS: Readonly<Record<string, KindDef>> = {
   shed: { shape: rectShape(70, 50), material: 'wood', hp: 80, colour: 0x8a6a44, height: 40 },
   wallBrick: { shape: rectShape(120, 18), material: 'brick', hp: 100, colour: 0xa0583c, height: 26 },
   wallBrickV: { shape: rectShape(18, 120), material: 'brick', hp: 100, colour: 0xa0583c, height: 26 },
-  fence: { shape: rectShape(120, 8), material: 'wood', hp: 20, flattenable: true, colour: 0x7a5a36, height: 16 },
-  fenceV: { shape: rectShape(8, 120), material: 'wood', hp: 20, flattenable: true, colour: 0x7a5a36, height: 16 },
+  fence: { shape: rectShape(120, 8), material: 'wood', hp: 20, flattenable: true, low: true, colour: 0x7a5a36, height: 16 },
+  fenceV: { shape: rectShape(8, 120), material: 'wood', hp: 20, flattenable: true, low: true, colour: 0x7a5a36, height: 16 },
+  /** Low cover (Tactics, Nov 14): a line of sandbags, a hay bale, a crate stack. Break them to open a firing line. */
+  sandbags: { shape: rectShape(64, 16), material: 'wood', hp: 120, low: true, colour: 0xb09a6a, height: 14 },
+  sandbagsV: { shape: rectShape(16, 64), material: 'wood', hp: 120, low: true, colour: 0xb09a6a, height: 14 },
+  hayBale: { shape: rectShape(40, 28), material: 'tree', hp: 60, low: true, colour: 0xd8b858, height: 18 },
+  crate: { shape: rectShape(30, 26), material: 'wood', hp: 40, flattenable: true, low: true, colour: 0x9a7448, height: 16 },
   wallStone: { shape: rectShape(120, 22), material: 'stone', hp: 0, colour: 0x8c8c84, height: 28 },
   wallStoneV: { shape: rectShape(22, 120), material: 'stone', hp: 0, colour: 0x8c8c84, height: 28 },
   oak: { shape: { kind: 'circle', r: 16 }, material: 'rock', hp: 0, colour: 0x3c6a2c, height: 80 },
@@ -66,6 +73,7 @@ export const ART_NAME: Readonly<Record<string, string>> = {
   /** Ground pieces: drawn under the land by the ground stream where a 'bridge' patch lies, never placed as structures. */
   bridgeDeck: 'bridgeDeck', bridgeDeckV: 'bridgeDeckV', cage: 'cage', fuelBarrels: 'fuelBarrels', radarMast: 'radarMast', hangar: 'hangar',
   fortWall: 'fortWallH', fortWallV: 'fortWallV', fortGate: 'fortGate', wagon: 'wagon', fortTower: 'fortTower',
+  sandbags: 'sandbagH', sandbagsV: 'sandbagV', hayBale: 'hayBale', crate: 'crate',
 };
 
 type Footprint = Readonly<Record<string, readonly (readonly (readonly [number, number])[])[]>>;

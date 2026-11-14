@@ -1,4 +1,7 @@
 import { MISSION_NAMES } from '../logic/campaign';
+import { GADGET_NAME, GADGET_TEXT } from '../logic/match/gadgets';
+import { GADGETS, type GadgetKind } from '../logic/match/types';
+import { gadgetIconUrl } from '../scenes/mission/hud';
 import type { Match } from '../logic/match/match';
 import { bonusText } from '../logic/mission/bonus';
 import type { Medals } from '../logic/mission/outcome';
@@ -16,6 +19,8 @@ const commanderUrl = Object.values(portraits)[0] ?? null;
 
 export interface BriefingActions {
   readonly start: () => void;
+  /** The gadget picker: saves the pick and fits it to this match. */
+  readonly gadget: (g: GadgetKind) => void;
   readonly workshop: () => void;
   readonly back: () => void;
 }
@@ -25,7 +30,17 @@ export interface BriefingActions {
  * line, the two bonus objectives (lit when already earned), a small map
  * with your start and the target, and the tank you're taking.
  */
+/** The 3-way gadget picker: icon, name, the one-line rule; the picked one is lit. */
+function gadgetPicker(picked: GadgetKind): string {
+  const opt = (g: GadgetKind): string => {
+    const url = gadgetIconUrl(g);
+    return `<button class="gpick${g === picked ? ' on' : ''}" data-act="pick" data-g="${g}" title="${esc(GADGET_TEXT[g])}">${url ? `<img src="${url}" alt="">` : ''}<span>${esc(GADGET_NAME[g])}</span></button>`;
+  };
+  return `<div class="dimt t12 hide-short">Gadget (G) · 2 a level</div><div class="gpicks">${GADGETS.map(opt).join('')}</div><div class="t12 gtext hide-short">${esc(GADGET_TEXT[picked])}</div>`;
+}
+
 export function showBriefing(root: HTMLElement, m: Match, p: Progress, a: BriefingActions): void {
+  let picked: GadgetKind = m.player?.gadget ?? 'mines';
   const def = m.level.def;
   const had: Medals = p.medals[def.number] ?? [false, false, false];
   const l = p.loadout;
@@ -49,10 +64,22 @@ export function showBriefing(root: HTMLElement, m: Match, p: Progress, a: Briefi
           <div class="mapbox"></div>
           <div class="row"><div class="pic"></div><div class="col"><div class="row">${partIcon(l.gun)}${partIcon(l.hull)}${partIcon(l.drive)}</div>
             <div class="t12 hide-short">${esc([l.gun, l.hull, l.drive].map(partLabel).join(' · '))}</div><div class="t12 dimt">Repair kits: ${perksOf(p.xp).repairKits}</div></div></div>
+          <div class="gadgets">${gadgetPicker(picked)}</div>
         </div>
       </div>
       <div class="row center"><button class="btn" data-act="back">Map</button>${workshopButton(p)}<button class="btn go" data-act="start">Start</button></div>
-    </div>`, { ...a });
+    </div>`, {
+    start: a.start, workshop: a.workshop, back: a.back,
+    pick: (el) => {
+      const g = el.dataset.g as GadgetKind;
+      if (!GADGETS.includes(g) || g === picked) return;
+      picked = g;
+      a.gadget(g);
+      const box = root.querySelector<HTMLElement>('.gadgets')!;
+      for (const b of box.querySelectorAll<HTMLElement>('.gpick')) b.classList.toggle('on', b.dataset.g === g);
+      box.querySelector('.gtext')!.textContent = GADGET_TEXT[g];
+    },
+  });
   root.querySelector('.pic')!.appendChild(tankCanvas(l, 1));
   root.querySelector('.mapbox')!.appendChild(briefingMap(m));
 }

@@ -1,14 +1,16 @@
+import { structureDamage } from '../damage';
 import type { ResolvedEnemy } from '../level/load';
 import type { BotRole } from '../level/types';
-import { wantsSwap } from '../loot';
 import type { Match } from '../match/match';
 import type { Tank } from '../match/types';
 import type { Hint } from '../objectives/types';
 import type { Rng } from '../rng';
 import type { Pt } from '../vec';
 import { raiseAlarm, RAISES_ALARM } from './alarm';
+import { alwaysAlert, AWARE, sense, type Aware } from './awareness';
 import { GUARD_LEASH, ROLE_SIGHT, SHOOT_BACK, type Difficulty } from './difficulty';
-import { canSee, enemies, losClear, odds, VISION } from './perception';
+import { losClear, odds, shotBlocker, VISION } from './perception';
+import { thinkPlayer } from './playerBot';
 
 /**
  * A bot's mind. Its role (set by the level) decides what it does when
@@ -56,7 +58,28 @@ export interface Brain {
   hint: Hint | null;
   /** The target as seen at the last decision: aim works from this, so it lags a strafing target. */
   snap: { x: number; y: number; vx: number; vy: number; t: number } | null;
+  /** Alert state (awareness.ts), when it last changed, and the spot it's checking. */
+  aware: Aware;
+  awareSince: number;
+  awareSpot: Pt | null;
+  alertUntil: number;
+  /** Where it last saw an enemy: it hunts and shoots cover there, never where it can't see. */
+  lastSeen: { x: number; y: number; t: number; id: number } | null;
+  /** Breakable cover between it and where it last saw you: it shoots that (at most COVER_SHOOTERS per target). */
+  coverShot: { x: number; y: number; id: string; of: number } | null;
+  /** A big gun's held aim line (Cannon, Rockets): fires along `angle` once `until` comes. */
+  telegraph: { angle: number; until: number } | null;
+  /** The player stand-in: use the gadget now; fight from this bush or low cover. */
+  useGadget: boolean;
+  coverSpot: Pt | null;
+  /** A calm guard or turret's turret sweeps round this heading. */
+  readonly lookBase: number;
 }
+
+/** Bots per target that shoot its cover down; the rest flank. */
+export const COVER_SHOOTERS = 1;
+/** How long a bot shoots cover where it last saw you. */
+export const COVER_MEMORY = 6;
 
 export function createBrain(t: Tank, e: ResolvedEnemy | null, diff: Difficulty, rng: Rng, route: readonly Pt[] | null = null): Brain {
   const role = e?.role ?? 'player';
@@ -66,6 +89,8 @@ export function createBrain(t: Tank, e: ResolvedEnemy | null, diff: Difficulty, 
     state: 'idle', target: null, goal: null, goalPickup: null, shootAt: null, los: false,
     thinkT: rng.range(0, diff.reaction), aimNoise: 0, strafe: rng.chance(0.5) ? 1 : -1, strafeT: 0,
     lastPos: { x: t.x, y: t.y }, stuckT: 0, detourT: 0, detourAngle: 0, holdFire: false, seenCount: 0, alert: null, wantSwap: false, useKit: false, hint: null, snap: null,
+    aware: alwaysAlert({ role }, t) ? 'alert' : 'calm', awareSince: 0, awareSpot: null, alertUntil: 0, lastSeen: null, coverShot: null, telegraph: null,
+    useGadget: false, coverSpot: null, lookBase: t.turret,
   };
 }
 
@@ -73,7 +98,7 @@ function gauss(rng: Rng): number {
   return (rng.next() + rng.next() + rng.next() - 1.5) * 1.15;
 }
 
-function pickTarget(m: Match, b: Brain, t: Tank, seen: readonly Tank[]): Tank | null {
+export function pickTarget(m: Match, b: Brain, t: Tank, seen: readonly Tank[]): Tank | null {
   if (b.hint?.target != null) {
     const pri = m.tank(b.hint.target);
     if (pri?.alive && seen.includes(pri)) return pri;
@@ -87,6 +112,8 @@ function pickTarget(m: Match, b: Brain, t: Tank, seen: readonly Tank[]): Tank | 
     if (o.id === t.lastHitBy && m.t - t.lastHitAt < 4) s += 2;
     if (o.role === 'truck') s += 3;
     if (o.id === b.target) s += 1;
+    // The stand-in opens on enemies that haven't seen it (the ambush bonus).
+    if (b.role === 'player' && m.brains.get(o.id)?.aware !== 'alert') s += 1.5;
     if (s > bestScore) {
       bestScore = s;
       best = o;
@@ -95,36 +122,26 @@ function pickTarget(m: Match, b: Brain, t: Tank, seen: readonly Tank[]): Tank | 
   return best;
 }
 
-/** The player stand-in's loot: crates, kits, intel and better parts close by. */
-function lootPick(m: Match, t: Tank, range: number): { id: number; x: number; y: number } | null {
-  let best: { id: number; x: number; y: number } | null = null;
-  let bestScore = 0;
-  for (const p of m.pickups) {
-    if (p.taken) continue;
-    const d = Math.hypot(p.x - t.x, p.y - t.y);
-    if (d > range) continue;
-    let v = 0;
-    if (p.kind === 'crate') v = 6;
-    else if (p.kind === 'kit') v = t.kits < t.maxKits ? 7 : 0;
-    else if (p.kind === 'intel') v = 6 + Object.values(p.bag).reduce((s: number, n) => s + (n ?? 0), 0);
-    else if (p.kind === 'part') v = wantsSwap(t.loadout, p.part, t.lastHitDrive) ? p.part.mk * 5 : 0;
-    const score = v / (1 + d / 220);
-    if (score > bestScore) {
-      bestScore = score;
-      best = { id: p.id, x: p.x, y: p.y };
-    }
+/** Breakable cover between me and where I last saw my target, if I'm one of its COVER_SHOOTERS. */
+function coverToShoot(m: Match, b: Brain, t: Tank): Brain['coverShot'] {
+  const ls = b.lastSeen;
+  if (b.role === 'player' || b.role === 'convoy' || b.role === 'runner' || !ls || m.t - ls.t > COVER_MEMORY) return null;
+  if (Math.hypot(ls.x - t.x, ls.y - t.y) > t.stats.gun.range) return null;
+  const s = shotBlocker(m, t.x, t.y, ls.x, ls.y);
+  if (!s || s.def.hp <= 0 || structureDamage(1, s.def.material, t.stats.gun.breaksBrick) <= 0) return null;
+  if (b.coverShot?.of !== ls.id) {
+    let n = 0;
+    for (const o of m.brains.values()) if (o !== b && o.coverShot?.of === ls.id) n++;
+    if (n >= COVER_SHOOTERS) return null;
   }
-  return best;
+  return { x: ls.x, y: ls.y, id: s.def.id, of: ls.id };
 }
-
-const LOOT_RANGE = 420;
 
 export function think(m: Match, b: Brain, t: Tank): void {
   const attacked = m.t - t.lastHitAt < 3;
   const alerted = b.alert !== null && m.t < b.alert.until;
-  const range = alerted || attacked || b.state === 'fight' ? VISION : b.sight;
   // Enemies don't aim at freed crews (they're hit by misses and splash); only the player shoots boss turrets.
-  const seen = enemies(m, t).filter((o) => (o.role !== 'bossTurret' || b.role === 'player') && o.role !== 'crew').filter((o) => canSee(m, t, o, range));
+  const seen = sense(m, b, t);
   b.hint = b.role === 'player' ? m.objective.playerHint(t) : b.role === 'wave' || b.role === 'hunter' ? m.objective.foeHint(t) : null;
   b.shootAt = b.hint?.shootAt ?? null;
   const nearest = seen.reduce((d, o) => Math.min(d, Math.hypot(o.x - t.x, o.y - t.y)), Infinity);
@@ -133,12 +150,15 @@ export function think(m: Match, b: Brain, t: Tank): void {
   b.holdFire = b.rng.chance(b.diff.hesitate);
   b.seenCount = seen.filter((o) => o.role === 'tank').length;
   b.wantSwap = false;
+  b.useGadget = false;
   const shootsBack = b.role === 'convoy' || b.role === 'runner';
   const target = shootsBack && m.t - t.lastHitAt > SHOOT_BACK ? null : pickTarget(m, b, t, seen);
   b.target = target?.id ?? null;
   b.snap = target ? { x: target.x, y: target.y, vx: Math.cos(target.heading) * target.speed, vy: Math.sin(target.heading) * target.speed, t: m.t } : null;
   b.los = target ? losClear(m, t.x, t.y, target.x, target.y) : b.shootAt ? losClear(m, t.x, t.y, b.shootAt.x, b.shootAt.y, b.shootAt.id) : false;
-  if (RAISES_ALARM.has(b.role)) {
+  b.coverShot = target && b.los ? null : coverToShoot(m, b, t);
+  // Only an alert bot raises the alarm: a calm or suspicious one hasn't made you out yet.
+  if (RAISES_ALARM.has(b.role) && b.aware === 'alert') {
     const spotted = seen.find((o) => o.team === 0);
     const hitBy = attacked && t.lastHitBy !== null ? m.tank(t.lastHitBy) : null;
     if (spotted) raiseAlarm(m, t, spotted);
@@ -149,15 +169,18 @@ export function think(m: Match, b: Brain, t: Tank): void {
   // Back off to repair when losing, if there's a kit to use (running with none just loses the fight).
   const canRepair = t.kits > 0 || t.repairT > 0;
   if (target && flees && canRepair && t.hp < t.stats.maxHp * b.diff.fleeHp && winnable < 1.2) return set(b, 'flee', null);
-  if (b.role === 'player') return thinkPlayer(m, b, t, target, winnable, attacked);
+  if (b.role === 'player') return thinkPlayer(m, b, t, target, winnable, attacked, seen);
   thinkRole(m, b, t, target, alerted);
 }
 
 function thinkRole(m: Match, b: Brain, t: Tank, target: Tank | null, alerted: boolean): void {
-  const alertAt = alerted ? b.alert : null;
+  // Alert and lost you: it goes to where it last saw you (not where you are).
+  const memory = b.aware === 'alert' && b.lastSeen && m.t - b.lastSeen.t < AWARE.forget ? b.lastSeen : null;
+  const alertAt = (alerted ? b.alert : null) ?? memory;
+  const fights = target !== null || b.coverShot !== null;
   switch (b.role) {
     case 'turret':
-      return set(b, target ? 'fight' : 'idle', null);
+      return set(b, fights ? 'fight' : 'idle', null);
     case 'convoy':
     case 'runner':
       return set(b, 'route', null);
@@ -165,17 +188,19 @@ function thinkRole(m: Match, b: Brain, t: Tank, target: Tank | null, alerted: bo
       const home = alertAt ?? b.post;
       // A guard fights near home; past its leash it gives up and goes back.
       b.hint = { goal: home, goalRadius: b.leash / 1.6, stay: true };
-      if (target) return set(b, 'fight', null);
+      if (fights) return set(b, 'fight', null);
+      if (b.aware === 'suspicious') return set(b, 'idle', null);
       const far = Math.hypot(home.x - t.x, home.y - t.y) > (alertAt ? 80 : 50);
       return far ? set(b, 'goal', home) : set(b, 'idle', null);
     }
     case 'patrol':
-      if (target) return set(b, 'fight', null);
+      if (fights) return set(b, 'fight', null);
       if (alertAt && Math.hypot(alertAt.x - t.x, alertAt.y - t.y) > 80) return set(b, 'goal', alertAt);
+      if (b.aware === 'suspicious') return set(b, 'idle', null);
       return set(b, 'route', null);
     case 'wave':
     case 'hunter': {
-      if (target) return set(b, 'fight', null);
+      if (fights) return set(b, 'fight', null);
       const p = m.player;
       const goal = b.hint?.goal ?? (p?.alive ? p : null);
       return goal ? set(b, 'goal', { x: goal.x, y: goal.y }) : set(b, 'idle', null);
@@ -185,25 +210,7 @@ function thinkRole(m: Match, b: Brain, t: Tank, target: Tank | null, alerted: bo
   }
 }
 
-function thinkPlayer(m: Match, b: Brain, t: Tank, target: Tank | null, winnable: number, attacked: boolean): void {
-  const h = b.hint;
-  const priority = target !== null && h?.target === target.id;
-  const close = target !== null && Math.hypot(target.x - t.x, target.y - t.y) < 260;
-  const engage = h?.sneak ? attacked || priority : winnable >= 0.75 || attacked || priority || close;
-  // Running: shoot what's in sight on the way, but keep driving.
-  if (target && engage && h?.run && h.goal) return set(b, 'goal', { x: h.goal.x, y: h.goal.y });
-  if (target && engage) return set(b, 'fight', null);
-  const loot = h?.urgent ? null : lootPick(m, t, target ? LOOT_RANGE * 0.5 : LOOT_RANGE);
-  if (loot) {
-    b.goalPickup = loot.id;
-    b.wantSwap = Math.hypot(loot.x - t.x, loot.y - t.y) < t.stats.radius + 14;
-    return set(b, 'loot', loot);
-  }
-  if (h?.goal) return set(b, 'goal', { x: h.goal.x, y: h.goal.y });
-  set(b, 'idle', null);
-}
-
-function set(b: Brain, state: BotState, goal: Pt | null): void {
+export function set(b: Brain, state: BotState, goal: Pt | null): void {
   b.state = state;
   b.goal = goal;
   if (state !== 'loot') b.goalPickup = null;

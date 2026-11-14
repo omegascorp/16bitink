@@ -200,7 +200,8 @@ describe('hold, capture, recon', () => {
     expect(m.objective.status().text).toContain('1/3');
     expect(m.alarm.firstAt).toBeNull();
     put(p, POINTS.b!);
-    steps(m, 1.2);
+    // Seen: ? then ! (the confirm), and only an alert guard raises the alarm.
+    steps(m, 2);
     expect(m.objective.status().text).toContain('1/3');
     expect(m.alarm.firstAt).not.toBeNull();
     expect(m.pendingWaves()).toBe(0);

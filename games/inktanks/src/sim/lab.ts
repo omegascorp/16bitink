@@ -8,6 +8,7 @@ import type { Loadout } from '../logic/parts';
 import { rankOf } from '../logic/rank';
 import { asciiMap, MAP_LEGEND } from './asciiMap';
 import { intelLine, runChapter } from './chapter';
+import { GADGETS, type GadgetKind } from '../logic/match/types';
 import { runMission, type RunResult } from './runMission';
 
 /**
@@ -16,6 +17,7 @@ import { runMission, type RunResult } from './runMission';
  *   lab -- --level 3 --seeds 30      more seeds
  *   lab -- --level 3 --tank cannon2/medium1/halftracks1    another player tank
  *   lab -- --level 3 --kits 2        repair kits (Corporal and up carry 2)
+ *   lab -- --level 3 --gadget smoke  the stand-in's gadget (mines, oil, smoke, none; default mines)
  *   lab -- --level 3 --no-map        skip the map
  *   lab -- --map 3                   only the map
  *   lab -- --all --seeds 10          one summary line per level
@@ -29,6 +31,7 @@ export interface LabArgs {
   seed: number;
   tank: string | null;
   kits: number | null;
+  gadget: GadgetKind | null;
   map: boolean;
   mapOnly: boolean;
   all: boolean;
@@ -52,7 +55,7 @@ export const TYPICAL_TANK: Readonly<Record<number, string>> = {
 const TYPICAL_KITS = (level: number): number => (level >= 3 ? 2 : 1);
 
 export function parseArgs(argv: readonly string[]): LabArgs {
-  const a: LabArgs = { level: null, seeds: 10, seed: 1, tank: null, kits: null, map: true, mapOnly: false, all: false, chapter: false };
+  const a: LabArgs = { level: null, seeds: 10, seed: 1, tank: null, kits: null, gadget: 'mines', map: true, mapOnly: false, all: false, chapter: false };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i]!;
     const v = argv[i + 1];
@@ -63,6 +66,10 @@ export function parseArgs(argv: readonly string[]): LabArgs {
     else if (k === '--seed' && Number.isFinite(n)) a.seed = n;
     else if (k === '--kits' && Number.isFinite(n)) a.kits = n;
     else if (k === '--tank' && v) a.tank = v;
+    else if (k === '--gadget' && v) {
+      if (v !== 'none' && !(GADGETS as readonly string[]).includes(v)) throw new Error(`lab: --gadget ${v}: want ${GADGETS.join(', ')} or none`);
+      a.gadget = v === 'none' ? null : (v as GadgetKind);
+    }
     else if (k === '--no-map') a.map = false;
     else if (k === '--all') a.all = true;
     else if (k === '--chapter') a.chapter = true;
@@ -86,7 +93,7 @@ function runs(level: LoadedLevel, a: LabArgs): { loadout: Loadout; kits: number;
   const n = level.def.number;
   const loadout = parseTank(a.tank ?? TYPICAL_TANK[n] ?? TYPICAL_TANK[1]!);
   const kits = a.kits ?? TYPICAL_KITS(n);
-  const results = Array.from({ length: a.seeds }, (_, i) => runMission({ level, seed: a.seed + i, player: { loadout, kits } }));
+  const results = Array.from({ length: a.seeds }, (_, i) => runMission({ level, seed: a.seed + i, player: { loadout, kits, gadget: a.gadget } }));
   return { loadout, kits, results };
 }
 
@@ -99,7 +106,7 @@ function medalsOf(level: LoadedLevel, r: RunResult): string {
 export function seedLine(level: LoadedLevel, seed: number, r: RunResult): string {
   const rep = r.report!;
   const foes = r.tanks.filter((t) => t.team !== 0 && (t.role === 'tank' || t.role === 'truck'));
-  return `  seed ${String(seed).padStart(3)}  ${r.passed ? 'PASS' : 'fail'}  ${fmt(r.time).padStart(5)}  medals ${medalsOf(level, r)}  kills ${String(rep.kills).padStart(2)}  intel ${String(rep.intelCount).padStart(2)}  hp ${pct(r.playerHp).padStart(4)}  foes left ${foes.filter((t) => t.alive).length}/${foes.length}  alarm ${rep.alarm ? 'yes' : 'no '}  end: ${r.reason}`;
+  return `  seed ${String(seed).padStart(3)}  ${r.passed ? 'PASS' : 'fail'}  ${fmt(r.time).padStart(5)}  medals ${medalsOf(level, r)}  kills ${String(rep.kills).padStart(2)}  intel ${String(rep.intelCount).padStart(2)}  hp ${pct(r.playerHp).padStart(4)}  foes left ${foes.filter((t) => t.alive).length}/${foes.length}  alarm ${rep.alarm ? 'yes' : 'no '}  amb ${String(r.ambushHits).padStart(2)}  gad ${r.gadgetsUsed}  spot ${String(r.spotted).padStart(2)}  end: ${r.reason}`;
 }
 
 /** The summary line the tuning loop reads. */
@@ -111,7 +118,7 @@ export function summaryLine(level: LoadedLevel, results: readonly RunResult[]): 
   const share = (i: number) => pct(avg(outs.map((o) => (o.done[i] ? 1 : 0))));
   const ends = new Map<string, number>();
   for (const r of results) ends.set(r.reason, (ends.get(r.reason) ?? 0) + 1);
-  return `L${d.number} ${d.name} (${d.type}): pass ${results.filter((r) => r.passed).length}/${results.length}  time ${fmt(avg(passTimes.length ? passTimes : times))} (${fmt(Math.min(...times))}–${fmt(Math.max(...times))})  medals main ${share(0)} b1 ${share(1)} b2 ${share(2)}  kills ${avg(results.map((r) => r.report!.kills)).toFixed(1)}  intel ${avg(results.map((r) => r.report!.intelCount)).toFixed(1)}  ends: ${[...ends].map(([k, v]) => `${k} ${v}`).join(', ')}`;
+  return `L${d.number} ${d.name} (${d.type}): pass ${results.filter((r) => r.passed).length}/${results.length}  time ${fmt(avg(passTimes.length ? passTimes : times))} (${fmt(Math.min(...times))}–${fmt(Math.max(...times))})  medals main ${share(0)} b1 ${share(1)} b2 ${share(2)}  kills ${avg(results.map((r) => r.report!.kills)).toFixed(1)}  intel ${avg(results.map((r) => r.report!.intelCount)).toFixed(1)}  ambush ${avg(results.map((r) => r.ambushHits)).toFixed(1)}  gadgets ${avg(results.map((r) => r.gadgetsUsed)).toFixed(1)}  spotted ${avg(results.map((r) => r.spotted)).toFixed(1)}  ends: ${[...ends].map(([k, v]) => `${k} ${v}`).join(', ')}`;
 }
 
 export function levelReport(a: LabArgs): string {
@@ -122,7 +129,7 @@ export function levelReport(a: LabArgs): string {
   if (a.mapOnly) return lines.join('\n');
   const { loadout, kits, results } = runs(level, a);
   const tank = `${loadout.gun.family}${loadout.gun.mk}/${loadout.hull.family}${loadout.hull.mk}/${loadout.drive.family}${loadout.drive.mk}`;
-  lines.push(`Level ${d.number} ${d.name}, ${a.seeds} seeds from ${a.seed}, player bot on ${tank} with ${kits} kit(s)${d.timeLimit ? `, timer ${fmt(d.timeLimit)}` : ''}`);
+  lines.push(`Level ${d.number} ${d.name}, ${a.seeds} seeds from ${a.seed}, player bot on ${tank} with ${kits} kit(s), gadget ${a.gadget ?? 'none'}${d.timeLimit ? `, timer ${fmt(d.timeLimit)}` : ''}`);
   lines.push(`  bonus 1: ${bonusText(d.bonus[0])}   bonus 2: ${bonusText(d.bonus[1])}`);
   results.forEach((r, i) => lines.push(seedLine(level, a.seed + i, r)));
   lines.push(summaryLine(level, results));

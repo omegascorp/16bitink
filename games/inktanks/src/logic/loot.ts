@@ -9,9 +9,14 @@ export interface LootTable {
   readonly crateMk: readonly [number, number, number];
   /** Share of crates that hold a repair kit instead of a part. */
   readonly kitShare: number;
+  /** Share that hold a gadget charge (default GADGET_SHARE). */
+  readonly gadgetShare?: number;
 }
 
-export type CrateContent = { readonly kind: 'part'; readonly part: Part } | { readonly kind: 'kit' };
+/** Rolled crates hold a gadget charge this often, unless the table says otherwise (Tactics §3). */
+export const GADGET_SHARE = 0.12;
+
+export type CrateContent = { readonly kind: 'part'; readonly part: Part } | { readonly kind: 'kit' } | { readonly kind: 'gadget' };
 
 const MKS: readonly Mk[] = [1, 2, 3];
 
@@ -21,6 +26,7 @@ export function rollMk(rng: Rng, weights: readonly [number, number, number]): Mk
 
 export function rollCrate(rng: Rng, t: LootTable): CrateContent {
   if (rng.chance(t.kitShare)) return { kind: 'kit' };
+  if (rng.chance(t.gadgetShare ?? GADGET_SHARE)) return { kind: 'gadget' };
   return { kind: 'part', part: { family: rng.pick(t.families), mk: rollMk(rng, t.crateMk) } };
 }
 

@@ -9,6 +9,11 @@ const STUCK_MOVE = 10;
 const STUCK_TIME = 1.0;
 const DETOUR = 0.9;
 const SEPARATION = 85;
+/** Cannon and Rockets bots hold their aim line this long before they fire (Tactics §4). */
+export const TELEGRAPH = 0.4;
+const TELEGRAPHED: ReadonlySet<string> = new Set(['cannon', 'rockets']);
+/** Bots steer this far round mines they watched being laid. */
+const MINE_AVOID = 70;
 
 /** The way to drive towards `goal`: straight when the line is clear, else down the flow field. */
 export function navAngle(m: Match, t: Tank, goal: Pt): number {
@@ -18,10 +23,20 @@ export function navAngle(m: Match, t: Tank, goal: Pt): number {
   return a ?? angleTo(t, goal);
 }
 
-/** Steers a desired angle away from nearby tanks. */
+/** Steers a desired angle away from nearby tanks, and from mines it saw laid. */
 function separate(m: Match, t: Tank, angle: number, ignore: number | null): number {
   let vx = Math.cos(angle);
   let vy = Math.sin(angle);
+  for (const mine of m.gadgets.mines) {
+    if (!mine.alive || !mine.known.has(t.id)) continue;
+    const dx = t.x - mine.x;
+    const dy = t.y - mine.y;
+    const d = Math.hypot(dx, dy);
+    if (d > MINE_AVOID || d < 1) continue;
+    const k = ((MINE_AVOID - d) / MINE_AVOID) * 2.5;
+    vx += (dx / d) * k;
+    vy += (dy / d) * k;
+  }
   for (const o of m.tanks) {
     if (o === t || !o.alive || o.id === ignore || o.role === 'bossTurret' || o.role === 'crew') continue;
     const dx = t.x - o.x;
@@ -64,6 +79,33 @@ function trackStuck(b: Brain, t: Tank, moving: boolean, dt: number): void {
   }
 }
 
+/**
+ * Cannon and Rockets bots don't fire the moment they line up: they lock the
+ * turret, show the aim line (an 'aim' event) for TELEGRAPH s, then fire along
+ * it. Machineguns and the player don't.
+ */
+function telegraph(m: Match, b: Brain, t: Tank, aim: number | null, fire: boolean): { aim: number | null; fire: boolean } {
+  if (b.role === 'player' || !TELEGRAPHED.has(t.stats.gun.family)) return { aim, fire };
+  const tg = b.telegraph;
+  if (tg) {
+    if (m.t + 1e-9 < tg.until) return { aim: tg.angle, fire: false };
+    b.telegraph = null;
+    return { aim: tg.angle, fire: true };
+  }
+  if (!fire || t.reload > 0 || t.burst > 0 || t.repairT > 0) return { aim, fire: false };
+  const until = m.t + TELEGRAPH;
+  b.telegraph = { angle: t.turret, until };
+  m.emit({ kind: 'aim', tank: t.id, angle: t.turret, len: t.stats.gun.range, until });
+  return { aim: t.turret, fire: false };
+}
+
+/** Where an idle bot looks: a calm guard or turret sweeps round its post's heading; a suspicious one turns to the spot. */
+function lookAround(m: Match, b: Brain, t: Tank): number | null {
+  if (b.aware === 'suspicious' && b.awareSpot) return angleTo(t, b.awareSpot);
+  if (b.aware === 'calm' && (b.role === 'guard' || b.role === 'turret') && b.state === 'idle') return wrapAngle(b.lookBase + Math.sin(m.t * 0.45 + t.id) * 0.7);
+  return null;
+}
+
 export function botInput(m: Match, b: Brain, t: Tank, dt: number): TankInput {
   b.thinkT -= dt;
   if (b.thinkT <= 0) {
@@ -72,9 +114,15 @@ export function botInput(m: Match, b: Brain, t: Tank, dt: number): TankInput {
   }
   const target = b.target !== null ? m.tank(b.target) : null;
   const g = t.stats.gun;
-  let aim: number | null = null;
+  let aim: number | null = lookAround(m, b, t);
   let fire = false;
-  if (target?.alive) {
+  const cover = b.coverShot;
+  if (cover && !(target?.alive && b.los)) {
+    // Shoot the cover where it last saw you: the shot stops on it.
+    aim = angleTo(t, cover) + b.aimNoise * 0.5;
+    const d = Math.hypot(cover.x - t.x, cover.y - t.y);
+    fire = !b.holdFire && d <= g.range && Math.abs(wrapAngle(t.turret - aim)) < 0.1;
+  } else if (target?.alive) {
     const p = lead(m, b, t, target, g.shotSpeed);
     aim = angleTo(t, p) + b.aimNoise;
     const d = Math.hypot(target.x - t.x, target.y - t.y);
@@ -84,11 +132,21 @@ export function botInput(m: Match, b: Brain, t: Tank, dt: number): TankInput {
     const d = Math.hypot(b.shootAt.x - t.x, b.shootAt.y - t.y);
     fire = b.los && d <= g.range && Math.abs(wrapAngle(t.turret - aim)) < 0.1;
   }
+  ({ aim, fire } = telegraph(m, b, t, aim, fire));
+  const gadget = b.useGadget;
+  b.useGadget = false;
   if (t.role === 'bossTurret' || b.role === 'turret') return { move: null, aim, fire, swap: false, repair: false };
   let angle: number | null = null;
   let mag = 1;
   switch (b.state) {
     case 'fight': {
+      // Cover shooters stand and shoot; the stand-in fights from its bush or sandbags.
+      if (cover && !(target?.alive && b.los)) break;
+      if (b.coverSpot && target) {
+        const d = Math.hypot(b.coverSpot.x - t.x, b.coverSpot.y - t.y);
+        if (d > 16) angle = navAngle(m, t, b.coverSpot);
+        break;
+      }
       if (!target) break;
       const d = Math.hypot(target.x - t.x, target.y - t.y);
       const outranges = g.range > target.stats.gun.range + 40 && target.role === 'tank';
@@ -140,7 +198,9 @@ export function botInput(m: Match, b: Brain, t: Tank, dt: number): TankInput {
     default: {
       if (!b.goal) break;
       const d = Math.hypot(b.goal.x - t.x, b.goal.y - t.y);
-      const stopAt = b.state === 'loot' ? 6 : b.state === 'goal' ? (b.role === 'guard' ? 40 : (b.hint?.goalRadius ?? 40)) : 30;
+      // Something to shoot there (a cage, a target) but no clear shot yet: keep closing in.
+      const blocked = b.shootAt !== null && !b.los;
+      const stopAt = b.state === 'loot' ? 6 : b.state === 'goal' ? (b.role === 'guard' || blocked ? 40 : (b.hint?.goalRadius ?? 40)) : 30;
       if (d < stopAt) mag = 0;
       else {
         angle = navAngle(m, t, b.goal);
@@ -157,5 +217,5 @@ export function botInput(m: Match, b: Brain, t: Tank, dt: number): TankInput {
   if (angle !== null && b.state !== 'loot') angle = separate(m, t, angle, b.target);
   if (aim === null && angle !== null) aim = angle;
   const wantSwap = b.state === 'loot' && t.onPart !== null && t.onPart === b.goalPickup;
-  return { move: angle === null ? null : { kind: 'point', angle, mag }, aim, fire, swap: wantSwap, repair: b.useKit };
+  return { move: angle === null ? null : { kind: 'point', angle, mag }, aim, fire, swap: wantSwap, repair: b.useKit, gadget };
 }

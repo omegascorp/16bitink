@@ -9,7 +9,7 @@ import { nearestPassable } from '../nav/grid';
 import { angleTo, type Pt } from '../vec';
 import type { Match } from './match';
 import { CLAN_CREW, crewName } from './names';
-import type { Clan, Tank, TankRole } from './types';
+import type { Clan, GadgetKind, Tank, TankRole } from './types';
 
 export interface TankSpec {
   readonly name: string;
@@ -28,6 +28,8 @@ export interface TankSpec {
   readonly speedMult?: number;
   readonly at: Pt;
   readonly heading?: number;
+  readonly gadget?: GadgetKind | null;
+  readonly gadgetCharges?: number;
 }
 
 /** Enemy clans share one team: they fight you, not each other (clan wars come later). */
@@ -47,7 +49,9 @@ export function addTank(m: Match, spec: TankSpec): Tank {
     kits: spec.kits ?? 1, maxKits: spec.maxKits ?? 1, repairT: 0, firedAt: -99, kills: 0,
     lastHitBy: null, lastHitAt: -99, lastHitDrive: null, usedKit: false,
     hullsUsed: [spec.loadout.hull.family as Tank['hullsUsed'][number]], picks: [], swapT: 0, onPart: null, onFullKit: false, carrying: false,
-    rolled: 0, parent: null, mount: null, victims: [], deadAt: -1, shotsFired: 0, shotsHit: 0, dealt: 0,
+    rolled: 0, parent: null, mount: null, victims: [], deadAt: -1,
+    gadget: spec.gadget ?? null, gadgetCharges: spec.gadget ? (spec.gadgetCharges ?? 0) : 0, gadgetT: 0, trackBrokenUntil: -1,
+    ambushHits: 0, gadgetsUsed: 0, shotsFired: 0, shotsHit: 0, dealt: 0,
   };
   m.tanks.push(t);
   return t;

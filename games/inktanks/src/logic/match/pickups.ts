@@ -1,6 +1,7 @@
 import { slotOf, withPart, type Family, type HullFamily } from '../parts';
 import { tankStats } from '../stats';
 import { mergeIntel, sumIntel } from '../intel';
+import { GADGET } from './gadgets';
 import type { Match } from './match';
 import type { Tank, TankInput } from './types';
 
@@ -63,6 +64,7 @@ export function touchPickups(m: Match, t: Tank, input: TankInput, dt: number, wa
         p.taken = true;
         m.emit({ kind: 'crate', x: p.x, y: p.y });
         if (p.content.kind === 'kit') m.addPickup({ kind: 'kit' }, p.x, p.y);
+        else if (p.content.kind === 'gadget') m.addPickup({ kind: 'gadget' }, p.x, p.y);
         else m.addPickup({ kind: 'part', part: p.content.part }, p.x, p.y);
         break;
       case 'kit':
@@ -71,6 +73,14 @@ export function touchPickups(m: Match, t: Tank, input: TankInput, dt: number, wa
           t.kits++;
           m.emit({ kind: 'pickup', tank: t.id, what: 'kit', amount: 1 });
         } else onFullKit = true;
+        break;
+      case 'gadget':
+        // A gadget charge: only for a tank with a gadget slot, up to GADGET.max.
+        if (t.gadget && t.gadgetCharges < GADGET.max) {
+          p.taken = true;
+          t.gadgetCharges++;
+          m.emit({ kind: 'pickup', tank: t.id, what: 'gadget', amount: 1 });
+        }
         break;
       case 'intel':
         if (t.team === 0) {

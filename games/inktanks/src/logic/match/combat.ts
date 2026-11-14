@@ -1,3 +1,5 @@
+import { makeAlert } from '../bots/awareness';
+import { LOW_PASS } from '../bots/perception';
 import { damageTaken, structureDamage } from '../damage';
 import { segmentHits } from '../geom';
 import { intelOf } from '../intel';
@@ -15,6 +17,8 @@ const SPLASH_SHARE = 0.5;
 /** A boss body takes this share while any of its turrets stands. */
 export const BOSS_SHIELD = 0.25;
 const SUBSTEP = 12;
+/** A hit on a calm or suspicious enemy does this many times the damage (Tactics §1). */
+export const AMBUSH = 2;
 
 export function aimAndFire(m: Match, t: Tank, input: TankInput, dt: number): void {
   if (input.aim !== null) t.turret = turnTowards(t.turret, input.aim, t.stats.gun.turretTurn * dt);
@@ -94,6 +98,8 @@ function moveShot(m: Match, s: Shot, dt: number, speed: number): void {
   for (const i of ids) {
     const st = m.structs[i]!;
     if (st.state === 0 || st.def.cover) continue;
+    // Low cover: the shot flies over it for its first LOW_PASS px (hug the sandbags and fire out).
+    if (st.def.low && s.travelled <= LOW_PASS) continue;
     if (!segmentHits(st.def.shape, st.def.x, st.def.y, ax, ay, s.x, s.y)) continue;
     damageStructure(m, i, s.damage, s.breaksBrick);
     m.emit({ kind: 'hit', x: s.x, y: s.y, target: null, dmg: s.damage, shot: s.kind });
@@ -140,11 +146,24 @@ function bossShielded(m: Match, t: Tank): boolean {
   return t.role === 'boss' && m.tanks.some((o) => o.parent === t.id && o.alive);
 }
 
-export function hitTank(m: Match, t: Tank, dmg: number, gun: GunFamily, from: number | null): void {
+/**
+ * `raw`: the damage as given (a mine), not through the gun's counters and armour.
+ * A player-side hit on a bot that isn't alert does AMBUSH × the damage (an
+ * 'ambush' event), and alerts it.
+ */
+export function hitTank(m: Match, t: Tank, dmg: number, gun: GunFamily, from: number | null, raw = false): void {
   const attacker = from === null ? null : (m.tank(from) ?? null);
   const shield = bossShielded(m, t) ? BOSS_SHIELD : 1;
-  const d = damageTaken(dmg, gun, t.stats.drive, t.stats.armour) * shield;
+  const brain = t.alive ? m.brains.get(t.id) : undefined;
+  const ambush = brain !== undefined && brain.role !== 'player' && brain.aware !== 'alert' && attacker !== null && attacker.team !== t.team && attacker.team === 0;
+  const d = (raw ? dmg : damageTaken(dmg, gun, t.stats.drive, t.stats.armour)) * shield * (ambush ? AMBUSH : 1);
   t.hp -= d;
+  if (brain && brain.role !== 'player' && attacker) makeAlert(m, brain, attacker);
+  if (ambush) {
+    attacker.ambushHits++;
+    m.tactics.ambushHits++;
+    m.emit({ kind: 'ambush', x: t.x, y: t.y, target: t.id, dmg: d });
+  }
   if (attacker) {
     attacker.dealt += d;
     t.lastHitBy = attacker.id;

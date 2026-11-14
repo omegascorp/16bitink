@@ -8,7 +8,14 @@ import { partsArt } from '../../render/partsArt';
 import { pickupUrl } from '../../render/pickupArt';
 import { bpIcon } from '../../ui/blueprint';
 import { SWAP_HOLD } from '../../logic/match/pickups';
+import { GADGET_NAME } from '../../logic/match/gadgets';
 import type { LandMap } from './landMap';
+
+/** The gadget's HUD and button icon (UI art); a missing file falls back to text. */
+const gadgetPngs = import.meta.glob<string>('../../art/pixel/ui/gadget-*.png', { eager: true, query: '?url', import: 'default' });
+export const gadgetIconUrl = (g: string): string | null => Object.entries(gadgetPngs).find(([p]) => p.endsWith(`/gadget-${g === 'mines' ? 'mine' : g}.png`))?.[1] ?? null;
+/** How long an "Ambush ×2" popup floats. */
+const POP_S = 1.1;
 
 /**
  * The mission HUD, in the DOM over the canvas: kill feed top left, the
@@ -43,6 +50,12 @@ export class Hud {
   private readonly mini: HTMLCanvasElement;
   readonly swapBtn: HTMLElement;
   readonly repairBtn: HTMLElement;
+  readonly gadgetBtn: HTMLElement;
+  private readonly gadget: HTMLElement;
+  private readonly pops: HTMLElement;
+  private popList: { el: HTMLElement; x: number; y: number; at: number }[] = [];
+  private gadgetShown = '';
+  private gadgetTipped = false;
   private cardFor: number | null = null;
   private loadoutRef: Tank['loadout'] | null = null;
 
@@ -53,9 +66,9 @@ export class Hud {
       <div class="topright"><canvas class="mini"></canvas><div class="row"><span class="timer"></span></div></div>
       <div class="goal"></div><div class="arrow"></div>
       <div class="card"></div>
-      <div class="bottom"><div class="icons"></div><div class="hpbar"><i></i><b></b></div><span class="kits"></span></div>
-      <div class="tip"></div>
-      <button class="btn swap">Swap</button><button class="btn repair">Repair</button>`;
+      <div class="bottom"><div class="icons"></div><div class="hpbar"><i></i><b></b></div><span class="kits"></span><span class="gadget"></span></div>
+      <div class="tip"></div><div class="pops"></div>
+      <button class="btn swap">Swap</button><button class="btn repair">Repair</button><button class="btn gadgetbtn"></button>`;
     this.feed = $(root, '.feed');
     this.hp = $(root, '.hpbar i');
     this.hpText = $(root, '.hpbar b');
@@ -69,6 +82,9 @@ export class Hud {
     this.mini = $<HTMLCanvasElement>(root, '.mini');
     this.swapBtn = $(root, '.swap');
     this.repairBtn = $(root, '.repair');
+    this.gadgetBtn = $(root, '.gadgetbtn');
+    this.gadget = $(root, '.bottom .gadget');
+    this.pops = $(root, '.pops');
     const w = 200;
     this.mini.width = w;
     this.mini.height = Math.round((w * map.height) / map.width);
@@ -85,6 +101,59 @@ export class Hud {
       if (t) this.line(t.role === 'crew' ? `${t.name} is home` : `<b class="red">${who(t)} got away</b>`);
     } else if (e.kind === 'pickup' && e.what === 'intel' && m.tank(e.tank)?.isPlayer) this.blueprints(m, e.amount, e.family);
     else if (e.kind === 'pickup' && e.what === 'kit' && m.tank(e.tank)?.isPlayer) this.showTip(m, `Repair kit! ${this.useKey()} to fix your tank`);
+    else if (e.kind === 'pickup' && e.what === 'gadget' && m.tank(e.tank)?.isPlayer) this.line(`+1 ${GADGET_NAME[m.player?.gadget ?? 'mines']}`);
+    else if (e.kind === 'ambush') this.pop(m, e.x, e.y, 'Ambush ×2');
+    else if (e.kind === 'mine') this.pop(m, e.x, e.y, 'Mine!');
+  }
+
+  /** A word that floats up from a world point and fades ("Ambush ×2"). */
+  private pop(m: Match, x: number, y: number, text: string): void {
+    // One at a time per spot: a machinegun's ambush burst shows once.
+    if (this.popList.some((p) => m.t - p.at < 0.5 && Math.hypot(p.x - x, p.y - y) < 80)) return;
+    const el = document.createElement('div');
+    el.className = 'pop';
+    el.textContent = text;
+    this.pops.appendChild(el);
+    this.popList.push({ el, x, y, at: m.t });
+  }
+
+  private drawPops(m: Match, project: Project): void {
+    this.popList = this.popList.filter((p) => {
+      const k = (m.t - p.at) / POP_S;
+      if (k >= 1) {
+        p.el.remove();
+        return false;
+      }
+      const s = project(p.x, p.y);
+      p.el.style.transform = `translate(${s.x}px, ${s.y - 78 - k * 36}px) translate(-50%, -50%)`;
+      p.el.style.opacity = String(Math.min(1, (1 - k) * 2.5));
+      return true;
+    });
+  }
+
+  /** The gadget's icon and charges, with its key; on a phone, the big button. */
+  private drawGadget(m: Match, p: Tank): void {
+    const g = p.gadget;
+    const key = `${g}/${p.gadgetCharges}/${this.touch}`;
+    if (key === this.gadgetShown) return;
+    this.gadgetShown = key;
+    if (!g) {
+      this.gadget.innerHTML = '';
+      return;
+    }
+    const url = gadgetIconUrl(g);
+    const icon = url ? `<img src="${url}" alt="">` : `<i>${GADGET_NAME[g].slice(0, 1)}</i>`;
+    const cls = p.gadgetCharges > 0 ? 'on' : 'off';
+    this.gadget.className = `gadget ${cls}`;
+    this.gadget.innerHTML = `${icon}<b>${p.gadgetCharges}</b>${this.touch || p.gadgetCharges === 0 ? '' : '<kbd>G</kbd>'}`;
+    this.gadget.title = GADGET_NAME[g];
+    this.gadgetBtn.innerHTML = `${url ? `<img src="${url}" alt="">` : GADGET_NAME[g]}<b>${p.gadgetCharges}</b>`;
+    this.gadgetBtn.classList.toggle('off', p.gadgetCharges === 0);
+    if (!this.gadgetTipped && m.t > 1.5 && m.t < 30) {
+      this.gadgetTipped = true;
+      const verb = g === 'mines' ? 'lay a mine' : g === 'oil' ? 'spill an oil slick' : 'pop smoke';
+      this.showTip(m, `${this.touch ? 'Tap the gadget button' : 'Press <kbd>G</kbd>'} to ${verb}`);
+    }
   }
 
   /** "+2 [cannon icon] Cannon blueprints"; the first time ever, a tip. */
@@ -147,7 +216,10 @@ export class Hud {
     this.hpText.textContent = `${Math.ceil(p.hp)} / ${Math.round(p.stats.maxHp)}`;
     this.touch = touch;
     this.drawKits(p);
+    if (!this.gadgetTipped && m.t > 1.5) this.gadgetShown = '';
+    this.drawGadget(m, p);
     this.drawTips(m, p);
+    this.drawPops(m, project);
     if (this.loadoutRef !== p.loadout) {
       this.loadoutRef = p.loadout;
       this.icons.innerHTML = [p.loadout.gun, p.loadout.hull, p.loadout.drive].map(iconHtml).join('');
@@ -160,6 +232,7 @@ export class Hud {
     this.drawArrow(status.target, project);
     this.swapBtn.style.display = touch && p.onPart !== null ? 'block' : 'none';
     this.repairBtn.style.display = touch ? 'block' : 'none';
+    this.gadgetBtn.style.display = touch && p.gadget ? 'block' : 'none';
     this.drawCard(m, p);
     this.drawMini(m, p);
   }

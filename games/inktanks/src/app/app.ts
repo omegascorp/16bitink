@@ -185,7 +185,7 @@ export class App {
   private newMatch(n: number, playerBot = false): Match {
     const level = levelFor(n)!;
     const p = this.save.progress;
-    return new Match({ level, seed: (Date.now() + ++this.seq * 7919) % 1_000_000, player: { loadout: p.loadout, research: p.research, kits: perksOf(p.xp).repairKits }, playerBot });
+    return new Match({ level, seed: (Date.now() + ++this.seq * 7919) % 1_000_000, player: { loadout: p.loadout, research: p.research, kits: perksOf(p.xp).repairKits, gadget: this.save.gadget }, playerBot });
   }
 
   briefing(n: number): void {
@@ -194,6 +194,11 @@ export class App {
     const m = this.newMatch(n);
     this.show(() => showBriefing(this.screen, m, this.save.progress, {
       start: () => this.play(m),
+      gadget: (g) => {
+        this.save = { ...this.save, gadget: g };
+        this.persist();
+        m.setPlayerGadget(g);
+      },
       workshop: () => this.workshop(() => this.briefing(n), 'Briefing'),
       back: () => this.map(),
     }));

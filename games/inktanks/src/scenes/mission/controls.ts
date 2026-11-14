@@ -27,6 +27,7 @@ export class Controls {
   private right: Stick | null = null;
   swapHeld = false;
   private repairPressed = false;
+  private gadgetPressed = false;
   touchUsed = matchMedia('(pointer: coarse)').matches;
   enabled = true;
 
@@ -39,6 +40,7 @@ export class Controls {
       const k = e.key.toLowerCase();
       this.keys.add(k);
       if (k === 'q') this.repairPressed = true;
+      if (k === 'g') this.gadgetPressed = true;
     }, o);
     addEventListener('keyup', (e) => this.keys.delete(e.key.toLowerCase()), o);
     addEventListener('blur', () => this.release(), o);
@@ -65,8 +67,12 @@ export class Controls {
     this.off.abort();
   }
 
-  /** Wires a held button (swap) and a pressed one (repair). */
-  bindButtons(swap: HTMLElement, repair: HTMLElement): void {
+  /** Wires a held button (swap) and pressed ones (repair, the gadget). */
+  bindButtons(swap: HTMLElement, repair: HTMLElement, gadget?: HTMLElement): void {
+    gadget?.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      this.gadgetPressed = true;
+    });
     const hold = (on: boolean) => (e: Event) => {
       e.preventDefault();
       this.swapHeld = on;
@@ -135,7 +141,7 @@ export class Controls {
   }
 
   read(tank: { x: number; y: number; turret: number }): TankInput {
-    if (!this.enabled) return { move: null, aim: null, fire: false, swap: false, repair: false };
+    if (!this.enabled) return { move: null, aim: null, fire: false, swap: false, repair: false, gadget: false };
     const k = this.keys;
     const kx = (k.has('d') || k.has('arrowright') ? 1 : 0) - (k.has('a') || k.has('arrowleft') ? 1 : 0);
     const ky = (k.has('s') || k.has('arrowdown') ? 1 : 0) - (k.has('w') || k.has('arrowup') ? 1 : 0);
@@ -154,7 +160,9 @@ export class Controls {
       fire = this.mouseDown;
     }
     const repair = this.repairPressed;
+    const gadget = this.gadgetPressed;
     this.repairPressed = false;
-    return { move, aim, fire, swap: this.swapHeld || k.has('e'), repair };
+    this.gadgetPressed = false;
+    return { move, aim, fire, swap: this.swapHeld || k.has('e'), repair, gadget };
   }
 }

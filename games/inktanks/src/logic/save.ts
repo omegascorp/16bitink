@@ -1,4 +1,5 @@
 import { TOTAL_LEVELS } from './campaign';
+import { GADGETS, type GadgetKind } from './match/types';
 import type { Medals } from './mission/outcome';
 import { FAMILIES, slotOf, type Family, type Loadout, type Mk, type Part } from './parts';
 import { RESEARCH_MAX, type Research, type ResearchLine } from './stats';
@@ -19,9 +20,13 @@ export interface SaveData {
   readonly sound: boolean;
   /** True once the first-blueprints tip was shown (only once per player). */
   readonly seenBlueprints: boolean;
+  /** The gadget picked in the briefing (older saves without one get the default). */
+  readonly gadget: GadgetKind;
 }
 
-export const newSave = (): SaveData => ({ v: SAVE_VERSION, progress: newProgress(), sound: true, seenBlueprints: false });
+export const DEFAULT_GADGET: GadgetKind = 'mines';
+export const newSave = (): SaveData => ({ v: SAVE_VERSION, progress: newProgress(), sound: true, seenBlueprints: false, gadget: DEFAULT_GADGET });
+const isGadget = (x: unknown): x is GadgetKind => typeof x === 'string' && (GADGETS as readonly string[]).includes(x);
 
 type Obj = Readonly<Record<string, unknown>>;
 const isObj = (x: unknown): x is Obj => typeof x === 'object' && x !== null && !Array.isArray(x);
@@ -135,7 +140,7 @@ export function parseSave(raw: string | null | undefined): Loaded {
     const x: unknown = JSON.parse(raw);
     if (!isObj(x)) return bad('not an object');
     if (x.v !== SAVE_VERSION) return bad(`version ${String(x.v)}`);
-    return { save: { v: SAVE_VERSION, progress: progress(x.progress), sound: x.sound !== false, seenBlueprints: x.seenBlueprints === true }, problem: null };
+    return { save: { v: SAVE_VERSION, progress: progress(x.progress), sound: x.sound !== false, seenBlueprints: x.seenBlueprints === true, gadget: isGadget(x.gadget) ? x.gadget : DEFAULT_GADGET }, problem: null };
   } catch (e) {
     return { save: newSave(), problem: e instanceof BadSave ? `bad save: ${e.message}` : 'bad save: not JSON' };
   }

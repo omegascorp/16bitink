@@ -42,7 +42,7 @@ export class MissionRun {
     pause.addEventListener('click', () => this.pause());
     hudRoot.appendChild(pause);
     this.controls = new Controls(surface, (x, y) => this.scene.toWorld(x, y), surface.parentElement ?? document.body);
-    this.controls.bindButtons(this.hud.swapBtn, this.hud.repairBtn);
+    this.controls.bindButtons(this.hud.swapBtn, this.hud.repairBtn, this.hud.gadgetBtn);
     addEventListener('keydown', (e) => {
       if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
         e.preventDefault();

@@ -1,4 +1,5 @@
 import { pushOut } from '../geom';
+import { GADGET, oilUnder } from './gadgets';
 import { groundAt, isDrivable } from '../land';
 import { unblock } from '../nav/grid';
 import { clamp, turnTowards, wrapAngle } from '../vec';
@@ -22,9 +23,12 @@ function groundMult(m: Match, t: Tank): number {
 export function driveTank(m: Match, t: Tank, input: TankInput, dt: number): void {
   if (t.role === 'bossTurret') return;
   const s = t.stats;
-  const top = s.speed * groundMult(m, t);
+  // Someone else's oil slick: slide slowly and turn badly. A mine-broken track: half speed.
+  const oil = oilUnder(m.gadgets, t.team, t.x, t.y, m.t) ? GADGET.oil : null;
+  const broken = m.t < t.trackBrokenUntil ? GADGET.mine.slow : 1;
+  const top = s.speed * groundMult(m, t) * broken * (oil ? oil.speed : 1);
   // Wheels and half-tracks need some roll to turn; tracks pivot.
-  const roll = s.pivots ? 1 : clamp(0.35 + Math.abs(t.speed) / Math.max(1, s.speed), 0.35, 1);
+  const roll = (s.pivots ? 1 : clamp(0.35 + Math.abs(t.speed) / Math.max(1, s.speed), 0.35, 1)) * (oil ? oil.turn : 1);
   let throttle = 0;
   const mv = input.move;
   if (mv?.kind === 'tank') {

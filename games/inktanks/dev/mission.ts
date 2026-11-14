@@ -4,6 +4,7 @@ import { buildLand } from '../src/logic/land';
 import { parseTank } from '../src/logic/level/load';
 import { Match } from '../src/logic/match/match';
 import { matchReport } from '../src/logic/match/report';
+import type { GadgetKind } from '../src/logic/match/types';
 import { outcome } from '../src/logic/mission/outcome';
 import type { IntelBag } from '../src/logic/workshop';
 import { Controls } from '../src/scenes/mission/controls';
@@ -21,6 +22,7 @@ import type Phaser from 'phaser';
  *   ?seed=S       the match seed
  *   ?tank=gun/hull/drive   your tank, e.g. cannon1/medium1/halftracks1 (default: the starter)
  *   ?kits=N       repair kits
+ *   ?gadget=G     mines (default), oil, smoke or none
  *   ?rot=rot32    RotSprite instead of free rotation
  *   ?bot=1        a bot drives your tank (watch a level)
  *   ?t=N          fast-forward N seconds before showing it
@@ -34,6 +36,7 @@ const def = level.def;
 const land = buildLand(level.land);
 const map = paintLandMap(land, Math.min(0.25, 200 / land.width));
 const overlay = document.getElementById('overlay')!;
+const gadget = query.get('gadget') ?? 'mines';
 const tank = parseTank(query.get('tank') ?? 'machinegun1/light1/wheels1');
 let kept: IntelBag = {};
 let game: Phaser.Game | null = null;
@@ -45,13 +48,13 @@ const controls = new Controls(document.getElementById('game')!, (x, y) => scene!
 function start(): void {
   overlay.innerHTML = '';
   tries++;
-  const match = new Match({ level, seed: qnum('seed', Date.now() % 100000) + tries, player: { loadout: tank, kits: qnum('kits', 1) }, playerBot: query.get('bot') === '1' });
+  const match = new Match({ level, seed: qnum('seed', Date.now() % 100000) + tries, player: { loadout: tank, kits: qnum('kits', 1), gadget: gadget === 'none' ? null : (gadget as GadgetKind) }, playerBot: query.get('bot') === '1' });
   for (let t = qnum('t', 0); t > 0 && !match.over; t -= 1 / 30) match.step(1 / 30);
   match.drainEvents();
   const hudRoot = document.getElementById('hud')!;
   hudRoot.style.display = '';
   const hud = new Hud(hudRoot, map);
-  controls.bindButtons(hud.swapBtn, hud.repairBtn);
+  controls.bindButtons(hud.swapBtn, hud.repairBtn, hud.gadgetBtn);
   const sc = new MissionScene(match, {
     input: (p) => controls.read(p),
     onEvents: (events) => {

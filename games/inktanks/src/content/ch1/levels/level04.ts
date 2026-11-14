@@ -25,6 +25,8 @@ export const LEVEL_04: LevelDef = {
       ...each('bush', [[1100, 1000], [1800, 1000], [1300, 1250], [2000, 900], [900, 900], [2300, 1100]]),
       ...each('oak', [[300, 300], [500, 200], [800, 350], [2200, 300], [2500, 420], [2700, 200], [300, 1300], [2600, 1400]]),
       ...each('rockB', [[1000, 400], [1900, 380], [600, 1450], [2300, 1450]]),
+      // Low cover (Tactics): a sandbag line either side of the road at the bridge's south end, a hay bale behind it.
+      { kind: 'sandbags', x: 1330, y: 910 }, { kind: 'sandbags', x: 1550, y: 910 }, { kind: 'hayBale', x: 1440, y: 1080 },
       { kind: 'farmhouse', x: 500, y: 1150 }, { kind: 'shed', x: 2300, y: 1250 }, ...row('fence', 1100, 1400, 6, 130),
     ],
     points: { bridgeEnd: { x: 1440, y: 860 }, nw: at(0.3, 0.1), n: at(1.5, 0.08), ne: at(2.7, 0.1) },

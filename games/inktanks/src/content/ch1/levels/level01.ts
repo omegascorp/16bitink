@@ -27,6 +27,8 @@ export const LEVEL_01: LevelDef = {
       ...each('bush', [[640, 640], [980, 600], [1450, 860], [420, 980], [2100, 760], [1600, 500], [2800, 520]]),
       ...row('wallBrick', 1250, 800, 2, 130), ...row('fenceV', 2250, 140, 2, 0, 130),
       ...each('rockA', [[700, 980], [2750, 120], [1700, 950]]),
+      // Low cover (Tactics): sandbags and a hay bale facing the yard, sandbags facing the orchard. Shots pass over them close up.
+      { kind: 'sandbags', x: 1720, y: 620 }, { kind: 'sandbags', x: 1816, y: 620 }, { kind: 'hayBale', x: 1650, y: 600 }, { kind: 'sandbagsV', x: 2330, y: 880 },
     ],
     points: { yard: { x: 1950, y: 420 }, orchard: { x: 2550, y: 880 }, crops: { x: 1250, y: 350 } },
     roads: { pond: [{ x: 300, y: 600 }, { x: 680, y: 600 }, { x: 680, y: 160 }, { x: 300, y: 160 }, { x: 300, y: 600 }] },

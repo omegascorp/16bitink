@@ -2,6 +2,7 @@ import type { BotRole } from '../level/types';
 import type { Match } from '../match/match';
 import type { Tank } from '../match/types';
 import type { Pt } from '../vec';
+import { makeAlert } from './awareness';
 import { ALARM_RADIUS, ALERT_TIME } from './difficulty';
 
 /** Roles that raise the alarm when they see you or are hit: posted and patrolling troops. */
@@ -33,6 +34,7 @@ export function raiseAlarm(m: Match, from: Tank, at: Pt): void {
     const renew = !b.alert || m.t > b.alert.until - ALERT_TIME + 3;
     if (!renew) continue;
     b.alert = { x: at.x, y: at.y, until: m.t + ALERT_TIME };
+    makeAlert(m, b, at);
     called++;
   }
   if (fresh) a.firstAt = m.t;

@@ -5074,6 +5074,319 @@
     "1": "structures/cage-1-shadow.png",
     "0": "structures/cage-0-shadow.png"
    }
+  },
+  "sandbagH": {
+   "layer": "structure",
+   "anchor": [
+    52,
+    35
+   ],
+   "size": [
+    115,
+    57
+   ],
+   "states": [
+    2,
+    1,
+    0
+   ],
+   "hp": 150,
+   "height": 14.2,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "2": [
+     [
+      [
+       -48.0,
+       -5.5
+      ],
+      [
+       48.0,
+       -5.5
+      ],
+      [
+       48.0,
+       5.5
+      ],
+      [
+       -48.0,
+       5.5
+      ]
+     ]
+    ],
+    "1": [
+     [
+      [
+       -48.0,
+       -5.5
+      ],
+      [
+       -26.0,
+       -5.5
+      ],
+      [
+       -26.0,
+       5.5
+      ],
+      [
+       -48.0,
+       5.5
+      ]
+     ]
+    ],
+    "0": []
+   },
+   "roofFade": {},
+   "pieces": {
+    "sandbagH-2": {
+     "file": "structures/sandbagH-2.png",
+     "sortY": 5.5
+    },
+    "sandbagH-1": {
+     "file": "structures/sandbagH-1.png",
+     "sortY": 5.5
+    },
+    "sandbagH-0": {
+     "file": "structures/sandbagH-0.png",
+     "sortY": 0.0
+    }
+   },
+   "shadows": {
+    "2": "structures/sandbagH-2-shadow.png",
+    "1": "structures/sandbagH-1-shadow.png",
+    "0": "structures/sandbagH-0-shadow.png"
+   }
+  },
+  "sandbagV": {
+   "layer": "structure",
+   "anchor": [
+    23,
+    75
+   ],
+   "size": [
+    46,
+    126
+   ],
+   "states": [
+    2,
+    1,
+    0
+   ],
+   "hp": 150,
+   "height": 14.2,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "2": [
+     [
+      [
+       -5.5,
+       -48.0
+      ],
+      [
+       5.5,
+       -48.0
+      ],
+      [
+       5.5,
+       48.0
+      ],
+      [
+       -5.5,
+       48.0
+      ]
+     ]
+    ],
+    "1": [
+     [
+      [
+       -5.5,
+       -48.0
+      ],
+      [
+       5.5,
+       -48.0
+      ],
+      [
+       5.5,
+       -26.0
+      ],
+      [
+       -5.5,
+       -26.0
+      ]
+     ]
+    ],
+    "0": []
+   },
+   "roofFade": {},
+   "pieces": {
+    "sandbagV-2": {
+     "file": "structures/sandbagV-2.png",
+     "sortY": 48.0
+    },
+    "sandbagV-1": {
+     "file": "structures/sandbagV-1.png",
+     "sortY": -26.0
+    },
+    "sandbagV-0": {
+     "file": "structures/sandbagV-0.png",
+     "sortY": 0.0
+    }
+   },
+   "shadows": {
+    "2": "structures/sandbagV-2-shadow.png",
+    "1": "structures/sandbagV-1-shadow.png",
+    "0": "structures/sandbagV-0-shadow.png"
+   }
+  },
+  "hayBale": {
+   "layer": "structure",
+   "anchor": [
+    24,
+    49
+   ],
+   "size": [
+    60,
+    77
+   ],
+   "states": [
+    2,
+    1,
+    0
+   ],
+   "hp": 90,
+   "height": 15.4,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "2": [
+     [
+      [
+       -19.0,
+       0.0
+      ],
+      [
+       -16.5,
+       -9.5
+      ],
+      [
+       -9.5,
+       -16.5
+      ],
+      [
+       -0.0,
+       -19.0
+      ],
+      [
+       9.5,
+       -16.5
+      ],
+      [
+       16.5,
+       -9.5
+      ],
+      [
+       19.0,
+       0.0
+      ],
+      [
+       16.5,
+       9.5
+      ],
+      [
+       9.5,
+       16.5
+      ],
+      [
+       0.0,
+       19.0
+      ],
+      [
+       -9.5,
+       16.5
+      ],
+      [
+       -16.5,
+       9.5
+      ]
+     ]
+    ],
+    "1": [
+     [
+      [
+       -19.0,
+       0.0
+      ],
+      [
+       -16.5,
+       -9.5
+      ],
+      [
+       -9.5,
+       -16.5
+      ],
+      [
+       -0.0,
+       -19.0
+      ],
+      [
+       9.5,
+       -16.5
+      ],
+      [
+       16.5,
+       -9.5
+      ],
+      [
+       19.0,
+       0.0
+      ],
+      [
+       16.5,
+       9.5
+      ],
+      [
+       9.5,
+       16.5
+      ],
+      [
+       0.0,
+       19.0
+      ],
+      [
+       -9.5,
+       16.5
+      ],
+      [
+       -16.5,
+       9.5
+      ]
+     ]
+    ],
+    "0": []
+   },
+   "roofFade": {},
+   "pieces": {
+    "hayBale-2": {
+     "file": "structures/hayBale-2.png",
+     "sortY": 19.0
+    },
+    "hayBale-1": {
+     "file": "structures/hayBale-1.png",
+     "sortY": 19.0
+    },
+    "hayBale-0": {
+     "file": "structures/hayBale-0.png",
+     "sortY": 0.0
+    }
+   },
+   "shadows": {
+    "2": "structures/hayBale-2-shadow.png",
+    "1": "structures/hayBale-1-shadow.png",
+    "0": "structures/hayBale-0-shadow.png"
+   }
   }
  },
  "vehicles": {

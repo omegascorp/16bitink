@@ -1,6 +1,6 @@
 import { Match } from '../logic/match/match';
 import { matchReport, type MatchReport } from '../logic/match/report';
-import type { Tank } from '../logic/match/types';
+import type { GadgetKind, Tank } from '../logic/match/types';
 import type { LoadedLevel } from '../logic/level/load';
 import type { Loadout } from '../logic/parts';
 import type { Research } from '../logic/stats';
@@ -16,19 +16,27 @@ export interface RunResult {
   readonly playerHp: number;
   readonly flowBuilds: number;
   readonly ms: number;
+  /** Tactics: player hits on enemies that hadn't seen it, gadget charges used, times an enemy spotted it. */
+  readonly ambushHits: number;
+  readonly gadgetsUsed: number;
+  readonly spotted: number;
 }
+
+/** The stand-in's gadget when none is given: mines (a Private's pick for a chase). */
+export const DEFAULT_GADGET: GadgetKind = 'mines';
 
 export interface RunOptions {
   readonly level: LoadedLevel;
   readonly seed: number;
   /** null: no player. */
-  readonly player: { readonly loadout: Loadout; readonly research?: Research; readonly kits?: number } | null;
+  readonly player: { readonly loadout: Loadout; readonly research?: Research; readonly kits?: number; readonly gadget?: GadgetKind | null } | null;
   readonly dt?: number;
 }
 
 export function runMission(o: RunOptions): RunResult {
   const t0 = performance.now();
-  const m = new Match({ level: o.level, seed: o.seed, player: o.player, playerBot: true });
+  const player = o.player ? { ...o.player, gadget: o.player.gadget === undefined ? DEFAULT_GADGET : o.player.gadget } : null;
+  const m = new Match({ level: o.level, seed: o.seed, player, playerBot: true });
   const dt = o.dt ?? 1 / 30;
   while (!m.over) {
     m.step(dt);
@@ -43,5 +51,8 @@ export function runMission(o: RunOptions): RunResult {
     playerHp: m.player ? Math.max(0, m.player.hp) / m.player.stats.maxHp : 0,
     flowBuilds: m.flow.builds,
     ms: performance.now() - t0,
+    ambushHits: m.tactics.ambushHits,
+    gadgetsUsed: m.player?.gadgetsUsed ?? 0,
+    spotted: m.tactics.spotted,
   };
 }

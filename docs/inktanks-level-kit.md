@@ -20,14 +20,15 @@ A bad layout fails at load time with a `LevelError` that lists every problem (un
 | `npm run lab -- --level 3 --seeds 30 --seed 100` | More seeds, other seeds |
 | `npm run lab -- --level 3 --no-map` | Skip the map |
 | `npm run lab -- --level 3 --tank cannon2/medium1/halftracks1 --kits 2` | Another player tank / kits |
+| `npm run lab -- --level 3 --gadget smoke` | The stand-in's gadget: mines (default), oil, smoke or none |
 | `npm run lab -- --all --seeds 10` | One summary line per level |
 | `npm run lab -- --chapter --seeds 3` | The whole-chapter run and the no-grind check |
 
 The player's seat is a bot ("a decent casual player"). Its default tank per level is `TYPICAL_TANK` in `src/sim/lab.ts`: what the chapter run has fitted by then (L1–2 `machinegun1/light1/wheels1`; L3–5 `cannon1/medium1/halftracks1`; L6–10 `cannon1/medium1/wheels2`), with 1 kit on L1–2 and 2 after. Re-measure with `--chapter` after big changes.
 
-A seed line: `seed 3  PASS  2:31  medals xx.  kills 4  intel 18  hp 45%  foes left 0/5  alarm yes  end: objective`. `medals` is main, bonus 1, bonus 2. `end` is `objective`, `destroyed`, `time` or the objective's fail (`the truck was destroyed`, `a crew was lost`, `the convoy got away`, `the courier got away`).
+A seed line: `seed 3  PASS  2:31  medals xx.  kills 4  intel 18  hp 45%  foes left 0/5  alarm yes  amb  2  gad 2  spot  1  end: objective`. `amb` is the stand-in's ambush hits (×2 on enemies that hadn't seen it), `gad` gadget charges used, `spot` times an enemy went from ? to ! on seeing it. The summary line averages them as `ambush`, `gadgets`, `spotted`. `medals` is main, bonus 1, bonus 2. `end` is `objective`, `destroyed`, `time` or the objective's fail (`the truck was destroyed`, `a crew was lost`, `the convoy got away`, `the courier got away`).
 
-Map legend: `S` start, `G` guard, `P` patrol, `W` wave (entry point), `V` convoy, `H` hunter, `R` runner, `U` turret, `A` ace, `B` boss, `t` truck, `c` crate, `T` target, `C` cage, `Z` hold zone, `F` flag, `O` recon spot, `E` exit, `X` pick-up/home, `-` roads, `#` solid, `+` flattenable, `"` cover, `~` water, `=` bridge, `:` dirt, `,` mud, `.` sand. One character is 80 × 60 px; a screen is 12 × 9.
+Map legend: `S` start, `G` guard, `P` patrol, `W` wave (entry point), `V` convoy, `H` hunter, `R` runner, `U` turret, `A` ace, `B` boss, `t` truck, `c` crate, `T` target, `C` cage, `Z` hold zone, `F` flag, `O` recon spot, `E` exit, `X` pick-up/home, `-` roads, `#` solid, `n` low cover (sandbags, hay; fences and crates show as `+`), `+` flattenable, `"` cover, `~` water, `=` bridge, `:` dirt, `,` mud, `.` sand. One character is 80 × 60 px; a screen is 12 × 9.
 
 ## The layout format (worked example)
 
@@ -63,7 +64,8 @@ export const LEVEL_01: LevelDef = {
 - **Tanks** are `gun+Mk/hull+Mk/drive+Mk`. Chapter 1 families: machinegun, cannon, rockets; light, medium, heavy; wheels, halftracks, tracks. `TANK` in `kit.ts` has common ones.
 - **Enemy knobs:** `role`, `clan` (boars, weasels, crows), `tank`, `at`, `route`, `when` (waves), `leash`, `sight`, `name`, `ace`, `hpMult`, `speedMult`, `kits` (default 0: it fights to the end; 1 lets it back off and repair), `truck` (no gun, drawn as a truck).
 - **Intel drives unlocks.** Every wreck gives intel on all its parts (2 per Mk I part). Unlock costs 3, so two kills of a family unlock it. Levels 1–2 must field Cannon, Medium and Half-tracks; Rockets and Tracks must appear by level 5, or the no-grind check fails.
-- **Structure kinds** are in `src/content/ch1/kinds.ts` (placeholders replaced by the world art's footprints where the art exists): farmhouse, barn, houseA, houseB, shed, wallBrick(V), wallStone(V), fence(V), oak, pine, bush, crops, rockA/B/C, bridgeRail(V), fuelBarrels, radarMast, hangar, fortWall(V), fortGate, fortTower, wagon, cage. `kit.ts` has `row`, `each`, `bridge`, `farmyard`.
+- **Structure kinds** are in `src/content/ch1/kinds.ts` (placeholders replaced by the world art's footprints where the art exists): farmhouse, barn, houseA, houseB, shed, wallBrick(V), wallStone(V), fence(V), oak, pine, bush, crops, rockA/B/C, bridgeRail(V), fuelBarrels, radarMast, hangar, fortWall(V), fortGate, fortTower, wagon, cage, and low cover: sandbags(V), hayBale, crate.
+- **Structure flags** (in `kinds.ts`): `cover` hides a tank that isn't firing (bush, crops); `roof` hides tanks under it; `flattenable` Tracks and Heavy hulls drive through it; `low` low cover (sandbags 96 × 11 px and 120 HP, hayBale 38 px and 60 HP, crate 40 HP, fences): shots pass over it in their first 50 px, it never blocks sight, and any gun breaks it. Everything else that stands blocks sight and shots both ways. Put sandbag lines 150–300 px from the spots you fight over, with gaps for the road. `kit.ts` has `row`, `each`, `bridge`, `farmyard`.
 
 ## Roles
 
@@ -77,9 +79,9 @@ export const LEVEL_01: LevelDef = {
 | runner | Like a convoy (flees down its road), for Chase. | `route`, `speedMult` |
 | turret | Never moves; fights in range. | `sight` |
 
-**Spotting:** an unalerted bot spots you within its sight (guard 340, patrol 380, turret 400, others 440 px); alerted or fighting, 440. Bushes and crops hide a tank that hasn't fired for 2 s, unless it's within 100 px.
+**Spotting (Tactics, Nov 14):** walls, buildings, rocks and smoke block a bot's sight. A calm bot sees its sight (guard 340, patrol 380, turret 400, others 440 px) in a 140° cone round its turret; calm guards and turrets sweep ±40°. A glimpse, or a shot fired within 300 px, makes it suspicious (**?**: it stops and looks); still seeing you 0.6 s later it's alert (**!**), sees all round to 440 px and fights. ? calms down after 2 s; ! drops to ? after 8 s without seeing anyone. Bushes, crops, roofs and smoke hide a tank that hasn't fired for 2 s, unless an enemy is within 60 px. Hitting a calm or suspicious enemy does ×2 (ambush). Waves and hunters are always alert.
 
-**The alarm:** a guard, patrol or turret that sees you (or anything of yours) or is hit by you calls every guard and patrol within **420 px** of itself to that spot for 25 s. Called bots that then see you call again, so alarms chain through a camp: post guards more than 420 px apart to make "one at a time" possible. The first alarm releases `when: 'alarm'` waves and spoils the `noAlarm` bonus.
+**The alarm:** an **alert** guard, patrol or turret that sees you (or anything of yours), or one that is hit by you, calls every guard and patrol within **420 px** of itself to that spot for 25 s. Called bots that then see you call again, so alarms chain through a camp: post guards more than 420 px apart to make "one at a time" possible. The first alarm releases `when: 'alarm'` waves and spoils the `noAlarm` bonus.
 
 **Stage:** `when: 'stage'` waves arrive when the objective's turn comes: Salvage on the pick-up, Rescue on the first broken cage.
 
@@ -104,6 +106,8 @@ export const LEVEL_01: LevelDef = {
 Always: your tank destroyed fails; `timeLimit` out fails; a hard cap of 10 min ends any run.
 
 Freed crews ride at 120 px/s, 200 HP, follow in a line, and stay down while an enemy is within 380 px of them. Enemies don't aim at crews; misses and splash still hit them. Carrying the prototype slows you to 80% and tells every guard and patrol where you are every 1.5 s. Artillery marks a spot ahead of you every `every` s and lands after `warn` s; it leads by 60% of your travel, so a moving tank outruns it and a stopped one is hit.
+
+**Gadgets** (the player's fourth slot, picked in the briefing): 2 charges a level, crates without set content hold a charge 12% of the time (when they aren't a kit; set `gadgetShare` on a loot table to change it). Mines (arm 1 s, 90 damage, broken track), oil (enemies ×0.4 speed for 8 s) and smoke (blocks sight for 6 s). The stand-in lays a mine when an alert enemy chases it or it's below 60% HP, pops smoke below 35% HP, and spills oil when an alert enemy is within 200 px; it carries mines unless you pass `--gadget`.
 
 **Bonus kinds:** `kills n`, `noKit`, `time under` (s), `noAlarm`, `truckHp min` (share), `heavyWithRockets`, `swaps n`, `intel n`.
 
@@ -132,4 +136,6 @@ Freed crews ride at 120 px/s, 200 HP, follow in a line, and stay down while an e
 - **Terrain order matters:** a road painted after a river turns the bridge into dirt over water (still crossable). Paint roads first, then water, then bridge decks.
 - **Machineguns barely scratch armour 7+** (the damage floor is a third): an MG starter can't kill a Medium hull in a fair fight. Give level 1–2 a Cannon crate, and keep Medium enemies there at hpMult ≤ 0.4.
 - Short levels: the stand-in drives straight to the objective, so a level is as long as its fights. Hold is about the hold time plus the drive; Escort is the road length over the truck speed. Breakout needs a doubling-back route (level 9) to last.
+- **Hollow buildings trap the stand-in:** the barn's footprint is four walls with a door gap, and the stand-in can drive in and get stuck pushing on the far wall (level 6, about 1 seed in 5). Keep goals and cages away from barn doors.
+- **Cannon and Rockets bots telegraph** (0.4 s aim line before each shot), so they fire a little slower than the TTK table assumes.
 - The chapter run's workshop may fit Wheels II over Half-tracks (more speed, less HP), which makes level 10 harder than with Half-tracks.

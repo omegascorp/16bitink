@@ -21,6 +21,7 @@ from kit import hull  # noqa: E402
 from render3d import SUN, ShadowMap, blur, render, shrink  # noqa: E402
 import farm  # noqa: E402,F401
 import props  # noqa: E402,F401
+import cover  # noqa: E402,F401
 from farm import REGISTRY  # noqa: E402
 
 HERE = Path(__file__).resolve().parent

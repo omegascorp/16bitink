@@ -1,4 +1,4 @@
-import { canSee, VISION } from '../bots/perception';
+import { botSees } from '../bots/awareness';
 import type { ObjectiveDef } from '../level/types';
 import type { Match } from '../match/match';
 import type { Tank } from '../match/types';
@@ -85,8 +85,7 @@ export function recon(m: Match, def: Extract<ObjectiveDef, { kind: 'recon' }>): 
     for (const [id, b] of m.brains) {
       const e = m.tank(id);
       if (!e?.alive || e.team === 0) continue;
-      const alerted = b.alert !== null && m.t < b.alert.until;
-      if (canSee(m, e, p, alerted ? VISION : b.sight)) return true;
+      if (botSees(m, b, e, p)) return true;
     }
     return false;
   };

@@ -16,17 +16,29 @@ import type { Research } from '../stats';
 import type { Pt } from '../vec';
 import type { IntelBag } from '../workshop';
 import { aimAndFire, stepShots } from './combat';
+import { newGadgets, GADGET, type Gadgets } from './gadgets';
+import { stepGadgets, useGadget } from './gadgetUse';
 import { driveTank, placeMounted } from './movement';
 import { repair, touchPickups } from './pickups';
 import { addTank, spawnEnemy } from './spawn';
 import { StructGrid } from './spatial';
-import { IDLE, type MatchEvent, type MatchOver, type Pickup, type PickupKind, type Shot, type StructRt, type Tank, type TankInput } from './types';
+import { IDLE, type GadgetKind, type MatchEvent, type MatchOver, type Pickup, type PickupKind, type Shot, type StructRt, type Tank, type TankInput } from './types';
 
 export interface PlayerSetup {
   readonly loadout: Loadout;
   readonly research?: Research;
   readonly kits?: number;
   readonly name?: string;
+  /** The gadget slot (picked in the briefing); none by default. */
+  readonly gadget?: GadgetKind | null;
+  readonly gadgetCharges?: number;
+}
+
+/** Tactics counters for the lab and the results. */
+export interface TacticsStats {
+  ambushHits: number;
+  /** Times an enemy went from ? to ! on seeing you. */
+  spotted: number;
 }
 
 export interface MatchConfig {
@@ -63,6 +75,8 @@ export class Match {
   readonly usedNames = new Set<string>();
   readonly objective: Objective;
   readonly alarm: AlarmState = { firstAt: null, count: 0 };
+  readonly gadgets: Gadgets = newGadgets();
+  readonly tactics: TacticsStats = { ambushHits: 0, spotted: 0 };
   t = 0;
   tanks: Tank[] = [];
   shots: Shot[] = [];
@@ -95,7 +109,7 @@ export class Match {
   }
 
   private spawnPlayer(p: PlayerSetup): Tank {
-    const t = addTank(this, { name: p.name ?? 'You', clan: 'ink', team: 0, isPlayer: true, loadout: p.loadout, research: p.research, kits: p.kits ?? 1, maxKits: p.kits ?? 1, at: this.start, heading: this.level.def.startHeading ?? 0 });
+    const t = addTank(this, { name: p.name ?? 'You', clan: 'ink', team: 0, isPlayer: true, loadout: p.loadout, research: p.research, kits: p.kits ?? 1, maxKits: p.kits ?? 1, gadget: p.gadget ?? null, gadgetCharges: p.gadgetCharges ?? GADGET.charges, at: this.start, heading: this.level.def.startHeading ?? 0 });
     if (this.cfg.playerBot) this.brains.set(t.id, createBrain(t, null, PLAYER_BOT, this.rng.fork(999)));
     return t;
   }
@@ -156,6 +170,14 @@ export class Match {
     return passable(this.nav, x, y);
   }
 
+  /** Changes the player's gadget before the start (the briefing's picker); charges reset. */
+  setPlayerGadget(kind: GadgetKind | null): void {
+    const p = this.player;
+    if (!p || this.t > 0) return;
+    p.gadget = kind;
+    p.gadgetCharges = kind ? GADGET.charges : 0;
+  }
+
   /** The first solid structure crossing a→b (other than `ignore`), or null. */
   lineBlocker(ax: number, ay: number, bx: number, by: number, ignore: string | null): StructRt | null {
     const ids = this.grid.query({ x0: Math.min(ax, bx), y0: Math.min(ay, by), x1: Math.max(ax, bx), y1: Math.max(ay, by) });
@@ -189,9 +211,11 @@ export class Match {
       placeMounted(this, t);
       aimAndFire(this, t, input, dt);
       repair(this, t, input, dt);
+      if (input.gadget) useGadget(this, t);
       touchPickups(this, t, input, dt, input.swap);
     }
     stepShots(this, dt);
+    stepGadgets(this);
     this.objective.step(dt);
     this.checkOver();
   }

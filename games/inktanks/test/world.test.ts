@@ -78,7 +78,8 @@ describe('loot', () => {
     const rng = createRng(9);
     const rolls = Array.from({ length: 200 }, () => rollCrate(rng, LOOT_EARLY));
     expect(rolls.some((r) => r.kind === 'kit')).toBe(true);
-    expect(rolls.every((r) => r.kind === 'kit' || (r.part.mk < 3 && LOOT_EARLY.families.includes(r.part.family)))).toBe(true);
+    expect(rolls.some((r) => r.kind === 'gadget')).toBe(true);
+    expect(rolls.every((r) => r.kind === 'kit' || r.kind === 'gadget' || (r.part.mk < 3 && LOOT_EARLY.families.includes(r.part.family)))).toBe(true);
   });
   it('wrecks leave their best part; bots want better parts and counters', () => {
     expect(wreckPart({ gun: part('cannon', 1), hull: part('heavy', 2), drive: part('tracks', 1) })).toEqual(part('heavy', 2));

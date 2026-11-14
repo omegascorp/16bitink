@@ -15,7 +15,7 @@ const MARK: Readonly<Record<string, string>> = { zone: 'Z', flag: 'F', spot: 'O'
 export const MAP_LEGEND = [
   'S start   G guard  P patrol  W wave (where it enters)  V convoy  H hunter  R runner  U turret  A ace  B boss  t truck',
   'c crate   T target  C cage  Z hold zone  F flag  O recon spot  E exit  X pick-up / home   - routes and roads',
-  '# solid   + flattenable (fence, pine)  " cover (bush, crops)  ~ water  = bridge  : dirt  , mud  . sand',
+  '# solid   n low cover (sandbags, hay, crates; fences stay +)  + flattenable (fence, pine)  " cover (bush, crops)  ~ water  = bridge  : dirt  , mud  . sand',
 ].join('\n');
 
 /** The level's layout as text, for the lab: ground, structures, routes, then start, enemies, crates and objective marks on top. */
@@ -38,7 +38,7 @@ export function asciiMap(level: LoadedLevel): string {
     }
   }
   for (const s of m.structs) {
-    const ch = s.def.tag === 'cage' ? 'C' : s.def.tag ? 'T' : s.def.cover ? '"' : s.def.flattenable ? '+' : '#';
+    const ch = s.def.tag === 'cage' ? 'C' : s.def.tag ? 'T' : s.def.cover ? '"' : s.def.flattenable ? '+' : s.def.low ? 'n' : '#';
     const b = shapeBounds(s.def.shape, s.def.x, s.def.y);
     for (let y = b.y0 + CH / 2; y < b.y1; y += CH) for (let x = b.x0 + CW / 2; x < b.x1; x += CW) put(x, y, ch);
     put(s.def.x, s.def.y, ch);

@@ -17,7 +17,7 @@ describe('save', () => {
       ...r.progress, xp: 900, research: { cannon: { damage: 2 } }, medals: { 1: [true, false, true], 2: [true, true, true] },
       loadout: { gun: { family: 'cannon', mk: 1 }, hull: { family: 'light', mk: 1 }, drive: { family: 'wheels', mk: 1 } },
     };
-    const save = { v: SAVE_VERSION, progress: p, sound: false, seenBlueprints: true } as const;
+    const save = { v: SAVE_VERSION, progress: p, sound: false, seenBlueprints: true, gadget: 'oil' } as const;
     const back = parseSave(serializeSave(save));
     expect(back.problem).toBeNull();
     expect(back.save).toEqual(save);
