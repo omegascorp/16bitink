@@ -11,7 +11,7 @@ describe('titleFont', () => {
     expect(titleFont(findGame('inkheroes')!)).toBe('pixel');
   });
 
-  it('marks InkHeroes as the pixel game and every other playable game as ink', () => {
-    expect(GAMES.filter((g) => g.style === 'pixel').map((g) => g.slug)).toEqual(['inkheroes']);
+  it('marks InkHeroes and InkTanks as the pixel games and every other playable game as ink', () => {
+    expect(GAMES.filter((g) => g.style === 'pixel').map((g) => g.slug)).toEqual(['inkheroes', 'inktanks']);
   });
 });

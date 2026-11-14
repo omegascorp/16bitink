@@ -206,7 +206,7 @@ def radar_mast(state: int) -> dict:
 
 # --- the bridge: its deck is ground, its rails are structures ----------------------------------------------------------
 
-BRIDGE = {'l': 200.0, 'w': 52.0}
+BRIDGE = {'l': 240.0, 'w': 100.0}
 
 
 @structure('bridgeDeck', [1], foot='hull', hp=0)
@@ -249,6 +249,56 @@ def rail(state: int, side: int) -> dict:
 
 structure('bridgeRailN', [1, 0], foot='runs', hp=120)(lambda s: rail(s, -1))
 structure('bridgeRailS', [1, 0], foot='runs', hp=120)(lambda s: rail(s, 1))
+
+
+def turned(fn, *args) -> dict:
+    """A bridge piece turned a quarter turn, for a bridge that runs north-south."""
+    return {k: rotate(m, math.pi / 2) for k, m in fn(*args).items()}
+
+
+structure('bridgeDeckV', [1], foot='hull', hp=0)(lambda s: turned(bridge_deck, s))
+structure('bridgeRailE', [1, 0], foot='runs', hp=120)(lambda s: turned(rail, s, -1))
+structure('bridgeRailW', [1, 0], foot='runs', hp=120)(lambda s: turned(rail, s, 1))
+
+
+# --- the cage: a captured crew's, iron bars on a plank floor; the front bars sort over the crew inside ------------------------
+
+CAGE = {'s': 56.0, 'h': 34.0}
+
+
+@structure('cage', [1, 0], foot='hull', hp=60)
+def cage(state: int) -> dict:
+    body, front = PMesh(), PMesh()
+    rng = random.Random(281 + state)
+    s, h = CAGE['s'], CAGE['h']
+    a = s / 2
+    iron = tone(0.6, 0.12, 0.22, 0.01, 0.03)
+    for i in range(7):
+        body.box(0, -a + 4 + i * (s - 8) / 6, 1.2, s - 2, 6, 2.4, 0, PLANK(rng))
+    for x, y in ((-a + 1.5, -a + 1.5), (a - 1.5, -a + 1.5), (-a + 1.5, a - 1.5), (a - 1.5, a - 1.5)):
+        (front if y > 0 else body).box(x, y, h / 2, 3.6, 3.6, h, 0, TIMBER(rng))
+    if state:
+        for side_y, mesh in ((-a + 1.5, body), (a - 1.5, front)):
+            for z in (h - 1.5, 4):
+                mesh.box(0, side_y, z, s, 3, 3, 0, TIMBER(rng))
+            for x in np.arange(-a + 8, a - 4, 6.5):
+                mesh.box(x, side_y, h / 2, 1.4, 1.4, h - 4, 0, iron(rng))
+        for side_x in (-a + 1.5, a - 1.5):
+            body.box(side_x, 0, h - 1.5, 3, s, 3, 0, TIMBER(rng))
+            for y in np.arange(-a + 8, a - 4, 6.5):
+                body.box(side_x, y, h / 2, 1.4, 1.4, h - 4, 0, iron(rng))
+        front.box(0, a - 1.5, 17, 12, 1.2, 22, 0, SOOT(rng))
+    else:
+        for x in (-a + 8, -a + 14.5, a - 8):
+            body.box(x, -a + 1.5, 7 + 5 * (x % 3), 1.4, 1.4, 12 + 5 * (x % 3), 0.1, iron(rng))
+        body.box(0, -a + 1.5, h - 5, s * 0.55, 3, 3, 0.18, TIMBER(rng))
+        body.box(-a + 1.5, -6, 9, 3, 22, 3, 0, TIMBER(rng))
+        for k in range(5):
+            body.box(rng.uniform(-a, a), rng.uniform(-a + 8, a + 6), 1.2, 1.4, 12 + 4 * k, 1.4, rng.uniform(0, 3), iron(rng))
+        front.box(-a + 10, a + 2, 1.5, 26, 3, 3, 0.25, TIMBER(rng))
+        front.box(a - 12, a - 4, 1.5, 14, 3, 3, -0.2, SOOT(rng))
+    body.solid_poly([(-a, -a), (a, -a), (a, a), (-a, a)])
+    return {'body': body, 'front': front}
 
 
 # --- rail track and a wagon ----------------------------------------------------------------------------------------------

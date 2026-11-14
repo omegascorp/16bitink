@@ -13,17 +13,17 @@ describe('workshop', () => {
     expect(r.progress.intelTotal.cannon).toBe(4);
     expect(p0.unlocked).not.toContain('cannon');
     expect(unlock(r.progress, 'cannon').ok).toBe(false);
-    expect(unlock(newProgress(), 'rockets')).toEqual({ ok: false, reason: 'needs 3 intel' });
+    expect(unlock(newProgress(), 'rockets')).toEqual({ ok: false, reason: 'needs 3 Rockets blueprints' });
   });
 
   it('Mk II needs Sergeant and 8 intel; Mk III needs Lieutenant and 20', () => {
     const p = addIntel(newProgress(), { machinegun: 30 });
-    expect(raiseMk(p, 'machinegun')).toEqual({ ok: false, reason: 'needs sergeant' });
+    expect(raiseMk(p, 'machinegun')).toEqual({ ok: false, reason: 'needs Sergeant' });
     const sgt = { ...p, xp: RANKS[2]!.xp };
     const r2 = raiseMk(sgt, 'machinegun');
     expect(r2.ok && r2.progress.mk.machinegun).toBe(2);
     if (!r2.ok) return;
-    expect(raiseMk(r2.progress, 'machinegun')).toEqual({ ok: false, reason: 'needs lieutenant' });
+    expect(raiseMk(r2.progress, 'machinegun')).toEqual({ ok: false, reason: 'needs Lieutenant' });
     const r3 = raiseMk({ ...r2.progress, xp: RANKS[4]!.xp }, 'machinegun');
     expect(r3.ok && r3.progress.mk.machinegun).toBe(3);
     expect(raiseMk(sgt, 'rockets').ok).toBe(false);

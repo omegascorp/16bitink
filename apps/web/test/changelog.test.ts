@@ -72,7 +72,8 @@ describe('sitemap.xml lists the changelogs', () => {
   const xml = sitemapXml(new URL('https://16bit.ink'), listedGames(LATER));
 
   it('has the all-games page and one per game, dated by their newest entry', () => {
-    const newest = allUpdates(listedGames(LATER), LATER)[0]?.entry.date;
+    // The sitemap dates the all-games page by what is out today (a game dated ahead, like InkTanks, is listed later).
+    const newest = allUpdates(listedGames(LATER), new Date())[0]?.entry.date;
     expect(xml).toContain(`<loc>https://16bit.ink/changelog</loc><lastmod>${newest}</lastmod>`);
     for (const g of playableGames()) {
       expect(xml).toContain(`<loc>https://16bit.ink/games/${g.slug}/changelog</loc><lastmod>${latestUpdate(g.slug)?.date}</lastmod>`);

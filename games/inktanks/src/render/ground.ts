@@ -1,4 +1,5 @@
 import type Phaser from 'phaser';
+import { WORLD } from '../art/pixel/world/world';
 import { CELL, GROUNDS, type Ground, type Land } from '../logic/land';
 
 /**
@@ -66,10 +67,12 @@ const hash = (x: number, y: number): number => {
   return h - Math.floor(h);
 };
 
+/** Chunk texture keys are unique across streams: the chapter map and a mission share one texture manager. */
+let chunkSerial = 0;
+
 export class GroundStream {
   private readonly chunks = new Map<string, Phaser.GameObjects.Image>();
   private readonly src: Map<Ground, HTMLCanvasElement>;
-  private n = 0;
   built = 0;
 
   constructor(private readonly scene: Phaser.Scene, private readonly land: Land) {
@@ -106,7 +109,7 @@ export class GroundStream {
     const k = `${cx},${cy}`;
     if (this.chunks.has(k)) return;
     if (cx < 0 || cy < 0 || cx * CHUNK >= this.land.width || cy * CHUNK >= this.land.height) return;
-    const key = `chunk:${this.n++}`;
+    const key = `chunk:${chunkSerial++}`;
     this.scene.textures.addCanvas(key, this.paint(cx * CHUNK, cy * CHUNK));
     this.chunks.set(k, this.scene.add.image(cx * CHUNK, cy * CHUNK, key).setOrigin(0, 0).setDepth(0));
     this.built++;
@@ -130,7 +133,23 @@ export class GroundStream {
       this.blend(ctx, g, x0, y0, (gx, gy) => this.groundIdx(gx, gy) === gi);
     }
     this.blend(ctx, null, x0, y0, (gx, gy) => !this.isOpen(gx, gy));
+    this.decks(ctx, x0, y0);
     return c;
+  }
+
+  /** The painted bridge deck (a ground piece of the world art) on every 'bridge' rect patch, centred on it. */
+  private decks(ctx: CanvasRenderingContext2D, x0: number, y0: number): void {
+    for (const p of this.land.def.terrain) {
+      if (p.ground !== 'bridge' || p.shape.kind !== 'rect') continue;
+      const name = p.shape.w >= p.shape.h ? 'bridgeDeck' : 'bridgeDeckV';
+      const art = WORLD.structures[name];
+      const key = `world:structures/${name}-1`;
+      if (!art || !this.scene.textures.exists(key)) continue;
+      const [ax, ay] = art.anchor;
+      const dx = Math.round(p.shape.x + p.shape.w / 2 - ax - x0);
+      const dy = Math.round(p.shape.y + p.shape.h / 2 - ay - y0);
+      ctx.drawImage(this.scene.textures.get(key).getSourceImage() as HTMLImageElement, dx, dy);
+    }
   }
 
   private fill(ctx: CanvasRenderingContext2D, src: HTMLCanvasElement, x0: number, y0: number): void {

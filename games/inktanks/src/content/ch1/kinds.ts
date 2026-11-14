@@ -40,6 +40,10 @@ const PLACEHOLDER_KINDS: Readonly<Record<string, KindDef>> = {
   rockB: { shape: { kind: 'circle', r: 32 }, material: 'rock', hp: 0, colour: 0x6c6860, height: 30 },
   rockC: { shape: { kind: 'circle', r: 15 }, material: 'rock', hp: 0, colour: 0x8a847a, height: 16 },
   bridgeRail: { shape: rectShape(200, 10), material: 'stone', hp: 0, colour: 0x8a7a64, height: 14 },
+  bridgeRailN: { shape: rectShape(240, 10), material: 'stone', hp: 0, colour: 0x8a7a64, height: 14 },
+  bridgeRailS: { shape: rectShape(240, 10), material: 'stone', hp: 0, colour: 0x8a7a64, height: 14 },
+  bridgeRailE: { shape: rectShape(10, 240), material: 'stone', hp: 0, colour: 0x8a7a64, height: 14 },
+  bridgeRailW: { shape: rectShape(10, 240), material: 'stone', hp: 0, colour: 0x8a7a64, height: 14 },
   bridgeRailV: { shape: rectShape(10, 200), material: 'stone', hp: 0, colour: 0x8a7a64, height: 14 },
   fuelBarrels: { shape: rectShape(50, 40), material: 'fuel', hp: 90, colour: 0xc04a2a, height: 24 },
   radarMast: { shape: rectShape(40, 40), material: 'metal', hp: 150, colour: 0x6a7a8a, height: 110 },
@@ -48,7 +52,7 @@ const PLACEHOLDER_KINDS: Readonly<Record<string, KindDef>> = {
   fortWallV: { shape: rectShape(30, 240), material: 'stone', hp: 0, colour: 0x6e6a62, height: 50 },
   fortGate: { shape: rectShape(120, 30), material: 'brick', hp: 300, colour: 0x8a5a3a, height: 50 },
   wagon: { shape: rectShape(120, 50), material: 'stone', hp: 0, colour: 0x5a4a3a, height: 40 },
-  /** Rescue: a crew's cage (no art yet). */
+  /** Rescue: a crew's cage. */
   cage: { shape: rectShape(56, 56), material: 'wood', hp: 60, colour: 0x6a5030, height: 34 },
   fortTower: { shape: { kind: 'circle', r: 44 }, material: 'stone', hp: 0, colour: 0x6e6a62, height: 70 },
 };
@@ -58,7 +62,9 @@ export const ART_NAME: Readonly<Record<string, string>> = {
   farmhouse: 'farmhouse', barn: 'barn', houseA: 'houseTimber', houseB: 'houseStone', shed: 'shed',
   wallBrick: 'brickWallH', wallBrickV: 'brickWallV', fence: 'fenceH', fenceV: 'fenceV', wallStone: 'stoneWallH', wallStoneV: 'stoneWallV',
   oak: 'oak', pine: 'pine', bush: 'bush', crops: 'crops', rockA: 'rockA', rockB: 'rockB', rockC: 'rockC',
-  bridgeRail: 'bridgeRailN', fuelBarrels: 'fuelBarrels', radarMast: 'radarMast', hangar: 'hangar',
+  bridgeRail: 'bridgeRailN', bridgeRailN: 'bridgeRailN', bridgeRailS: 'bridgeRailS', bridgeRailE: 'bridgeRailE', bridgeRailW: 'bridgeRailW', bridgeRailV: 'bridgeRailE',
+  /** Ground pieces: drawn under the land by the ground stream where a 'bridge' patch lies, never placed as structures. */
+  bridgeDeck: 'bridgeDeck', bridgeDeckV: 'bridgeDeckV', cage: 'cage', fuelBarrels: 'fuelBarrels', radarMast: 'radarMast', hangar: 'hangar',
   fortWall: 'fortWallH', fortWallV: 'fortWallV', fortGate: 'fortGate', wagon: 'wagon', fortTower: 'fortTower',
 };
 

@@ -11,6 +11,7 @@ import { preloadParts, tankKeys, TankView } from '../../render/tankView';
  * The mission scene: draws a Match and steps it at a fixed 60 Hz. The HUD,
  * controls and win/fail panel live in the DOM (see dev/mission.ts); this scene
  * only knows the match, the player's input and the camera.
+ * The game (src/app) and dev/mission.ts both drive it.
  */
 export interface MissionHooks {
   readonly input: (player: Tank) => TankInput;
@@ -39,8 +40,8 @@ export class MissionScene extends Phaser.Scene {
   /** A follow target other than the player (the stress page spectates). */
   follow: Tank | null = null;
 
-  constructor(readonly match: Match, private readonly hooks: MissionHooks, rot: RotMode) {
-    super('Mission');
+  constructor(readonly match: Match, private readonly hooks: MissionHooks, rot: RotMode, key = 'Mission') {
+    super(key);
     this.bank = new RotBank(this, rot);
   }
 
@@ -56,7 +57,15 @@ export class MissionScene extends Phaser.Scene {
     if (this.bank.mode === 'rot32') this.warmAll();
     this.cameras.main.setBounds(0, 0, m.land.width, m.land.height).setRoundPixels(true);
     this.centre();
+    // In the game one Phaser instance outlives each mission: hand back the ground chunks' textures.
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.ground?.destroy();
+      this.ground = undefined;
+    });
   }
+
+  /** Stops stepping the match (the pause menu); drawing goes on. */
+  paused = false;
 
   /** RotSprite: precompute only the parts in this match. */
   warmAll(): void {
@@ -92,7 +101,7 @@ export class MissionScene extends Phaser.Scene {
   update(_time: number, deltaMs: number): void {
     const m = this.match;
     const dt = Math.min(0.1, deltaMs / 1000);
-    this.acc += dt;
+    if (!this.paused) this.acc += dt;
     let steps = 0;
     while (this.acc >= STEP && steps < 4) {
       const input = m.player ? this.hooks.input(m.player) : undefined;
@@ -121,7 +130,8 @@ export class MissionScene extends Phaser.Scene {
     for (const t of this.match.tanks) {
       const near = t.x > view.x - 120 && t.x < view.right + 120 && t.y > view.y - 120 && t.y < view.bottom + 120;
       let v = this.views.get(t.id);
-      if (!near || !t.alive) {
+      const wreck = !t.alive && t.role === 'bossTurret';
+      if (!near || (!t.alive && !wreck)) {
         if (v) {
           v.destroy();
           this.views.delete(t.id);
@@ -132,7 +142,7 @@ export class MissionScene extends Phaser.Scene {
         v = new TankView(this, this.bank, !t.isPlayer);
         this.views.set(t.id, v);
       }
-      v.update(t);
+      v.update(t, t.parent === null ? undefined : this.match.tank(t.parent));
     }
   }
 

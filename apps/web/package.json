@@ -34,6 +34,7 @@
     "@16bitink/inkmine": "workspace:*",
     "@16bitink/inkpin": "workspace:*",
     "@16bitink/inksnake": "workspace:*",
+    "@16bitink/inktanks": "workspace:*",
     "@astrojs/node": "^11.1.6",
     "@modelcontextprotocol/sdk": "1.32.1",
     "astro": "^7.3.5",

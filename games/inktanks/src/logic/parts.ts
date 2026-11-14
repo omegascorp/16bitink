@@ -129,6 +129,9 @@ export function artKey(p: Part): string {
   return `${ART_FAMILY[p.family]}-mk${p.mk}`;
 }
 
+/** A family's name alone: "Half-tracks". */
+export const familyName = (f: Family): string => partLabel({ family: f, mk: 1 }).replace(/ Mk I$/, '');
+
 /** A short label: "Cannon Mk II". */
 export function partLabel(p: Part): string {
   const name: Record<Family, string> = {

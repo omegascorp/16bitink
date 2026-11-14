@@ -52,6 +52,7 @@ export function touchPickups(m: Match, t: Tank, input: TankInput, dt: number, wa
   if (t.role !== 'tank') return;
   const reach = t.stats.radius + REACH;
   let onPart: number | null = null;
+  let onFullKit = false;
   for (const p of m.pickups) {
     if (p.taken) continue;
     const dx = p.x - t.x;
@@ -69,7 +70,7 @@ export function touchPickups(m: Match, t: Tank, input: TankInput, dt: number, wa
           p.taken = true;
           t.kits++;
           m.emit({ kind: 'pickup', tank: t.id, what: 'kit', amount: 1 });
-        }
+        } else onFullKit = true;
         break;
       case 'intel':
         if (t.team === 0) {
@@ -91,6 +92,7 @@ export function touchPickups(m: Match, t: Tank, input: TankInput, dt: number, wa
     }
   }
   t.onPart = onPart;
+  t.onFullKit = onFullKit;
   const holding = t.isPlayer && !m.cfg.playerBot ? input.swap : wantsSwap;
   if (onPart === null || !holding) {
     t.swapT = 0;

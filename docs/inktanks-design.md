@@ -5,7 +5,7 @@ A single-player tank war campaign of 50 hand-made missions. You're a young tank 
 - **Levels, as in our other games:** 5 chapters × 10 levels, picked on a chapter map. Chapter 1 (levels 1–10) is free, chapters 2–5 (levels 11–50) are paid.
 - **Every level is a clear mission** with one main objective shown before you start: blow up the fuel depot, get the truck to the village, hold the bridge for 90 seconds. Missions differ from level to level; 13 mission types are mixed through the campaign.
 - **Your tank:** gun, hull and drive, each found as Mk I, II or III. Enemies drop their parts when destroyed.
-- **Intel:** enemy tanks drop intel on their technology. Between missions you research it in the workshop and upgrade your own tank for good.
+- **Blueprints:** enemy tanks drop blueprints of the parts they carry. Between missions you spend them in the workshop and upgrade your own tank for good. (The player-facing name is **Blueprints**; this doc and the code keep "intel" as the internal term.)
 
 Working name.
 
@@ -228,7 +228,7 @@ This is the owner's "pick up technology from the enemies and upgrade your own ta
   - drives: Speed, Grip (turning, and sand and mud penalties)
   - Research applies to that family whether it's in your starting tank or swapped in from loot.
 - **Fitting your starting tank** is free and can change every mission.
-- **The workshop screen:** your tank in the middle, three slots around it, and each family's intel bar filling up. Something new to look forward to, never a streak.
+- **The workshop screen:** your tank in the middle, a tab per slot, and a card per family showing "Cannon blueprints: [icon] 9" with the blueprint icon (the blue sheet the enemies drop) on every amount and cost, never a bare number. A one-line explanation sits under the title. Buttons are bright when you can pay, dimmed with "need 3 more" when short of that part's blueprints, and locked with the rank name ("needs Sergeant") when the rank gates them. Blueprints are per part: Cannon blueprints only buy Cannon upgrades. A badge on every Workshop button (map, briefing, results) counts the upgrades you can afford now. Something new to look forward to, never a streak.
 
 **Balance:**
 - Bots in later chapters field higher Mk tiers and their own research levels, so the counter race holds and research never trivialises a chapter.
@@ -358,7 +358,7 @@ Volcanic land and a ruined city. Rival: the Iron Hive, the clans' old masters. N
   - The right thumbstick aims, and fires while held past the dead zone.
   - The swap button only shows on a part. The repair button sits by the right stick.
   - Bigger buttons, only essential UI, and the HUD kept clear of the sticks (see the mobile rule).
-- **HUD:** the objective line top centre with an edge arrow to the next target, the minimap top right, HP and part icons bottom centre, and the timer top right when a level has one.
+- **HUD:** pickups read "+5 [blueprint icon] blueprints (Cannon, Wheels)", and the first time a player ever picks blueprints up a tip says to spend them in the Workshop (saved, so once per player). The results list blueprints per family with part icons and highlight "Upgrade ready: Cannon Mk II". The objective line top centre with an edge arrow to the next target, the minimap top right, HP and part icons bottom centre, and the timer top right when a level has one.
 
 ## Performance budget
 

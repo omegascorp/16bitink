@@ -12,6 +12,7 @@ import { paintLandMap } from '../src/scenes/mission/landMap';
 import { MissionScene } from '../src/scenes/mission/MissionScene';
 import { showResults } from '../src/scenes/mission/results';
 import { makeGame, qnum, query, setReady } from './boot';
+import { HUD_CSS } from '../src/ui/hudCss';
 import type Phaser from 'phaser';
 
 /**
@@ -27,6 +28,7 @@ import type Phaser from 'phaser';
  * A fail shows the panel with Retry, which restarts on the spot; intel
  * picked up is kept across retries (shown on the panel).
  */
+document.head.insertAdjacentHTML('beforeend', `<style>${HUD_CSS}</style>`);
 const level = ch1Level(Math.min(CH1_LEVELS.length, Math.max(1, qnum('level', 1))));
 const def = level.def;
 const land = buildLand(level.land);

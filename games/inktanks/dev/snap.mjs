@@ -1,6 +1,7 @@
 // Dev helper: screenshots a dev page to PNG, for checking art by eye.
 //   node dev/snap.mjs <out.png> "<page and query>" [width] [height] [deviceScale]
 //   e.g. node dev/snap.mjs dev/art-test/shots/brawler.png "art-test.html?build=brawler" 1920 1080
+//   the game: node dev/snap.mjs dev/shots/game-map.png "index.html?screen=map&save=mid" 1280 720
 // Waits for window.__ready (set by art-test/main.ts). Needs Google Chrome.
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -23,7 +24,7 @@ try {
   let pageError;
   page.on('pageerror', (e) => { pageError = e; });
   await page.goto(`${base}/${pageQuery}`);
-  if (!pageQuery.startsWith('index')) await page.waitForFunction(() => window.__ready === true, null, { timeout: 60_000 }).catch((e) => { throw pageError ?? e; });
+  if (!pageQuery.startsWith('index') || pageQuery.includes('screen=')) await page.waitForFunction(() => window.__ready === true, null, { timeout: 60_000 }).catch((e) => { throw pageError ?? e; });
   else await page.waitForTimeout(4000);
   if (pageError) throw pageError;
   await page.screenshot({ path: out, fullPage: false });

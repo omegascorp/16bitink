@@ -3,13 +3,17 @@ import type { Match } from '../logic/match/match';
 import type { MatchEvent } from '../logic/match/types';
 import { slotOf } from '../logic/parts';
 import { partsArt } from './partsArt';
+import { pickupKey, preloadPickups, type PickupArt } from './pickupArt';
+import { worldKey } from './worldArt';
 
 /**
  * Shots, pickups, hits and the objective's rings (zones, flags, exits, artillery marks), drawn each frame. Code only draws
- * what the art rules allow it to (particles, rings, flashes); crates use
- * the art test's crate until the world art's lands.
+ * what the art rules allow it to (particles, rings, flashes); loot crates use
+ * the world art's whole crate (loaded with the structures).
  */
-const crateUrl = Object.values(import.meta.glob<string>('../../dev/art-test/assets/parts/crate.png', { eager: true, query: '?url', import: 'default' }))[0];
+/** Loot crates drawn larger than the world's crate structure, so they read as loot next to a tank. */
+const CRATE_SCALE = 1.4;
+const CRATE = { key: worldKey('structures/crate-1'), shadow: worldKey('structures/crate-1-shadow'), anchor: [21, 41], size: [49, 60] } as const;
 const DEPTH = { pickups: 900, shots: 7000, fx: 7500, marks: 8000 } as const;
 
 interface Puff {
@@ -21,8 +25,12 @@ interface Puff {
   colour: number;
 }
 
+/** World size of each pickup's 64 px art. */
+const PICKUP_SCALE: Readonly<Record<PickupArt, number>> = { intel: 0.7, kit: 0.7, proto: 0.95 };
+
+/** The pickups' art; the crate comes with the world structures (preloadStructures). */
 export function preloadFx(scene: Phaser.Scene): void {
-  if (crateUrl) scene.load.image('crate', crateUrl);
+  preloadPickups(scene);
 }
 
 export class WorldFx {
@@ -31,7 +39,9 @@ export class WorldFx {
   private readonly fx: Phaser.GameObjects.Graphics;
   private readonly rings: Phaser.GameObjects.Graphics;
   private readonly crates = new Map<number, Phaser.GameObjects.Image>();
+  private readonly crateShadows = new Map<number, Phaser.GameObjects.Image>();
   private readonly parts = new Map<number, Phaser.GameObjects.Image>();
+  private readonly items = new Map<number, Phaser.GameObjects.Image>();
   private puffs: Puff[] = [];
 
   constructor(private readonly scene: Phaser.Scene) {
@@ -84,6 +94,14 @@ export class WorldFx {
     }
   }
 
+  /** The world's whole crate, standing on its anchor like a structure, with its shadow under it. */
+  private crateImage(id: number, x: number, y: number): Phaser.GameObjects.Image {
+    const [ax, ay] = CRATE.anchor;
+    const [w, h] = CRATE.size;
+    if (this.scene.textures.exists(CRATE.shadow)) this.crateShadows.set(id, this.scene.add.image(x, y, CRATE.shadow).setOrigin(ax / w, ay / h).setScale(CRATE_SCALE).setDepth(DEPTH.pickups));
+    return this.scene.add.image(x, y, CRATE.key).setOrigin(ax / w, ay / h).setScale(CRATE_SCALE).setDepth(DEPTH.pickups + 1);
+  }
+
   private drawPickups(m: Match, view: Phaser.Geom.Rectangle): void {
     const g = this.marks.clear();
     const art = partsArt();
@@ -92,8 +110,7 @@ export class WorldFx {
       if (p.taken || p.x < view.x - 60 || p.x > view.right + 60 || p.y < view.y - 60 || p.y > view.bottom + 60) continue;
       seen.add(p.id);
       if (p.kind === 'crate') {
-        if (!this.crates.has(p.id) && this.scene.textures.exists('crate')) this.crates.set(p.id, this.scene.add.image(p.x, p.y, 'crate').setScale(2).setDepth(DEPTH.pickups + 1));
-        if (!this.scene.textures.exists('crate')) g.fillStyle(0x9a7040, 1).fillRect(p.x - 12, p.y - 12, 24, 24);
+        if (!this.crates.has(p.id)) this.crates.set(p.id, this.crateImage(p.id, p.x, p.y));
       } else if (p.kind === 'part') {
         if (!this.parts.has(p.id)) {
           const slot = slotOf(p.part.family);
@@ -101,15 +118,16 @@ export class WorldFx {
           this.parts.set(p.id, this.scene.add.image(p.x, p.y, key).setScale(0.55).setDepth(DEPTH.pickups + 1));
         }
         g.lineStyle(2, p.part.mk === 3 ? 0xf0c040 : p.part.mk === 2 ? 0xc0c8d0 : 0xa08060, 0.8 + 0.2 * Math.sin(m.t * 5)).strokeCircle(p.x, p.y, 26);
-      } else if (p.kind === 'kit') {
-        g.fillStyle(0xf4ecd8, 1).fillRect(p.x - 10, p.y - 10, 20, 20).fillStyle(0xc83a2a, 1).fillRect(p.x - 7, p.y - 2, 14, 4).fillRect(p.x - 2, p.y - 7, 4, 14);
-      } else if (p.kind === 'intel') {
-        g.fillStyle(0x3c6cc8, 0.35 + 0.25 * Math.sin(m.t * 4)).fillCircle(p.x, p.y, 14).fillStyle(0xf4ecd8, 1).fillRect(p.x - 6, p.y - 8, 12, 16);
-      } else if (p.kind === 'proto') {
-        g.fillStyle(0xf0c040, 0.4 + 0.3 * Math.sin(m.t * 4)).fillCircle(p.x, p.y, 30).fillStyle(0x4a4438, 1).fillRect(p.x - 18, p.y - 12, 36, 24);
+      } else if (p.kind === 'kit' || p.kind === 'intel' || p.kind === 'proto') {
+        // A soft pulsing ring under the art so it stands out from the ground: green kit, blue intel, gold prototype.
+        const ring = p.kind === 'kit' ? 0x8cc85a : p.kind === 'intel' ? 0x5a8ce0 : 0xf0c040;
+        g.lineStyle(2, ring, 0.55 + 0.35 * Math.sin(m.t * 4)).strokeCircle(p.x, p.y, p.kind === 'proto' ? 34 : 24);
+        if (!this.items.has(p.id) && this.scene.textures.exists(pickupKey(p.kind))) {
+          this.items.set(p.id, this.scene.add.image(p.x, p.y, pickupKey(p.kind)).setScale(PICKUP_SCALE[p.kind]).setDepth(DEPTH.pickups + 1));
+        }
       }
     }
-    for (const map of [this.crates, this.parts]) {
+    for (const map of [this.crates, this.crateShadows, this.parts, this.items]) {
       for (const [id, img] of map) {
         if (seen.has(id)) continue;
         img.destroy();

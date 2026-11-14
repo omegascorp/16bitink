@@ -21,7 +21,7 @@ export function bonusText(b: BonusDef): string {
     case 'swaps':
       return `Swap in ${b.n} parts`;
     case 'intel':
-      return `Collect ${b.n} intel`;
+      return `Collect ${b.n} blueprints`;
   }
 }
 

@@ -4,6 +4,16 @@ import { CLAN_COLOUR } from '../logic/match/names';
 import type { HullFamily } from '../logic/parts';
 import { partsArt } from './partsArt';
 import type { RotBank } from './rotBank';
+import { WORLD, type FortressArt } from '../art/pixel/world/world';
+import { WORLD_URLS, worldKey } from './worldArt';
+
+/** The escort truck, and the level 10 fortress with its body, treads and turret mounts. */
+const FORT: FortressArt = WORLD.vehicles.fortress;
+const TRUCK = WORLD.vehicles.truck;
+/** Fortress body drawn at this scale of its 288 px art: the level's turret mounts are sized to it. */
+const FORT_SCALE = 0.7;
+const TURRET_SCALE: Readonly<Record<string, number>> = { fortressCannon: 0.5, fortressMG: 0.7, fortressRockets: 0.7 };
+const TURRET_OF: Readonly<Record<string, string>> = { cannon: 'fortressCannon', machinegun: 'fortressMG', rockets: 'fortressRockets' };
 
 /** The fixed sun: shadows fall right and up (as the art tests). */
 export const SHADOW = { x: 0.78, y: -0.58 };
@@ -15,6 +25,7 @@ const ROLL_STEP = 6;
 
 export function preloadParts(scene: Phaser.Scene): void {
   for (const [key, url] of partsArt().urls) if (!scene.textures.exists(key)) scene.load.image(key, url);
+  for (const [key, url] of WORLD_URLS) if (key.startsWith('world:vehicles/') && !scene.textures.exists(key)) scene.load.image(key, url);
 }
 
 /** The keys a tank's current parts draw with. */
@@ -48,23 +59,26 @@ export class TankView {
   }
 
   /** Draws the tank; a dropping tank falls in from above, large and faint. */
-  update(t: Tank): void {
+  update(t: Tank, parent?: Tank): void {
+    if (t.role === 'truck' || t.role === 'boss' || t.role === 'bossTurret') {
+      this.updateVehicle(t, parent);
+      return;
+    }
     if (this.loadoutRef !== t.loadout) {
       this.loadoutRef = t.loadout;
       this.keys = tankKeys(t, this.bank);
     }
     const k = this.keys!;
     const vis = t.alive;
-    // Placeholders until the world art's truck and fortress land: a turret-less tank, a big one, bare turrets.
-    const body = t.role !== 'bossTurret';
-    const gun = t.role !== 'boss' && t.role !== 'truck' && t.role !== 'crew';
+    // A freed crew is a placeholder (a small tank) until its art lands.
+    const body = true;
+    const gun = t.role !== 'crew';
     for (const i of [this.shadow, this.drive, this.hull]) i.setVisible(vis && body);
     for (const i of [this.tShadow, this.turret]) i.setVisible(vis && gun);
     const showBar = !!this.bar && vis && t.hp < t.stats.maxHp;
     if (this.bar) for (const b of this.bar) b.setVisible(showBar);
     if (!vis) return;
-    // Placeholders: the boss is a big tank, a freed crew a small one, until their art lands.
-    const scale = t.role === 'boss' ? 2.3 : t.role === 'crew' ? 0.45 : 1;
+    const scale = t.role === 'crew' ? 0.45 : 1;
     const x = Math.round(t.x);
     const y = Math.round(t.y);
     const frame = k.drive[Math.floor(t.rolled / ROLL_STEP) % k.drive.length]!;
@@ -95,6 +109,44 @@ export class TankView {
       const [back, fill] = this.bar;
       back.setPosition(x - w / 2 - 1, y - 46).setDisplaySize(w + 2, 5);
       fill.setPosition(x - w / 2, y - 45).setDisplaySize(Math.max(1, w * share), 3).setTint(share > 0.5 ? 0x8cc85a : share > 0.25 ? 0xe0b040 : 0xd85a3a);
+    }
+  }
+
+  /** The truck (one image over its wheels frame), the fortress body with rolling treads, and a fortress turret in its mount. */
+  private updateVehicle(t: Tank, parent?: Tank): void {
+    const vis = t.alive || t.role === 'bossTurret';
+    for (const i of [this.shadow, this.drive, this.hull, this.tShadow, this.turret]) i.setVisible(false);
+    if (this.bar) for (const b of this.bar) b.setVisible(false);
+    if (!vis) return;
+    const x = Math.round(t.x);
+    const y = Math.round(t.y);
+    const step = Math.floor(t.rolled / ROLL_STEP);
+    if (t.role === 'bossTurret') {
+      const name = TURRET_OF[t.loadout.gun.family] ?? 'fortressCannon';
+      const key = worldKey(`vehicles/${name}-${t.alive ? 1 : 0}`);
+      const sc = TURRET_SCALE[name] ?? 0.7;
+      const depth = footDepth((parent?.y ?? t.y) + 20) + DEPTH.turret;
+      this.bank.apply(this.tShadow, key, t.turret);
+      this.bank.apply(this.turret, key, t.turret);
+      this.tShadow.setVisible(t.alive).setPosition(x + SHADOW.x * 5, y + SHADOW.y * 5).setScale(sc).setDepth(depth - 0.01);
+      this.turret.setVisible(true).setPosition(x, y).setScale(sc).setDepth(depth);
+      return;
+    }
+    const boss = t.role === 'boss';
+    const body = worldKey(`vehicles/${boss ? FORT.body : 'truck-1'}`);
+    const sc = boss ? FORT_SCALE : 1;
+    const frames = boss ? FORT.treads : TRUCK.frames.slice(1);
+    const d = footDepth(y + 20);
+    this.bank.apply(this.shadow, body, t.heading);
+    this.shadow.setVisible(true).setPosition(x + SHADOW.x * 8 * sc, y + SHADOW.y * 8 * sc).setScale(sc).setDepth(DEPTH.shadow);
+    this.bank.apply(this.hull, body, t.heading);
+    this.hull.setVisible(true).setPosition(x, y).setScale(sc).setDepth(d + DEPTH.hull);
+    // The truck's own frames are whole-vehicle (frame 1, then 2 while rolling); the fortress has its treads on a layer under the body.
+    if (boss) {
+      this.bank.apply(this.drive, worldKey(`vehicles/${frames[step % frames.length]!}`), t.heading);
+      this.drive.setVisible(true).setPosition(x, y).setScale(sc).setDepth(d + DEPTH.drive);
+    } else if (step % 2 === 1) {
+      this.bank.apply(this.hull, worldKey(`vehicles/${TRUCK.frames[1]!}`), t.heading);
     }
   }
 

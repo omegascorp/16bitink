@@ -3619,12 +3619,12 @@
   "bridgeDeck": {
    "layer": "ground",
    "anchor": [
-    104,
-    30
+    124,
+    54
    ],
    "size": [
-    208,
-    79
+    248,
+    127
    ],
    "states": [
     1
@@ -3650,11 +3650,11 @@
   "bridgeRailN": {
    "layer": "structure",
    "anchor": [
-    106,
-    56
+    126,
+    80
    ],
    "size": [
-    223,
+    263,
     37
    ],
    "states": [
@@ -3669,40 +3669,40 @@
     "1": [
      [
       [
-       -100.0,
-       -26.0
+       -120.0,
+       -50.0
       ],
       [
-       100.0,
-       -26.0
+       120.0,
+       -50.0
       ],
       [
-       100.0,
-       -23.0
+       120.0,
+       -47.0
       ],
       [
-       -100.0,
-       -23.0
+       -120.0,
+       -47.0
       ]
      ]
     ],
     "0": [
      [
       [
-       -100.0,
-       -26.0
+       -120.0,
+       -50.0
       ],
       [
-       100.0,
-       -26.0
+       120.0,
+       -50.0
       ],
       [
-       100.0,
-       -23.0
+       120.0,
+       -47.0
       ],
       [
-       -100.0,
-       -23.0
+       -120.0,
+       -47.0
       ]
      ]
     ]
@@ -3711,11 +3711,11 @@
    "pieces": {
     "bridgeRailN-1": {
      "file": "structures/bridgeRailN-1.png",
-     "sortY": -23.0
+     "sortY": -47.0
     },
     "bridgeRailN-0": {
      "file": "structures/bridgeRailN-0.png",
-     "sortY": -23.0
+     "sortY": -47.0
     }
    },
    "shadows": {
@@ -3726,11 +3726,11 @@
   "bridgeRailS": {
    "layer": "structure",
    "anchor": [
-    106,
-    7
+    126,
+    -17
    ],
    "size": [
-    223,
+    263,
     45
    ],
    "states": [
@@ -3745,40 +3745,40 @@
     "1": [
      [
       [
-       -100.0,
-       23.0
+       -120.0,
+       47.0
       ],
       [
-       100.0,
-       23.0
+       120.0,
+       47.0
       ],
       [
-       100.0,
-       26.0
+       120.0,
+       50.0
       ],
       [
-       -100.0,
-       26.0
+       -120.0,
+       50.0
       ]
      ]
     ],
     "0": [
      [
       [
-       -100.0,
-       23.0
+       -120.0,
+       47.0
       ],
       [
-       100.0,
-       23.0
+       120.0,
+       47.0
       ],
       [
-       100.0,
-       26.0
+       120.0,
+       50.0
       ],
       [
-       -100.0,
-       26.0
+       -120.0,
+       50.0
       ]
      ]
     ]
@@ -3787,11 +3787,11 @@
    "pieces": {
     "bridgeRailS-1": {
      "file": "structures/bridgeRailS-1.png",
-     "sortY": 26.0
+     "sortY": 50.0
     },
     "bridgeRailS-0": {
      "file": "structures/bridgeRailS-0.png",
-     "sortY": 26.0
+     "sortY": 50.0
     }
    },
    "shadows": {
@@ -4806,6 +4806,273 @@
    "shadows": {
     "1": "structures/fortGate-1-shadow.png",
     "0": "structures/fortGate-0-shadow.png"
+   }
+  },
+  "bridgeDeckV": {
+   "layer": "ground",
+   "anchor": [
+    59,
+    124
+   ],
+   "size": [
+    114,
+    253
+   ],
+   "states": [
+    1
+   ],
+   "hp": 0,
+   "height": 0.0,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": []
+   },
+   "roofFade": {},
+   "pieces": {
+    "bridgeDeckV-1": {
+     "file": "structures/bridgeDeckV-1.png",
+     "sortY": 0.0
+    }
+   },
+   "shadows": {
+    "1": "structures/bridgeDeckV-1-shadow.png"
+   }
+  },
+  "bridgeRailE": {
+   "layer": "structure",
+   "anchor": [
+    -42,
+    151
+   ],
+   "size": [
+    31,
+    277
+   ],
+   "states": [
+    1,
+    0
+   ],
+   "hp": 120,
+   "height": 14.1,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       47.0,
+       -120.0
+      ],
+      [
+       50.0,
+       -120.0
+      ],
+      [
+       50.0,
+       120.0
+      ],
+      [
+       47.0,
+       120.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       47.0,
+       -120.0
+      ],
+      [
+       50.0,
+       -120.0
+      ],
+      [
+       50.0,
+       120.0
+      ],
+      [
+       47.0,
+       120.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "bridgeRailE-1": {
+     "file": "structures/bridgeRailE-1.png",
+     "sortY": 120.0
+    },
+    "bridgeRailE-0": {
+     "file": "structures/bridgeRailE-0.png",
+     "sortY": 120.0
+    }
+   },
+   "shadows": {
+    "1": "structures/bridgeRailE-1-shadow.png",
+    "0": "structures/bridgeRailE-0-shadow.png"
+   }
+  },
+  "bridgeRailW": {
+   "layer": "structure",
+   "anchor": [
+    62,
+    151
+   ],
+   "size": [
+    30,
+    277
+   ],
+   "states": [
+    1,
+    0
+   ],
+   "hp": 120,
+   "height": 14.1,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -50.0,
+       -120.0
+      ],
+      [
+       -47.0,
+       -120.0
+      ],
+      [
+       -47.0,
+       120.0
+      ],
+      [
+       -50.0,
+       120.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -50.0,
+       -120.0
+      ],
+      [
+       -47.0,
+       -120.0
+      ],
+      [
+       -47.0,
+       120.0
+      ],
+      [
+       -50.0,
+       120.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "bridgeRailW-1": {
+     "file": "structures/bridgeRailW-1.png",
+     "sortY": 120.0
+    },
+    "bridgeRailW-0": {
+     "file": "structures/bridgeRailW-0.png",
+     "sortY": 120.0
+    }
+   },
+   "shadows": {
+    "1": "structures/bridgeRailW-1-shadow.png",
+    "0": "structures/bridgeRailW-0-shadow.png"
+   }
+  },
+  "cage": {
+   "layer": "structure",
+   "anchor": [
+    35,
+    93
+   ],
+   "size": [
+    101,
+    132
+   ],
+   "states": [
+    1,
+    0
+   ],
+   "hp": 60,
+   "height": 34.0,
+   "flattenable": false,
+   "cover": false,
+   "footprint": {
+    "1": [
+     [
+      [
+       -28.0,
+       -28.0
+      ],
+      [
+       28.0,
+       -28.0
+      ],
+      [
+       28.0,
+       28.0
+      ],
+      [
+       -28.0,
+       28.0
+      ]
+     ]
+    ],
+    "0": [
+     [
+      [
+       -28.0,
+       -28.0
+      ],
+      [
+       28.0,
+       -28.0
+      ],
+      [
+       28.0,
+       28.0
+      ],
+      [
+       -28.0,
+       28.0
+      ]
+     ]
+    ]
+   },
+   "roofFade": {},
+   "pieces": {
+    "cage-1": {
+     "file": "structures/cage-1.png",
+     "sortY": -26.0
+    },
+    "cage-1-front": {
+     "file": "structures/cage-1-front.png",
+     "sortY": 28.0
+    },
+    "cage-0": {
+     "file": "structures/cage-0.png",
+     "sortY": -26.0
+    },
+    "cage-0-front": {
+     "file": "structures/cage-0-front.png",
+     "sortY": 28.0
+    }
+   },
+   "shadows": {
+    "1": "structures/cage-1-shadow.png",
+    "0": "structures/cage-0-shadow.png"
    }
   }
  },

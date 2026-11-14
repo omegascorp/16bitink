@@ -46,6 +46,21 @@ describe('a match', () => {
     expect(m.drainEvents().some((e) => e.kind === 'fire')).toBe(true);
   });
 
+  it('takes a repair kit only with room in the kit bag, and flags the one it had to leave', () => {
+    const m = make(1, 1, false);
+    const p = m.player!;
+    p.kits = p.maxKits;
+    const kit = m.addPickup({ kind: 'kit' }, p.x, p.y);
+    m.step(1 / 30);
+    expect(kit.taken).toBe(false);
+    expect(p.onFullKit).toBe(true);
+    p.kits = p.maxKits - 1;
+    m.step(1 / 30);
+    expect(kit.taken).toBe(true);
+    expect(p.kits).toBe(p.maxKits);
+    expect(p.onFullKit).toBe(false);
+  });
+
   it('swaps parts keeping the HP share, repairs, and leaves a wreck with intel', () => {
     const m = make(1, 4, false);
     const p = m.player!;

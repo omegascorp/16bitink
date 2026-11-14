@@ -30,22 +30,39 @@ export class Controls {
   touchUsed = matchMedia('(pointer: coarse)').matches;
   enabled = true;
 
-  constructor(private readonly surface: HTMLElement, private readonly toWorld: (cx: number, cy: number) => { x: number; y: number }) {
+  private readonly off = new AbortController();
+
+  /** `layer`: where the touch sticks are drawn (the page body by default). */
+  constructor(private readonly surface: HTMLElement, private readonly toWorld: (cx: number, cy: number) => { x: number; y: number }, private readonly layer: HTMLElement = document.body) {
+    const o = { signal: this.off.signal };
     addEventListener('keydown', (e) => {
       const k = e.key.toLowerCase();
       this.keys.add(k);
       if (k === 'q') this.repairPressed = true;
-    });
-    addEventListener('keyup', (e) => this.keys.delete(e.key.toLowerCase()));
-    addEventListener('blur', () => {
-      this.keys.clear();
-      this.mouseDown = false;
-    });
-    surface.addEventListener('pointerdown', (e) => this.down(e));
-    addEventListener('pointermove', (e) => this.move(e));
-    addEventListener('pointerup', (e) => this.up(e));
-    addEventListener('pointercancel', (e) => this.up(e));
-    surface.addEventListener('contextmenu', (e) => e.preventDefault());
+    }, o);
+    addEventListener('keyup', (e) => this.keys.delete(e.key.toLowerCase()), o);
+    addEventListener('blur', () => this.release(), o);
+    surface.addEventListener('pointerdown', (e) => this.down(e), o);
+    addEventListener('pointermove', (e) => this.move(e), o);
+    addEventListener('pointerup', (e) => this.up(e), o);
+    addEventListener('pointercancel', (e) => this.up(e), o);
+    surface.addEventListener('contextmenu', (e) => e.preventDefault(), o);
+  }
+
+  /** Lets go of every key, button and stick (on blur, pause, or the end of a mission). */
+  release(): void {
+    this.keys.clear();
+    this.mouseDown = false;
+    this.swapHeld = false;
+    for (const side of ['left', 'right'] as const) {
+      this[side]?.el.remove();
+      this[side] = null;
+    }
+  }
+
+  destroy(): void {
+    this.release();
+    this.off.abort();
   }
 
   /** Wires a held button (swap) and a pressed one (repair). */
@@ -77,7 +94,7 @@ export class Controls {
     el.innerHTML = '<i></i>';
     el.style.left = `${e.clientX}px`;
     el.style.top = `${e.clientY}px`;
-    document.body.appendChild(el);
+    this.layer.appendChild(el);
     this[side] = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0, el };
   }
 

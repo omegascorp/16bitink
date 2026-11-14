@@ -1,5 +1,5 @@
-import { FAMILIES, slotOf, type Family, type Loadout, type Mk, type Part } from './parts';
-import { perksOf, rankOf, type RankId } from './rank';
+import { familyName, FAMILIES, slotOf, type Family, type Loadout, type Mk, type Part } from './parts';
+import { perksOf, rankOf, RANKS, type RankId } from './rank';
 import { RESEARCH_MAX, researchSteps, type Research, type ResearchLine } from './stats';
 
 /**
@@ -52,6 +52,8 @@ export function newProgress(): Progress {
 
 export type Result = { ok: true; progress: Progress } | { ok: false; reason: string };
 
+/** "Cannon blueprints": the player-facing name of intel is Blueprints, and they are per part family. */
+const blueprintsOf = (f: Family): string => `${familyName(f)} blueprints`;
 const fail = (reason: string): Result => ({ ok: false, reason });
 const have = (p: Progress, f: Family): number => p.intel[f] ?? 0;
 const spend = (bag: IntelBag, f: Family, n: number): IntelBag => ({ ...bag, [f]: (bag[f] ?? 0) - n });
@@ -70,7 +72,7 @@ export function addIntel(p: Progress, gained: IntelBag): Progress {
 
 export function unlock(p: Progress, f: Family): Result {
   if (p.unlocked.includes(f)) return fail('already unlocked');
-  if (have(p, f) < UNLOCK_COST) return fail(`needs ${UNLOCK_COST} intel`);
+  if (have(p, f) < UNLOCK_COST) return fail(`needs ${UNLOCK_COST} ${blueprintsOf(f)}`);
   return { ok: true, progress: { ...p, intel: spend(p.intel, f, UNLOCK_COST), unlocked: [...p.unlocked, f], mk: { ...p.mk, [f]: 1 } } };
 }
 
@@ -79,8 +81,8 @@ export function raiseMk(p: Progress, f: Family): Result {
   const cur = p.mk[f] ?? 1;
   if (cur >= 3) return fail('already Mk III');
   const next = (cur + 1) as 2 | 3;
-  if (perksOf(p.xp).maxMk < next) return fail(`needs ${MK_RANK[next]}`);
-  if (have(p, f) < MK_COST[next]) return fail(`needs ${MK_COST[next]} intel`);
+  if (perksOf(p.xp).maxMk < next) return fail(`needs ${RANKS.find((r) => r.id === MK_RANK[next])?.name ?? MK_RANK[next]}`);
+  if (have(p, f) < MK_COST[next]) return fail(`needs ${MK_COST[next]} ${blueprintsOf(f)}`);
   return { ok: true, progress: { ...p, intel: spend(p.intel, f, MK_COST[next]), mk: { ...p.mk, [f]: next } } };
 }
 
@@ -95,7 +97,7 @@ export function research(p: Progress, f: Family, line: ResearchLine): Result {
   if (!lines.includes(line)) return fail(`${f} has no ${line} line`);
   const cost = researchCost(p, f, line);
   if (cost === null) return fail('line finished');
-  if (have(p, f) < cost) return fail(`needs ${cost} intel`);
+  if (have(p, f) < cost) return fail(`needs ${cost} ${blueprintsOf(f)}`);
   const prev = p.research[f] ?? {};
   const steps = researchSteps(p.research, f, line) + 1;
   return { ok: true, progress: { ...p, intel: spend(p.intel, f, cost), research: { ...p.research, [f]: { ...prev, [line]: steps } } } };

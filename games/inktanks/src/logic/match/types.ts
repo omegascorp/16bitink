@@ -64,6 +64,8 @@ export interface Tank {
   picks: Part[];
   swapT: number;
   onPart: number | null;
+  /** Touching a repair kit it can't take: its kit bag is full. */
+  onFullKit: boolean;
   carrying: boolean;
   /** Distance rolled, for the drive's rolling frames. */
   rolled: number;

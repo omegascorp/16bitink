@@ -2,9 +2,11 @@ import { damageTaken } from '../../logic/damage';
 import { sumIntel } from '../../logic/intel';
 import type { Match } from '../../logic/match/match';
 import type { MatchEvent, Tank } from '../../logic/match/types';
-import { partLabel, withPart, type Part } from '../../logic/parts';
+import { familyName, partLabel, withPart, type Family, type Part } from '../../logic/parts';
 import { tankStats, type TankStats } from '../../logic/stats';
 import { partsArt } from '../../render/partsArt';
+import { pickupUrl } from '../../render/pickupArt';
+import { bpIcon } from '../../ui/blueprint';
 import { SWAP_HOLD } from '../../logic/match/pickups';
 import type { LandMap } from './landMap';
 
@@ -17,6 +19,9 @@ import type { LandMap } from './landMap';
 /** Where a world point is on screen, in CSS px (from the mission scene's camera). */
 export type Project = (x: number, y: number) => { x: number; y: number };
 const ARROW_MARGIN = 36;
+/** How long a tip stays, and below what HP share the 'use a kit' tip shows (once a mission). */
+const TIP_S = 4.5;
+const LOW_HP = 0.4;
 const $ = <T extends HTMLElement>(root: HTMLElement, sel: string): T => root.querySelector(sel) as T;
 
 export class Hud {
@@ -25,6 +30,13 @@ export class Hud {
   private readonly hpText: HTMLElement;
   private readonly icons: HTMLElement;
   private readonly kits: HTMLElement;
+  private readonly tip: HTMLElement;
+  private tipUntil = 0;
+  private lowHpTipped = false;
+  private kitsShown = '';
+  private touch = false;
+  private tipDone = false;
+  private seenBag: Readonly<Partial<Record<Family, number>>> = {};
   private readonly timer: HTMLElement;
   private readonly arrow: HTMLElement;
   private readonly goal: HTMLElement;
@@ -35,7 +47,7 @@ export class Hud {
   private cardFor: number | null = null;
   private loadoutRef: Tank['loadout'] | null = null;
 
-  constructor(private readonly root: HTMLElement, private readonly lm: LandMap) {
+  constructor(private readonly root: HTMLElement, private readonly lm: LandMap, private readonly firstBlueprints: { seen: boolean; mark: () => void } = { seen: true, mark: () => undefined }) {
     const map = lm.canvas;
     root.innerHTML = `
       <div class="feed"></div>
@@ -43,12 +55,14 @@ export class Hud {
       <div class="goal"></div><div class="arrow"></div>
       <div class="card"></div>
       <div class="bottom"><div class="icons"></div><div class="hpbar"><i></i><b></b></div><span class="kits"></span></div>
+      <div class="tip"></div>
       <button class="btn swap">Swap</button><button class="btn repair">Repair</button>`;
     this.feed = $(root, '.feed');
     this.hp = $(root, '.hpbar i');
     this.hpText = $(root, '.hpbar b');
     this.icons = $(root, '.icons');
     this.kits = $(root, '.kits');
+    this.tip = $(root, '.tip');
     this.timer = $(root, '.timer');
     this.arrow = $(root, '.arrow');
     this.goal = $(root, '.goal');
@@ -70,7 +84,56 @@ export class Hud {
     else if (e.kind === 'escape') {
       const t = m.tank(e.tank);
       if (t) this.line(t.role === 'crew' ? `${t.name} is home` : `<b class="red">${who(t)} got away</b>`);
-    } else if (e.kind === 'pickup' && e.what === 'intel' && m.tank(e.tank)?.isPlayer) this.line(`+${e.amount} intel`);
+    } else if (e.kind === 'pickup' && e.what === 'intel' && m.tank(e.tank)?.isPlayer) this.blueprints(m, e.amount);
+    else if (e.kind === 'pickup' && e.what === 'kit' && m.tank(e.tank)?.isPlayer) this.showTip(m, `Repair kit! ${this.useKey()} to fix your tank`);
+  }
+
+  /** "+5 [icon] blueprints (Cannon, Wheels)": the families that grew since the last pickup; the first time ever, a tip. */
+  private blueprints(m: Match, amount: number): void {
+    const gained = (Object.keys(m.intel) as Family[]).filter((f) => (m.intel[f] ?? 0) > (this.seenBag[f] ?? 0));
+    this.seenBag = { ...m.intel };
+    const names = gained.map(familyName).join(', ');
+    this.line(`<span class="bpn">+${amount} ${bpIcon()} blueprints${names ? ` (${names})` : ''}</span>`);
+    if (!this.firstBlueprints.seen && !this.tipDone) {
+      this.tipDone = true;
+      this.firstBlueprints.mark();
+      this.showTip(m, `${bpIcon()} <b>Blueprints!</b> Spend them in the Workshop to upgrade your tank.`);
+    }
+  }
+
+  /** "Press Q" on a keyboard, "Tap Repair" on a phone; lower case mid-sentence. */
+  private useKey(mid = false): string {
+    const verb = this.touch ? 'Tap' : 'Press';
+    return `${mid ? verb.toLowerCase() : verb} ${this.touch ? '<b>Repair</b>' : '<kbd>Q</kbd>'}`;
+  }
+
+  private showTip(m: Match, html: string): void {
+    this.tip.innerHTML = html;
+    this.tip.style.display = 'block';
+    this.tipUntil = m.t + TIP_S;
+  }
+
+  /** Kit slots as icons, filled or empty, with the key that uses one. */
+  private drawKits(p: Tank): void {
+    const key = `${p.kits}/${p.maxKits}/${p.repairT > 0}/${this.touch}`;
+    if (key === this.kitsShown) return;
+    this.kitsShown = key;
+    const url = pickupUrl('kit');
+    const slot = (full: boolean) => (url ? `<img class="${full ? 'on' : 'off'}" src="${url}" alt="">` : `<i class="${full ? 'on' : 'off'}">+</i>`);
+    const slots = Array.from({ length: p.maxKits }, (_, i) => slot(i < p.kits)).join('');
+    const hint = p.repairT > 0 ? '<em>repairing</em>' : this.touch || p.kits === 0 ? '' : '<kbd>Q</kbd>';
+    this.kits.innerHTML = `${slots}${hint}`;
+    this.kits.title = 'Repair kits';
+  }
+
+  /** Tips that come from what the player is doing: a kit they can't carry, or low HP with a kit to use. */
+  private drawTips(m: Match, p: Tank): void {
+    if (p.onFullKit && m.t >= this.tipUntil - TIP_S + 1) this.showTip(m, `Kit bag full: ${this.useKey(true)} to use one, then pick this up`);
+    if (!this.lowHpTipped && p.kits > 0 && p.repairT <= 0 && p.hp / p.stats.maxHp < LOW_HP) {
+      this.lowHpTipped = true;
+      this.showTip(m, `Low HP! ${this.useKey()} to use a repair kit`);
+    }
+    if (m.t > this.tipUntil) this.tip.style.display = 'none';
   }
 
   private line(html: string): void {
@@ -86,7 +149,9 @@ export class Hud {
     this.hp.style.width = `${share * 100}%`;
     this.hp.style.background = share > 0.5 ? '#8cc85a' : share > 0.25 ? '#e0b040' : '#d85a3a';
     this.hpText.textContent = `${Math.ceil(p.hp)} / ${Math.round(p.stats.maxHp)}`;
-    this.kits.textContent = `Kits ${p.kits}${p.repairT > 0 ? ' (repairing)' : ''}`;
+    this.touch = touch;
+    this.drawKits(p);
+    this.drawTips(m, p);
     if (this.loadoutRef !== p.loadout) {
       this.loadoutRef = p.loadout;
       this.icons.innerHTML = [p.loadout.gun, p.loadout.hull, p.loadout.drive].map(iconHtml).join('');
@@ -192,5 +257,5 @@ function diffs(a: TankStats, b: TankStats): string {
 
 
 export function intelSummary(m: Match): string {
-  return `${sumIntel(m.intel)} intel` + (Object.keys(m.intel).length ? `: ${Object.entries(m.intel).map(([k, v]) => `${k} ${v}`).join(', ')}` : '');
+  return `${sumIntel(m.intel)} blueprints` + (Object.keys(m.intel).length ? `: ${Object.entries(m.intel).map(([k, v]) => `${k} ${v}`).join(', ')}` : '');
 }

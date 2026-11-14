@@ -32,11 +32,11 @@ export const path = (ground: Ground, pts: readonly Pt[], width: number): Terrain
 export function bridge(c: Pt, across: 'x' | 'y', length = 220): { deck: TerrainPatch; rails: StructPlace[] } {
   const w = across === 'x' ? length : 110;
   const h = across === 'x' ? 110 : length;
-  const kind = across === 'x' ? 'bridgeRail' : 'bridgeRailV';
-  const off = across === 'x' ? { x: 0, y: 50 } : { x: 50, y: 0 };
+  const kinds = across === 'x' ? ['bridgeRailN', 'bridgeRailS'] : ['bridgeRailW', 'bridgeRailE'];
   return {
     deck: patch('bridge', c.x - w / 2, c.y - h / 2, w, h),
-    rails: [-1, 1].map((s) => ({ kind, x: c.x + off.x * s, y: c.y + off.y * s })),
+    /** The art's rails keep their offset inside the model: both stand at the bridge's centre. */
+    rails: kinds.map((kind) => ({ kind, x: c.x, y: c.y })),
   };
 }
 
