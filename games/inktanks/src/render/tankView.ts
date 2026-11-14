@@ -18,6 +18,11 @@ const TURRET_OF: Readonly<Record<string, string>> = { cannon: 'fortressCannon', 
 /** The fixed sun: shadows fall right and up (as the art tests). */
 export const SHADOW = { x: 0.78, y: -0.58 };
 export const DEPTH = { shadow: 20, drive: 0.01, hull: 0.02, turretShadow: 0.03, turret: 0.04, bar: 6000 } as const;
+/** The tarp is much lighter than a hull's stripe, so its tint is darkened to sit with the painted art. */
+const TARP_SHADE = 0.68;
+const shade = (rgb: number, k: number): number => (Math.round(((rgb >> 16) & 255) * k) << 16) | (Math.round(((rgb >> 8) & 255) * k) << 8) | Math.round((rgb & 255) * k);
+/** HP bar width and height above the centre, native px, by what it's over. */
+const BAR = { tank: { w: 40, lift: 46 }, truck: { w: 52, lift: 62 }, crew: { w: 24, lift: 32 }, boss: { w: 110, lift: 120 }, bossTurret: { w: 30, lift: 30 } } as const;
 /** Things standing on the ground sort by their foot: the castle projection's draw order. */
 export const footDepth = (y: number): number => 1000 + y / 10;
 /** Native px a drive rolls per frame step. */
@@ -109,13 +114,20 @@ export class TankView {
     this.hull.setPosition(x, y).setScale(scale);
     this.tShadow.setPosition(tx + SHADOW.x * 4, ty + SHADOW.y * 4).setScale(scale);
     this.turret.setPosition(Math.round(tx), Math.round(ty)).setScale(scale);
-    if (this.bar && showBar) {
-      const w = 40;
-      const share = Math.max(0, t.hp / t.stats.maxHp);
-      const [back, fill] = this.bar;
-      back.setPosition(x - w / 2 - 1, y - 46).setDisplaySize(w + 2, 5);
-      fill.setPosition(x - w / 2, y - 45).setDisplaySize(Math.max(1, w * share), 3).setTint(share > 0.5 ? 0x8cc85a : share > 0.25 ? 0xe0b040 : 0xd85a3a);
-    }
+    if (showBar) this.drawBar(t, x, y, BAR.tank);
+  }
+
+  /** The HP bar over a damaged tank, truck, crew, fortress or fortress turret; full ones show none. */
+  private drawBar(t: Tank, x: number, y: number, size: { readonly w: number; readonly lift: number }): void {
+    if (!this.bar) return;
+    const show = t.alive && t.hp < t.stats.maxHp;
+    for (const b of this.bar) b.setVisible(show);
+    if (!show) return;
+    const { w, lift } = size;
+    const share = Math.max(0, t.hp / t.stats.maxHp);
+    const [back, fill] = this.bar;
+    back.setPosition(x - w / 2 - 1, y - lift).setDisplaySize(w + 2, 5);
+    fill.setPosition(x - w / 2, y - lift + 1).setDisplaySize(Math.max(1, w * share), 3).setTint(share > 0.5 ? 0x8cc85a : share > 0.25 ? 0xe0b040 : 0xd85a3a);
   }
 
   /** The truck (one image over its wheels frame), the fortress body with rolling treads, and a fortress turret in its mount. */
@@ -136,6 +148,7 @@ export class TankView {
       this.bank.apply(this.turret, key, t.turret);
       this.tShadow.setVisible(t.alive).setPosition(x + SHADOW.x * 5, y + SHADOW.y * 5).setScale(sc).setDepth(depth - 0.01);
       this.turret.setVisible(true).setPosition(x, y).setScale(sc).setDepth(depth);
+      this.drawBar(t, x, y, BAR.bossTurret);
       return;
     }
     if (t.role === 'crew') {
@@ -144,10 +157,13 @@ export class TankView {
       this.shadow.setTexture(key).setRotation(0).setVisible(true).setPosition(x + 3, y - 2).setDepth(DEPTH.shadow);
       this.hull.setTexture(key).setRotation(0).setVisible(true).setPosition(x, y).setScale(1).setDepth(footDepth(y + 10) + DEPTH.hull);
       this.shadow.setScale(1);
+      this.drawBar(t, x, y, BAR.crew);
       return;
     }
     const boss = t.role === 'boss';
-    const body = worldKey(`vehicles/${boss ? FORT.body : 'truck-1'}`);
+    // A truck's tarp takes its side's colour (Ink blue for yours, the clan's for a convoy), as a tank's stripe does.
+    const truckKey = (frame: string): string => this.bank.tinted(worldKey(`vehicles/${frame}`), worldKey('vehicles/truck-1-stripe'), shade(CLAN_COLOUR[t.clan], TARP_SHADE));
+    const body = boss ? worldKey(`vehicles/${FORT.body}`) : truckKey('truck-1');
     const sc = boss ? FORT_SCALE : 1;
     const frames = boss ? FORT.treads : TRUCK.frames.slice(1);
     const d = footDepth(y + 20);
@@ -160,8 +176,9 @@ export class TankView {
       this.bank.apply(this.drive, worldKey(`vehicles/${frames[step % frames.length]!}`), t.heading);
       this.drive.setVisible(true).setPosition(x, y).setScale(sc).setDepth(d + DEPTH.drive);
     } else if (step % 2 === 1) {
-      this.bank.apply(this.hull, worldKey(`vehicles/${TRUCK.frames[1]!}`), t.heading);
+      this.bank.apply(this.hull, truckKey(TRUCK.frames[1]!), t.heading);
     }
+    this.drawBar(t, x, y, boss ? BAR.boss : BAR.truck);
   }
 
   destroy(): void {

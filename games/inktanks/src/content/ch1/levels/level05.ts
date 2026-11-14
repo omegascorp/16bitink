@@ -13,7 +13,7 @@ const woods = (cx: number, cy: number): [number, number][] => [[cx - 120, cy - 6
 
 export const LEVEL_05: LevelDef = {
   id: 'ch1-05', number: 5, name: 'Weasel Ace', type: 'ace',
-  briefing: 'Sly, a Weasel ace on Mk II Wheels, runs the woods. Machineguns shred wheels. Destroy Sly: an ace carries rare tech.',
+  briefing: 'Not the Boars this time: a Weasel pack has moved into the woods, fast scouts on wheels, led by their ace Sly on Mk II Wheels. Machineguns shred wheels. Destroy Sly: an ace carries rare tech.',
   teaches: 'Counters (Machinegun beats Wheels), rare intel',
   map: {
     cols: 3, rows: 3, base: 'grass',

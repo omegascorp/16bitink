@@ -110,6 +110,9 @@ export function loadLevel(def: LevelDef, kinds: Readonly<Record<string, StructKi
     return { ...rest, at: dry(place(at, what), what), loadout, index: i };
   });
   const crates = def.crates.map((c, i): ResolvedCrate => ({ ...c, at: dry(place(c.at, `crate ${i}`), `crate ${i}`) }));
+  // One enemy faction per level, so a mission reads as "against the Boars" (owner, Nov 14: no red and yellow for no reason).
+  const clans = [...new Set(def.enemies.map((e) => e.clan))];
+  if (clans.length > 1) err(`enemies mix factions (${clans.join(', ')}): a level is against one faction`);
   checkObjective(def.objective, { point: (k, w) => place(k, w), road, tag: (t, w) => (structures.some((s) => s.tag === t) ? undefined : err(`${w}: no structure tagged "${t}"`)), enemies: def.enemies, err });
   def.bonus.forEach((b, i) => checkBonus(b, i, err));
   if (problems.length > 0) throw new LevelError(`${def.number} ${def.name}`, problems.join('\n  '));

@@ -41,5 +41,7 @@ describe('level layouts', () => {
     expect(() => loadLevel(fixture({ kind: 'chase', base: 'c' }), KINDS)).toThrow(/role "runner"/);
     expect(() => loadLevel(fixture({ kind: 'assault' }, [{ role: 'wave', clan: 'boars', tank: 'machinegun1/light1/wheels1', at: 'a' }]), KINDS)).toThrow(/needs "when"/);
     expect(() => loadLevel(fixture({ kind: 'assault' }, [{ role: 'guard', clan: 'boars', tank: 'tank', at: 'a' }]), KINDS)).toThrow(/enemy 0/);
+    const mixed = [{ role: 'guard', clan: 'boars', tank: 'machinegun1/light1/wheels1', at: 'a' }, { role: 'guard', clan: 'weasels', tank: 'machinegun1/light1/wheels1', at: 'a' }] as const;
+    expect(() => loadLevel(fixture({ kind: 'assault' }, mixed), KINDS)).toThrow(/mix factions \(boars, weasels\)/);
   });
 });

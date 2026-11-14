@@ -101,6 +101,9 @@ export const SCREENS_CSS = `
 .ikt .sheet .cols { display: flex; gap: 16px; align-items: stretch; }
 .ikt .sheet .cols > * { flex: 1 1 0; min-width: 0; }
 .ikt .objective { font-size: 24px; color: var(--gold); }
+.ikt .briefing .enemy { display: flex; align-items: center; gap: 6px; margin: 2px 0 6px; }
+.ikt .briefing .enemy b { font-size: 16px; }
+.ikt .briefing .swatch { display: inline-block; width: 14px; height: 14px; border: 2px solid #14110c; border-radius: 2px; }
 .ikt .bonus { display: flex; align-items: center; gap: 4px; }
 .ikt .minimap { width: 100%; height: auto; image-rendering: pixelated; box-shadow: 0 0 0 4px var(--ink); background: #d9ccaa; display: block; }
 .ikt .gpicks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }

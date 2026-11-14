@@ -1,6 +1,7 @@
 import { MISSION_NAMES } from '../logic/campaign';
 import { GADGET_NAME, GADGET_TEXT } from '../logic/match/gadgets';
-import { GADGETS, type GadgetKind } from '../logic/match/types';
+import { CLAN_COLOUR, CLAN_INFO, rivalOf } from '../logic/match/names';
+import { GADGETS, type Clan, type GadgetKind } from '../logic/match/types';
 import { gadgetIconUrl } from '../scenes/mission/hud';
 import type { Match } from '../logic/match/match';
 import { bonusText } from '../logic/mission/bonus';
@@ -39,6 +40,15 @@ function gadgetPicker(picked: GadgetKind): string {
   return `<div class="dimt t12 hide-short">Gadget (G) · 2 a level</div><div class="gpicks">${GADGETS.map(opt).join('')}</div><div class="t12 gtext hide-short">${esc(GADGET_TEXT[picked])}</div>`;
 }
 
+/** "Enemy: Weasels, fast scouts on wheels", the name in the faction's stripe colour. */
+function enemyLine(enemies: readonly { readonly clan: Clan }[]): string {
+  if (enemies.length === 0) return '';
+  const clan = rivalOf(enemies);
+  const info = CLAN_INFO[clan];
+  const colour = `#${CLAN_COLOUR[clan].toString(16).padStart(6, '0')}`;
+  return `<div class="enemy t12"><span class="dimt">Enemy</span> <span class="swatch" style="background:${colour}"></span><b style="color:${colour}">${esc(info.name)}</b> <span class="dimt">${esc(info.blurb)}</span></div>`;
+}
+
 export function showBriefing(root: HTMLElement, m: Match, p: Progress, a: BriefingActions): void {
   let picked: GadgetKind = m.player?.gadget ?? 'mines';
   const def = m.level.def;
@@ -48,6 +58,7 @@ export function showBriefing(root: HTMLElement, m: Match, p: Progress, a: Briefi
   render(root, 'dark briefing', `
     <div class="panel sheet rise">
       <div class="row spread"><div><span class="dimt">Level ${def.number}</span> <span class="t36 gold">${esc(def.name)}</span></div><span class="panel paper t12">${MISSION_NAMES[def.type]}</span></div>
+      ${enemyLine(def.enemies)}
       <div class="cols">
         <div class="col">
           <div class="row" style="align-items:flex-start;gap:12px">
